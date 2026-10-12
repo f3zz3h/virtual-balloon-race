@@ -1,0 +1,43 @@
+/* Virtual Balloon Race — admin */
+
+.vbr-admin .vbr-admin-panel {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	padding: 16px 20px;
+	margin: 16px 0;
+}
+
+.vbr-advance-form {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px 14px;
+}
+
+.vbr-advance-form input[type="number"] {
+	width: 7rem;
+}
+
+.vbr-admin-table {
+	margin-top: 8px;
+}
+
+.vbr-status {
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: 999px;
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+}
+
+.vbr-status--active {
+	background: #edfaef;
+	color: #1e6b34;
+}
+
+.vbr-status--burst {
+	background: #fcecec;
+	color: #8a2424;
+}
