@@ -340,8 +340,8 @@ class VBR_WooCommerce {
 					);
 				}
 
-				$inserted = $wpdb->insert(
-					$table,
+				$start = VBR_Balloons::launch_point();
+				$row   = array_merge(
 					array(
 						'order_id'      => $order_id,
 						'user_id'       => intval( $order->get_user_id() ),
@@ -354,8 +354,19 @@ class VBR_WooCommerce {
 						'is_burst'      => 0,
 						'created_at'    => current_time( 'mysql' ),
 					),
-					array( '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%f', '%d', '%s' )
+					VBR_Balloons::start_columns( $start['lat'], $start['lng'] )
 				);
+
+				/**
+				 * Filter a new balloon row before insert (used by upsells: custom launch, logo).
+				 *
+				 * @param array                 $row   Column => value.
+				 * @param WC_Order_Item_Product $item  Order item.
+				 * @param WC_Order              $order Order.
+				 */
+				$row = apply_filters( 'vbr_new_balloon_row', $row, $item, $order );
+
+				$inserted = $wpdb->insert( $table, $row );
 
 				if ( false !== $inserted && 0 === $i ) {
 					wc_add_order_item_meta( $item_id, '_vbr_balloon_id', (int) $wpdb->insert_id, true );

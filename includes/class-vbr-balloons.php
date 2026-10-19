@@ -59,4 +59,78 @@ class VBR_Balloons {
 
 		return isset( $labels[ $strategy ] ) ? $labels[ $strategy ] : $strategy;
 	}
+
+	/**
+	 * Configured launch point.
+	 *
+	 * @return array{lat: float, lng: float, label: string}
+	 */
+	public static function launch_point() {
+		return array(
+			'lat'   => (float) VBR_Settings::get( 'launch_lat' ),
+			'lng'   => (float) VBR_Settings::get( 'launch_lng' ),
+			'label' => (string) VBR_Settings::get( 'launch_label' ),
+		);
+	}
+
+	/**
+	 * Decode a stored trail into [[lat, lng], ...].
+	 *
+	 * @param string|null $json Stored JSON.
+	 * @return array
+	 */
+	public static function decode_trail( $json ) {
+		$points = json_decode( (string) $json, true );
+
+		if ( ! is_array( $points ) ) {
+			return array();
+		}
+
+		$clean = array();
+		foreach ( $points as $point ) {
+			if ( is_array( $point ) && 2 === count( $point ) && is_numeric( $point[0] ) && is_numeric( $point[1] ) ) {
+				$clean[] = array( (float) $point[0], (float) $point[1] );
+			}
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Encode a trail, keeping only the most recent points.
+	 *
+	 * @param array    $points [[lat, lng], ...].
+	 * @param int|null $cap    Max points (defaults to the trail length setting).
+	 * @return string
+	 */
+	public static function encode_trail( $points, $cap = null ) {
+		$cap    = null === $cap ? (int) VBR_Settings::get( 'trail_cap' ) : (int) $cap;
+		$points = array_slice( array_values( $points ), -max( 2, $cap ) );
+
+		$rounded = array_map(
+			static function ( $p ) {
+				return array( round( (float) $p[0], 5 ), round( (float) $p[1], 5 ) );
+			},
+			$points
+		);
+
+		return wp_json_encode( $rounded );
+	}
+
+	/**
+	 * Position columns for a brand new balloon starting at a point.
+	 *
+	 * @param float $lat Start latitude.
+	 * @param float $lng Start longitude.
+	 * @return array Column => value.
+	 */
+	public static function start_columns( $lat, $lng ) {
+		return array(
+			'latitude'   => (float) $lat,
+			'longitude'  => (float) $lng,
+			'start_lat'  => (float) $lat,
+			'start_lng'  => (float) $lng,
+			'trail_json' => self::encode_trail( array( array( $lat, $lng ) ) ),
+		);
+	}
 }
