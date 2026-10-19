@@ -71,6 +71,7 @@ class VBR_Frontend {
 			array(
 				'limit'   => 50,
 				'map_url' => '',
+				'race'    => 'current',
 			),
 			$atts,
 			'balloon_leaderboard'
@@ -79,21 +80,62 @@ class VBR_Frontend {
 		$limit   = max( 1, intval( $atts['limit'] ) );
 		$map_url = '' !== $atts['map_url'] ? esc_url( $atts['map_url'] ) : '';
 
-		global $wpdb;
-		$table = VBR_Balloons::table();
+		$race = VBR_Races::resolve( $atts['race'] );
 
-		$balloons = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT * FROM {$table} WHERE is_burst = 0 ORDER BY distance_km DESC, id ASC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				$limit
-			)
+		if ( ! $race && 'current' !== $atts['race'] ) {
+			return current_user_can( 'manage_options' ) ? '<p>' . esc_html__( 'Balloon leaderboard: race not found.', 'virtual-balloon-race' ) . '</p>' : '';
+		}
+
+		global $wpdb;
+		$table    = VBR_Balloons::table();
+		$balloons = array();
+		$stage    = $race ? VBR_Races::status( $race ) : '';
+
+		if ( $race ) {
+			$balloons = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT * FROM {$table} WHERE is_burst = 0 AND race_id = %d ORDER BY distance_km DESC, id ASC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+					(int) $race->id,
+					$limit
+				)
+			);
+		}
+
+		$pill = array(
+			VBR_Races::UPCOMING => array( 'waiting', __( 'Waiting', 'virtual-balloon-race' ) ),
+			VBR_Races::ON_SALE  => array( 'waiting', __( 'Waiting', 'virtual-balloon-race' ) ),
+			VBR_Races::FLYING   => array( 'active', __( 'Flying', 'virtual-balloon-race' ) ),
+			VBR_Races::FINISHED => array( 'finished', __( 'Finished', 'virtual-balloon-race' ) ),
 		);
+		$pill = isset( $pill[ $stage ] ) ? $pill[ $stage ] : $pill[ VBR_Races::FLYING ];
+
+		$subtitle = '';
+		if ( $race ) {
+			$dates = array(
+				/* translators: %s: date */
+				VBR_Races::UPCOMING => sprintf( __( 'Entries open %s', 'virtual-balloon-race' ), VBR_Races::format_date( $race->sales_open_at ) ),
+				/* translators: %s: date */
+				VBR_Races::ON_SALE  => sprintf( __( 'Taking entries · launches %s', 'virtual-balloon-race' ), VBR_Races::format_date( $race->launch_at ) ),
+				VBR_Races::FLYING   => $race->end_at
+					/* translators: %s: date */
+					? sprintf( __( 'Flying now · ends %s', 'virtual-balloon-race' ), VBR_Races::format_date( $race->end_at ) )
+					: __( 'Flying now', 'virtual-balloon-race' ),
+				/* translators: %s: date */
+				VBR_Races::FINISHED => sprintf( __( 'Final results · finished %s', 'virtual-balloon-race' ), VBR_Races::format_date( $race->end_at ) ),
+			);
+			$subtitle = $dates[ $stage ];
+		}
 
 		ob_start();
 		?>
 		<div class="vbr-leaderboard" data-vbr-leaderboard>
 			<div class="vbr-leaderboard__header">
-				<h2 class="vbr-leaderboard__title"><?php esc_html_e( 'Balloon Race Leaderboard', 'virtual-balloon-race' ); ?></h2>
+				<div>
+					<h2 class="vbr-leaderboard__title"><?php echo esc_html( $race ? $race->name : __( 'Balloon Race Leaderboard', 'virtual-balloon-race' ) ); ?></h2>
+					<?php if ( $subtitle ) : ?>
+						<p class="vbr-leaderboard__subtitle"><?php echo esc_html( $subtitle ); ?></p>
+					<?php endif; ?>
+				</div>
 				<label class="vbr-leaderboard__search">
 					<span class="screen-reader-text"><?php esc_html_e( 'Search balloons', 'virtual-balloon-race' ); ?></span>
 					<input
@@ -120,7 +162,14 @@ class VBR_Frontend {
 					<tbody>
 						<?php if ( empty( $balloons ) ) : ?>
 							<tr class="vbr-leaderboard__empty">
-								<td colspan="6"><?php esc_html_e( 'The race has not started yet. Be the first balloon in the sky!', 'virtual-balloon-race' ); ?></td>
+								<td colspan="6">
+									<?php
+									echo esc_html(
+										! $race ? __( 'No race scheduled yet.', 'virtual-balloon-race' )
+											: ( VBR_Races::FINISHED === $stage ? __( 'No balloons finished this race.', 'virtual-balloon-race' ) : __( 'No balloons yet. Be the first in the sky!', 'virtual-balloon-race' ) )
+									);
+									?>
+								</td>
 							</tr>
 						<?php else : ?>
 							<?php foreach ( $balloons as $index => $balloon ) : ?>
@@ -147,7 +196,7 @@ class VBR_Frontend {
 										<?php echo esc_html( number_format_i18n( (float) $balloon->distance_km, 2 ) ); ?>
 									</td>
 									<td data-label="<?php esc_attr_e( 'Status', 'virtual-balloon-race' ); ?>">
-										<span class="vbr-pill vbr-pill--active"><?php esc_html_e( 'Active', 'virtual-balloon-race' ); ?></span>
+										<span class="vbr-pill vbr-pill--<?php echo esc_attr( $pill[0] ); ?>"><?php echo esc_html( $pill[1] ); ?></span>
 									</td>
 								</tr>
 							<?php endforeach; ?>

@@ -52,17 +52,61 @@ class VBR_Map {
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'rest_balloons' ),
 				'permission_callback' => '__return_true',
+				'args'                => array(
+					'race' => array(
+						'description'       => __( 'Race ID, slug or "current".', 'virtual-balloon-race' ),
+						'type'              => 'string',
+						'default'           => 'current',
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::REST_NS,
+			'/races',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'rest_races' ),
+				'permission_callback' => '__return_true',
 			)
 		);
 	}
 
 	/**
-	 * GET /vbr/v1/balloons — public fields only (no emails or order data).
+	 * GET /vbr/v1/races — all races with their stage.
 	 *
 	 * @return WP_REST_Response
 	 */
-	public function rest_balloons() {
-		$response = rest_ensure_response( self::public_payload() );
+	public function rest_races() {
+		$current  = VBR_Races::current();
+		$response = rest_ensure_response(
+			array(
+				'current' => $current ? (int) $current->id : null,
+				'races'   => array_map( array( 'VBR_Races', 'to_public' ), VBR_Races::all() ),
+			)
+		);
+		$response->header( 'Cache-Control', 'no-cache, must-revalidate, max-age=0' );
+		do_action( 'litespeed_control_set_nocache', 'vbr race list' );
+
+		return $response;
+	}
+
+	/**
+	 * GET /vbr/v1/balloons?race=… — public fields only (no emails or order data).
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function rest_balloons( $request ) {
+		$race = VBR_Races::resolve( $request->get_param( 'race' ) );
+
+		if ( ! $race && 'current' !== $request->get_param( 'race' ) ) {
+			return new WP_Error( 'vbr_race_not_found', __( 'Race not found.', 'virtual-balloon-race' ), array( 'status' => 404 ) );
+		}
+
+		$response = rest_ensure_response( self::public_payload( $race ) );
 
 		// Positions change every tick: keep page/edge caches from serving stale data.
 		$response->header( 'Cache-Control', 'no-cache, must-revalidate, max-age=0' );
@@ -72,17 +116,19 @@ class VBR_Map {
 	}
 
 	/**
-	 * Public race data.
+	 * Public data for one race.
 	 *
+	 * @param object|null $race Race (null → no balloons).
 	 * @return array
 	 */
-	public static function public_payload() {
+	public static function public_payload( $race ) {
 		global $wpdb;
 
 		$table = VBR_Balloons::table();
-		$rows  = $wpdb->get_results( "SELECT id, owner_name, balloon_name, balloon_color, helium_level, distance_km, is_burst, latitude, longitude, start_lat, start_lng, logo_attachment_id, trail_json FROM {$table} ORDER BY distance_km DESC, id ASC" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$rows  = $race ? $wpdb->get_results( $wpdb->prepare( "SELECT id, owner_name, balloon_name, balloon_color, helium_level, distance_km, is_burst, latitude, longitude, start_lat, start_lng, logo_attachment_id, trail_json FROM {$table} WHERE race_id = %d ORDER BY distance_km DESC, id ASC", (int) $race->id ) ) : array(); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$hex   = self::color_hex();
-		$last  = get_option( 'vbr_last_tick_summary', array() );
+		$last  = $race ? VBR_Cron::last_summary( $race->id ) : array();
+		$next  = $race && VBR_Races::FLYING === VBR_Races::status( $race ) ? VBR_Cron::next_run() : 0;
 
 		$balloons = array();
 		$rank     = 0;
@@ -116,9 +162,10 @@ class VBR_Map {
 		}
 
 		return array(
-			'launch'     => VBR_Balloons::launch_point(),
+			'race'       => VBR_Races::to_public( $race ),
+			'launch'     => VBR_Races::launch_point( $race ),
 			'updated_at' => ! empty( $last['time'] ) ? gmdate( 'c', (int) $last['time'] ) : null,
-			'next_at'    => VBR_Cron::next_run() ? gmdate( 'c', VBR_Cron::next_run() ) : null,
+			'next_at'    => $next ? gmdate( 'c', $next ) : null,
 			'balloons'   => $balloons,
 		);
 	}
@@ -143,6 +190,7 @@ class VBR_Map {
 			array(
 				'height' => '520px',
 				'list'   => 'yes',
+				'race'   => 'current',
 			),
 			$atts,
 			'balloon_map'
@@ -155,11 +203,17 @@ class VBR_Map {
 		wp_enqueue_style( 'vbr-frontend', VBR_PLUGIN_URL . 'assets/css/frontend.css', array(), VBR_Balloons::asset_version( 'assets/css/frontend.css' ) );
 		wp_enqueue_script( 'vbr-map' );
 
+		$race = VBR_Races::resolve( $atts['race'] );
+
+		if ( ! $race && 'current' !== $atts['race'] ) {
+			return current_user_can( 'manage_options' ) ? '<p>' . esc_html__( 'Balloon map: race not found.', 'virtual-balloon-race' ) . '</p>' : '';
+		}
+
 		$config = array(
-			'endpoint' => esc_url_raw( rest_url( self::REST_NS . '/balloons' ) ),
+			'endpoint' => esc_url_raw( add_query_arg( 'race', $race ? (int) $race->id : 'current', rest_url( self::REST_NS . '/balloons' ) ) ),
 			'zoom'     => (int) VBR_Settings::get( 'map_zoom' ),
 			'refresh'  => (int) VBR_Settings::get( 'map_refresh' ),
-			'initial'  => self::public_payload(),
+			'initial'  => self::public_payload( $race ),
 			'i18n'     => array(
 				'owner'    => __( 'Owner', 'virtual-balloon-race' ),
 				'distance' => __( 'Distance', 'virtual-balloon-race' ),
@@ -170,6 +224,17 @@ class VBR_Map {
 				'search'   => __( 'Find a balloon…', 'virtual-balloon-race' ),
 				'updated'  => __( 'Last update', 'virtual-balloon-race' ),
 				'empty'    => __( 'No balloons in the sky yet.', 'virtual-balloon-race' ),
+				'stage'    => array(
+					/* translators: %s: date */
+					'upcoming' => __( 'Entries open %s', 'virtual-balloon-race' ),
+					/* translators: %s: date */
+					'on_sale'  => __( 'Taking entries · launches %s', 'virtual-balloon-race' ),
+					'flying'   => __( 'Flying now', 'virtual-balloon-race' ),
+					/* translators: %s: date */
+					'finished' => __( 'Finished %s', 'virtual-balloon-race' ),
+				),
+				'waiting'  => __( 'Waiting for launch', 'virtual-balloon-race' ),
+				'noRace'   => __( 'No race scheduled yet.', 'virtual-balloon-race' ),
 				'km'       => __( 'km', 'virtual-balloon-race' ),
 			),
 		);

@@ -255,7 +255,7 @@
 		[
 			[i18n.owner || 'Owner', b.owner],
 			[i18n.distance || 'Distance', formatKm(b.distance) + ' ' + (i18n.km || 'km')],
-			[i18n.status || 'Status', b.burst ? (i18n.burst || 'Burst') : (i18n.active || 'Flying')]
+			[i18n.status || 'Status', this.balloonStatus(b)]
 		].forEach(function (row) {
 			if (!row[1]) {
 				return;
@@ -267,6 +267,26 @@
 		});
 
 		return wrap;
+	};
+
+	RaceMap.prototype.raceStatus = function () {
+		return this.data && this.data.race ? this.data.race.status : null;
+	};
+
+	RaceMap.prototype.balloonStatus = function (b) {
+		var i18n = this.i18n;
+		var stage = this.raceStatus();
+
+		if (b.burst) {
+			return i18n.burst || 'Burst';
+		}
+		if (stage === 'upcoming' || stage === 'on_sale') {
+			return i18n.waiting || 'Waiting for launch';
+		}
+		if (stage === 'finished') {
+			return (this.data.race && this.data.race.status_label) || 'Finished';
+		}
+		return i18n.active || 'Flying';
 	};
 
 	RaceMap.prototype.applyStyles = function () {
@@ -447,9 +467,40 @@
 		if (!this.metaEl) {
 			return;
 		}
-		this.metaEl.textContent = data.updated_at
-			? (this.i18n.updated || 'Last update') + ': ' + new Date(data.updated_at).toLocaleString()
-			: '';
+
+		var i18n = this.i18n;
+		var stages = i18n.stage || {};
+		var race = data.race;
+		var parts = [];
+
+		function when(iso) {
+			return iso ? new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '';
+		}
+
+		if (!race) {
+			this.metaEl.textContent = i18n.noRace || '';
+			return;
+		}
+
+		parts.push(race.name);
+
+		var stageText = {
+			upcoming: (stages.upcoming || 'Entries open %s').replace('%s', when(race.entries_open)),
+			on_sale: (stages.on_sale || 'Launches %s').replace('%s', when(race.launch_at)),
+			flying: stages.flying || 'Flying now',
+			finished: (stages.finished || 'Finished %s').replace('%s', when(race.end_at))
+		}[race.status];
+
+		if (stageText) {
+			parts.push(stageText);
+		}
+
+		if (race.status === 'flying' && data.updated_at) {
+			parts.push((i18n.updated || 'Last update') + ': ' + when(data.updated_at));
+		}
+
+		this.metaEl.textContent = parts.join(' · ');
+		this.root.setAttribute('data-race-status', race.status);
 	};
 
 	var maps = [];
