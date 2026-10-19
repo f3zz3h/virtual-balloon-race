@@ -28,6 +28,8 @@ define( 'VBR_TABLE_SUFFIX', 'vbr_balloons' );
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-balloons.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-install.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-settings.php';
+require_once VBR_PLUGIN_DIR . 'includes/class-vbr-geo.php';
+require_once VBR_PLUGIN_DIR . 'includes/class-vbr-weather.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-admin.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-frontend.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-woocommerce.php';
