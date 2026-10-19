@@ -1,0 +1,204 @@
+# Virtual Balloon Race
+
+A WordPress + WooCommerce plugin for running virtual balloon races as fundraisers. Supporters buy a balloon entry for a race, customise it (name, colour, helium strategy, and optional paid extras), and after launch the balloons drift across a live map using real wind data. A leaderboard ranks balloons by distance travelled.
+
+- **Requires:** WordPress 6.0+, PHP 7.4+, WooCommerce 7.0+ (for selling entries)
+- **Version:** 1.2.0 (database schema 1.2.0)
+- **Licence:** GPL-2.0-or-later
+
+---
+
+## For site admins
+
+### 1. Install
+
+1. Copy the plugin folder to `wp-content/plugins/` and activate **Virtual Balloon Race**.
+2. Make sure WooCommerce is active. Without it the leaderboard and map still work, but entries can't be sold.
+
+### 2. Check the settings
+
+**Balloon Race → Settings** holds the rules shared by every race:
+
+| Setting | What it does |
+| --- | --- |
+| Auto-update interval | How often balloons move: off, 5 min, 30 min, hourly, 6-hourly or daily |
+| Base speed, helium multipliers, random variance | How far balloons travel per hour. Max Height is faster, Eco-Glide slower |
+| Default launch point | Pre-filled when you create a race. Search a place or click the map |
+| Live wind / per-balloon wind / wind influence | Real wind from Open-Meteo (free, no key). Per-balloon wind makes paths split apart as balloons spread |
+| Default heading | Direction balloons travel if wind data isn't available |
+| Burst chances | Max Height burst chance per day, plus storm bursts above a wind threshold (Eco-Glide is immune) |
+| Map | Default zoom, how often the public map refreshes, trail length |
+| Shop add-ons | Turn extras on or off and set their prices |
+
+> **Timing:** WordPress only runs scheduled jobs when someone visits the site. On a quiet site, updates can arrive late, though balloons still catch up on the next run. For on-time updates, add a real server cron that runs `wp vbr tick` every few minutes.
+
+### 3. Create a race
+
+**Balloon Race → Races → Add race**
+
+| Field | Meaning |
+| --- | --- |
+| Name | Shown on the shop, map and leaderboard |
+| Entries open | When people can start buying. Leave blank to open straight away |
+| Launch | Entries close and balloons start moving |
+| Ends | Optional. Balloons stop and results become final. Leave blank to finish by hand |
+| Launch point | Where balloons start. Search or click the map |
+
+A race goes through four stages on its own:
+
+| Stage | Shop | Balloons |
+| --- | --- | --- |
+| **Upcoming** | Closed ("entries open on …") | — |
+| **Entries open** | Open | Wait at the launch point |
+| **Flying** | Closed | Move with the wind on every update |
+| **Finished** | Closed | Stopped; final leaderboard |
+
+Each race's page has **Launch now** and **Finish now** buttons for event-day control. A race can only be deleted while it has no balloons.
+
+You can schedule several races. Usually only one runs at a time, but overlapping races work too.
+
+### 4. Set up the balloon product
+
+1. Create a WooCommerce product (simple product, e.g. £3).
+2. In **Product data → General**, tick **Balloon Entry**. You can also tag the product `balloon-entry` instead.
+3. Choose **Balloon race**:
+   - **Any race taking entries** (default): buyers enter whichever race is open. If several are open, they pick one.
+   - **A specific race**: the product only sells entries for that race.
+
+When no race is taking entries, the product can't be added to the basket and shows when entries next open. If a race launches while an entry for it is still in someone's basket, the entry is removed with a message.
+
+Buyers fill in:
+
+- **Balloon name**, **colour** and **helium strategy** (Balanced is free; Max Height and Eco-Glide cost the "tactical strategy" price)
+- Optional **custom launch point** (+£2 by default): search or click a map to start from their school or hometown
+- Optional **logo or picture** (+£2 by default): PNG, JPG or WebP up to 1 MB, shown as the balloon's map icon
+
+A balloon is created when its order reaches **Processing** or **Completed**.
+
+### 5. Put the race on a page
+
+```
+[balloon_map]
+[balloon_leaderboard map_url="/race-map/"]
+```
+
+| Shortcode | Attributes |
+| --- | --- |
+| `[balloon_map]` | `race` = ID, slug or `current` (default). `height` (default `520px`). `list="no"` hides the side list |
+| `[balloon_leaderboard]` | `race` (as above). `limit` (default 50). `map_url` makes each name link to the map with that balloon highlighted |
+
+The **current** race is the one flying, or else the next one taking entries, or else the next upcoming one, or else the last one finished. The race list shows each race's own shortcode.
+
+On the map, clicking a balloon (or its name in the list or leaderboard) highlights its trail and fades the others. Click the map background to clear the highlight. Links like `/race-map/?balloon=12` open with that balloon selected.
+
+### 6. During the race
+
+**Balloon Race → Leaderboard** (pick the race at the top):
+
+- See every balloon, its owner's email, distance and status
+- **Advance now** moves the race by a chosen number of hours, or by a fixed km range
+- **Mark burst / Restore** for individual balloons
+- **Export CSV** of the race's balloons and donors
+
+---
+
+## For developers
+
+### Layout
+
+```
+virtual-balloon-race.php        Bootstrap: constants, includes, activation, WP-CLI
+includes/
+  class-vbr-install.php         Schema (dbDelta), version upgrades, Multisite installs
+  class-vbr-races.php           Race model: stages, lookups, save/delete, time helpers
+  class-vbr-balloons.php        Balloon table helpers, colours/strategies, trails, asset versions
+  class-vbr-settings.php        Settings screen + VBR_Settings::get(); registers Leaflet
+  class-vbr-cron.php            Scheduling (Action Scheduler or WP-Cron) and the tick
+  class-vbr-weather.php         Open-Meteo wind, batched by ~11 km grid cell, cached in transients
+  class-vbr-geo.php             Great-circle destination / distance
+  class-vbr-map.php             REST API + [balloon_map]
+  class-vbr-frontend.php        [balloon_leaderboard] + frontend assets
+  class-vbr-admin.php           Leaderboard admin page (per race)
+  class-vbr-admin-races.php     Races admin page
+  class-vbr-woocommerce.php     Balloon product flag, fields, cart, order → balloon rows
+  class-vbr-race-entries.php    Race choice, purchasability, basket guard, race_id on balloons
+  class-vbr-monetization.php    Paid add-ons: strategy fee, custom launch, logo upload
+  class-vbr-cli.php             wp vbr …
+assets/js/map.js                Public Leaflet map
+assets/js/product.js            Product page launch picker + logo preview
+assets/js/admin-settings.js     Launch-point picker (Settings and race form)
+```
+
+### Data
+
+- `{prefix}vbr_races`: one row per race. All times are stored in **UTC**. Stages are calculated from the clock and never stored.
+- `{prefix}vbr_balloons`: one row per balloon, with `race_id`, current `latitude`/`longitude`, `start_lat`/`start_lng`, `trail_json` (the most recent `[lat, lng]` points, capped by the trail-length setting), `logo_attachment_id`, `has_custom_start`, `distance_km` and `is_burst`.
+- Settings: the `vbr_settings` option. Last tick per race: the `vbr_tick_summaries` option.
+- Upgrades run on `plugins_loaded` whenever `vbr_db_version` is older than `VBR_DB_VERSION`. Upgrading from 1.1 creates a first race and moves existing balloons into it.
+
+### How a tick works
+
+For each **Flying** race, a scheduled tick simulates the time since that race's last tick, counting from launch, stopping at the end time, and capped at 3× the interval. For each balloon still flying:
+
+1. Look up the wind for the balloon's grid cell. If that fails, use the wind at the launch point, then the default heading.
+2. Travel bearing = wind direction + 180° (Open-Meteo reports where wind comes *from*), ±12° random jitter.
+3. Distance = base speed × helium multiplier × hours × wind factor × (1 ± variance). The wind factor is a clamped blend of base speed and real wind speed.
+4. Move to the new position, add it to the trail, then roll for bursts. Daily rates are converted to the tick length: `1 − (1 − daily)^(days)`.
+
+Uncached grid cells are fetched in batches (up to 50 per request), and a failed lookup is remembered for 2 minutes. A lock stops two ticks running at once.
+
+### REST API (public, no auth)
+
+| Route | Returns |
+| --- | --- |
+| `GET /wp-json/vbr/v1/races` | `{ current, races: [{ id, name, slug, status, status_label, entries_open, launch_at, end_at, launch }] }` |
+| `GET /wp-json/vbr/v1/balloons?race=<id\|slug\|current>` | `{ race, launch, updated_at, next_at, balloons: [{ id, rank, name, owner, color, hex, helium, distance, burst, lat, lng, logo, trail }] }` |
+
+Emails and order details are never included. Responses are sent with no-cache headers, including LiteSpeed's.
+
+### WP-CLI
+
+```
+wp vbr tick                              # run due updates for every flying race (use from a system cron)
+wp vbr tick --race=<id|slug> --hours=6   # simulate hours for one race
+wp vbr races                             # list races, stages and balloon counts
+wp vbr status                            # schedule + last tick per race
+```
+
+### Hooks
+
+| Hook | Type | Use |
+| --- | --- | --- |
+| `vbr_balloon_product_ids` | filter | Product IDs to treat as balloon entries |
+| `vbr_is_balloon_product` | filter | Custom balloon-product detection |
+| `vbr_new_balloon_row` | filter | Change a balloon row before insert (`$row, $order_item, $order`) |
+| `vbr_helium_option_label` | filter | Helium option text on the product page |
+| `vbr_product_fields_before` / `vbr_product_fields_after` | action | Add fields inside the balloon box |
+| `vbr_color_hex` | filter | Map colours for balloon colour names |
+| `vbr_public_owner_name` | filter | What the public sees as the owner (e.g. first name only) |
+| `vbr_after_tick` | action | Runs after a race moves (`$summary`) |
+
+### Testing on the dev site
+
+Commands run inside the WordPress Docker container:
+
+```
+docker exec -u www-data -w /var/www/html wordpress wp vbr status
+docker exec -i wordpress php -l < includes/class-vbr-races.php
+```
+
+Deploy with `rsync` into the existing plugin folder (`scp -r` into an existing folder creates a nested copy).
+
+---
+
+## Known gaps
+
+See [`race_settings_and_map_9db2297a.plan.md`](race_settings_and_map_9db2297a.plan.md) for the full plan and status. In short, not built yet:
+
+- Refunded or cancelled orders don't remove their balloons
+- Abandoned logo uploads are tagged (`_vbr_logo_upload`) but not cleaned up
+- Movement settings (speed, interval, bursts) apply to all races, not per race
+- No entry limits per race, and no emails to entrants (launch, results)
+- No uninstall cleanup, no translation template (`.pot`), no automated test suite
+- Logo upload needs the standard product form (themes using AJAX add-to-cart on single products won't send the file)
+- Balloons can drift over sea; there's no land awareness
