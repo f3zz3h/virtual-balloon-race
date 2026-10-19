@@ -120,7 +120,8 @@ class VBR_Monetization {
 			$deps[] = 'vbr-leaflet';
 		}
 
-		$launch = VBR_Balloons::launch_point();
+		$races  = VBR_Race_Entries::open_races_for( $product->get_id() );
+		$launch = VBR_Races::launch_point( $races ? $races[0] : null );
 
 		wp_enqueue_script( 'vbr-product', VBR_PLUGIN_URL . 'assets/js/product.js', $deps, VBR_Balloons::asset_version( 'assets/js/product.js' ), true );
 		wp_localize_script(
@@ -476,6 +477,7 @@ class VBR_Monetization {
 
 		if ( '' !== $lat && '' !== $lng && VBR_Geo::is_valid( $lat, $lng ) ) {
 			$row = array_merge( $row, VBR_Balloons::start_columns( (float) $lat, (float) $lng ) );
+			$row['has_custom_start'] = 1;
 		}
 
 		$logo_id = (int) $item->get_meta( '_vbr_logo_id', true );

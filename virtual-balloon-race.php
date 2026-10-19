@@ -38,6 +38,7 @@ require_once VBR_PLUGIN_DIR . 'includes/class-vbr-frontend.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-map.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-woocommerce.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-monetization.php';
+require_once VBR_PLUGIN_DIR . 'includes/class-vbr-race-entries.php';
 
 /**
  * Main plugin bootstrap.
@@ -92,6 +93,7 @@ final class Virtual_Balloon_Race {
 		if ( $this->is_woocommerce_active() ) {
 			new VBR_WooCommerce();
 			new VBR_Monetization();
+			new VBR_Race_Entries();
 		}
 	}
 

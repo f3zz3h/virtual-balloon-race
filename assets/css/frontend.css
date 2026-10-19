@@ -485,3 +485,19 @@
 	border-radius: 50%;
 	vertical-align: middle;
 }
+
+.vbr-race-entering {
+	margin: 0 0 1rem;
+	padding: 0.6rem 0.8rem;
+	border-radius: 8px;
+	background: #fff;
+	font-weight: 600;
+}
+
+.vbr-entries-closed {
+	padding: 0.8rem 1rem;
+	border-left: 4px solid #e26a2c;
+	border-radius: 4px;
+	background: #fff7f1;
+	font-weight: 600;
+}

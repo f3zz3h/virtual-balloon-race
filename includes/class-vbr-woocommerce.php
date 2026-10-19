@@ -128,6 +128,15 @@ class VBR_WooCommerce {
 		<div class="vbr-product-fields">
 			<h3 class="vbr-product-fields__title"><?php esc_html_e( 'Customise your balloon', 'virtual-balloon-race' ); ?></h3>
 
+			<?php
+			/**
+			 * Fields at the top of the balloon box (race picker).
+			 *
+			 * @param WC_Product $product Product.
+			 */
+			do_action( 'vbr_product_fields_before', $product );
+			?>
+
 			<p class="form-row form-row-wide">
 				<label for="vbr_balloon_name">
 					<?php esc_html_e( 'Balloon Name', 'virtual-balloon-race' ); ?>
