@@ -88,3 +88,11 @@
 	border: 1px solid #c3c4c7;
 	border-radius: 4px;
 }
+
+.vbr-schedule-summary {
+	margin: 0 0 12px;
+}
+
+.vbr-schedule-summary li {
+	margin: 2px 0;
+}

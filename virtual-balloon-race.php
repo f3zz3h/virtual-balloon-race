@@ -30,6 +30,7 @@ require_once VBR_PLUGIN_DIR . 'includes/class-vbr-install.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-settings.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-geo.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-weather.php';
+require_once VBR_PLUGIN_DIR . 'includes/class-vbr-cron.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-admin.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-frontend.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-woocommerce.php';
@@ -64,6 +65,7 @@ final class Virtual_Balloon_Race {
 	 */
 	private function __construct() {
 		register_activation_hook( VBR_PLUGIN_FILE, array( 'VBR_Install', 'activate' ) );
+		register_deactivation_hook( VBR_PLUGIN_FILE, array( 'VBR_Cron', 'unschedule' ) );
 		VBR_Install::init();
 
 		add_action( 'plugins_loaded', array( $this, 'init' ) );
@@ -78,6 +80,7 @@ final class Virtual_Balloon_Race {
 
 		new VBR_Admin();
 		new VBR_Settings();
+		new VBR_Cron();
 		new VBR_Frontend();
 
 		if ( $this->is_woocommerce_active() ) {
@@ -115,6 +118,11 @@ final class Virtual_Balloon_Race {
 		echo esc_html__( 'Virtual Balloon Race requires WooCommerce to be installed and active in order to sell balloon entries.', 'virtual-balloon-race' );
 		echo '</p></div>';
 	}
+}
+
+if ( defined( 'WP_CLI' ) && WP_CLI ) {
+	require_once VBR_PLUGIN_DIR . 'includes/class-vbr-cli.php';
+	WP_CLI::add_command( 'vbr', 'VBR_CLI' );
 }
 
 /**

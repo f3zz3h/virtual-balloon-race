@@ -85,98 +85,36 @@ class VBR_Admin {
 	}
 
 	/**
-	 * Advance all active (non-burst) balloons by a random distance in a given range.
-	 * Max Height balloons have a 5% chance of bursting instead of advancing.
+	 * Manual "Advance now": runs the same tick as the scheduler.
 	 */
 	private function advance_active_balloons() {
-		global $wpdb;
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- nonce checked in handle_admin_actions().
+		$hours = isset( $_POST['vbr_hours'] ) ? floatval( wp_unslash( $_POST['vbr_hours'] ) ) : 1;
+		$hours = min( 24 * 14, max( 0, $hours ) );
+		$args  = array( 'source' => 'manual' );
 
-		$min = isset( $_POST['vbr_min_km'] ) ? floatval( wp_unslash( $_POST['vbr_min_km'] ) ) : 10; // phpcs:ignore WordPress.Security.NonceVerification.Missing
-		$max = isset( $_POST['vbr_max_km'] ) ? floatval( wp_unslash( $_POST['vbr_max_km'] ) ) : 50; // phpcs:ignore WordPress.Security.NonceVerification.Missing
-
-		if ( $min < 0 ) {
-			$min = 0;
+		if ( ! empty( $_POST['vbr_use_range'] ) ) {
+			$min            = isset( $_POST['vbr_min_km'] ) ? max( 0, floatval( wp_unslash( $_POST['vbr_min_km'] ) ) ) : 10;
+			$max            = isset( $_POST['vbr_max_km'] ) ? floatval( wp_unslash( $_POST['vbr_max_km'] ) ) : 50;
+			$args['min_km'] = $min;
+			$args['max_km'] = max( $min, $max );
 		}
+		// phpcs:enable
 
-		if ( $max < $min ) {
-			$max = $min;
-		}
+		$summary = VBR_Cron::tick( $hours, $args );
 
-		$table    = VBR_Balloons::table();
-		$balloons = $wpdb->get_results( "SELECT id, helium_level FROM {$table} WHERE is_burst = 0" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-
-		$advanced = 0;
-		$burst    = 0;
-
-		foreach ( (array) $balloons as $balloon ) {
-			$helium = (string) $balloon->helium_level;
-
-			if ( $this->helium_can_burst( $helium ) && wp_rand( 1, 100 ) <= 5 ) {
-				$wpdb->update(
-					$table,
-					array( 'is_burst' => 1 ),
-					array( 'id' => (int) $balloon->id ),
-					array( '%d' ),
-					array( '%d' )
-				);
-				$burst++;
-				continue;
-			}
-
-			$increment = $this->random_distance( $min, $max );
-
-			$wpdb->query(
-				$wpdb->prepare(
-					"UPDATE {$table} SET distance_km = distance_km + %f WHERE id = %d AND is_burst = 0", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-					$increment,
-					(int) $balloon->id
-				)
-			);
-
-			$advanced++;
-		}
-
-		$redirect = add_query_arg(
-			array(
-				'page'         => 'vbr-admin',
-				'vbr_notice'   => 'advanced',
-				'vbr_advanced' => $advanced,
-				'vbr_burst'    => $burst,
-			),
-			admin_url( 'admin.php' )
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'page'         => 'vbr-admin',
+					'vbr_notice'   => $summary['locked'] ? 'locked' : 'advanced',
+					'vbr_advanced' => $summary['advanced'],
+					'vbr_burst'    => $summary['burst'],
+				),
+				admin_url( 'admin.php' )
+			)
 		);
-
-		wp_safe_redirect( $redirect );
 		exit;
-	}
-
-	/**
-	 * Whether this helium strategy can randomly burst (Max Height / High).
-	 *
-	 * @param string $helium Helium level.
-	 * @return bool
-	 */
-	private function helium_can_burst( $helium ) {
-		$risky = array( 'Max Height', 'High' );
-		return in_array( $helium, $risky, true );
-	}
-
-	/**
-	 * Random distance increment between min and max (inclusive), two decimal places.
-	 *
-	 * @param float $min Minimum km.
-	 * @param float $max Maximum km.
-	 * @return float
-	 */
-	private function random_distance( $min, $max ) {
-		if ( $max <= $min ) {
-			return round( $min, 2 );
-		}
-
-		$scale = 100;
-		$value = wp_rand( (int) round( $min * $scale ), (int) round( $max * $scale ) );
-
-		return round( $value / $scale, 2 );
 	}
 
 	/**
@@ -291,6 +229,9 @@ class VBR_Admin {
 		$table    = VBR_Balloons::table();
 		$balloons = $wpdb->get_results( "SELECT * FROM {$table} ORDER BY distance_km DESC, id ASC" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
+		$interval      = VBR_Settings::interval_seconds();
+		$default_hours = $interval ? round( $interval / HOUR_IN_SECONDS, 2 ) : 1;
+
 		$export_url = wp_nonce_url(
 			add_query_arg(
 				array(
@@ -308,12 +249,21 @@ class VBR_Admin {
 			<?php $this->render_admin_notices(); ?>
 
 			<section class="vbr-admin-panel">
-				<h2><?php esc_html_e( 'Daily distance update', 'virtual-balloon-race' ); ?></h2>
-				<p><?php esc_html_e( 'Advance every active (non-burst) balloon by a random distance in the range below. Balloons using Max Height have a 5% chance of bursting instead of moving.', 'virtual-balloon-race' ); ?></p>
+				<h2><?php esc_html_e( 'Advance the race', 'virtual-balloon-race' ); ?></h2>
+				<?php $this->render_schedule_summary(); ?>
+				<p><?php esc_html_e( 'Move every active balloon now, using the same wind and speed rules as automatic updates. Burst chances scale with the hours simulated.', 'virtual-balloon-race' ); ?></p>
 
 				<form method="post" action="<?php echo esc_url( admin_url( 'admin.php?page=vbr-admin' ) ); ?>" class="vbr-advance-form">
 					<?php wp_nonce_field( 'vbr_advance_race', 'vbr_advance_nonce' ); ?>
 					<input type="hidden" name="vbr_action" value="advance" />
+
+					<label for="vbr_hours"><?php esc_html_e( 'Hours to simulate', 'virtual-balloon-race' ); ?></label>
+					<input type="number" id="vbr_hours" name="vbr_hours" value="<?php echo esc_attr( (string) $default_hours ); ?>" min="0" max="336" step="0.01" />
+
+					<label class="vbr-advance-form__range">
+						<input type="checkbox" name="vbr_use_range" value="1" />
+						<?php esc_html_e( 'Use a fixed km range instead', 'virtual-balloon-race' ); ?>
+					</label>
 
 					<label for="vbr_min_km"><?php esc_html_e( 'Min km', 'virtual-balloon-race' ); ?></label>
 					<input type="number" id="vbr_min_km" name="vbr_min_km" value="10" min="0" step="0.01" />
@@ -321,7 +271,7 @@ class VBR_Admin {
 					<label for="vbr_max_km"><?php esc_html_e( 'Max km', 'virtual-balloon-race' ); ?></label>
 					<input type="number" id="vbr_max_km" name="vbr_max_km" value="50" min="0" step="0.01" />
 
-					<?php submit_button( __( 'Advance all active balloons', 'virtual-balloon-race' ), 'primary', 'submit', false ); ?>
+					<?php submit_button( __( 'Advance now', 'virtual-balloon-race' ), 'primary', 'submit', false ); ?>
 				</form>
 			</section>
 
@@ -404,6 +354,44 @@ class VBR_Admin {
 	}
 
 	/**
+	 * Schedule and last-update summary.
+	 */
+	private function render_schedule_summary() {
+		$labels  = VBR_Settings::interval_labels();
+		$slug    = (string) VBR_Settings::get( 'interval' );
+		$next    = VBR_Cron::next_run();
+		$last    = get_option( 'vbr_last_tick_summary', array() );
+		$format  = get_option( 'date_format' ) . ' ' . get_option( 'time_format' );
+		$setting = admin_url( 'admin.php?page=' . VBR_Settings::PAGE );
+
+		echo '<ul class="vbr-schedule-summary">';
+
+		echo '<li><strong>' . esc_html__( 'Automatic updates:', 'virtual-balloon-race' ) . '</strong> ' . esc_html( isset( $labels[ $slug ] ) ? $labels[ $slug ] : $slug );
+		echo ' &middot; <a href="' . esc_url( $setting ) . '">' . esc_html__( 'Change', 'virtual-balloon-race' ) . '</a></li>';
+
+		if ( $next ) {
+			echo '<li><strong>' . esc_html__( 'Next update:', 'virtual-balloon-race' ) . '</strong> ' . esc_html( wp_date( $format, $next ) ) . '</li>';
+		}
+
+		if ( ! empty( $last['time'] ) ) {
+			echo '<li><strong>' . esc_html__( 'Last update:', 'virtual-balloon-race' ) . '</strong> ';
+			echo esc_html(
+				sprintf(
+					/* translators: 1: date, 2: hours, 3: balloons moved, 4: balloons burst */
+					__( '%1$s — %2$s h simulated, %3$d moved, %4$d burst', 'virtual-balloon-race' ),
+					wp_date( $format, (int) $last['time'] ),
+					number_format_i18n( (float) $last['hours'], 2 ),
+					(int) $last['advanced'],
+					(int) $last['burst']
+				)
+			);
+			echo '</li>';
+		}
+
+		echo '</ul>';
+	}
+
+	/**
 	 * Flash notices after admin actions.
 	 */
 	private function render_admin_notices() {
@@ -426,6 +414,12 @@ class VBR_Admin {
 					$burst
 				)
 			);
+			echo '</p></div>';
+		}
+
+		if ( 'locked' === $notice ) {
+			echo '<div class="notice notice-warning is-dismissible"><p>';
+			echo esc_html__( 'Another update is already running. Try again in a moment.', 'virtual-balloon-race' );
 			echo '</p></div>';
 		}
 
