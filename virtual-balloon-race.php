@@ -27,6 +27,7 @@ define( 'VBR_TABLE_SUFFIX', 'vbr_balloons' );
 
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-balloons.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-install.php';
+require_once VBR_PLUGIN_DIR . 'includes/class-vbr-settings.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-admin.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-frontend.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-woocommerce.php';
@@ -73,6 +74,7 @@ final class Virtual_Balloon_Race {
 		load_plugin_textdomain( 'virtual-balloon-race', false, dirname( plugin_basename( VBR_PLUGIN_FILE ) ) . '/languages' );
 
 		new VBR_Admin();
+		new VBR_Settings();
 		new VBR_Frontend();
 
 		if ( $this->is_woocommerce_active() ) {

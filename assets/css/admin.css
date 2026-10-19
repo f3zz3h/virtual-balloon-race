@@ -41,3 +41,50 @@
 	background: #fcecec;
 	color: #8a2424;
 }
+
+/* Settings page */
+
+.vbr-settings .form-table th {
+	width: 260px;
+}
+
+.vbr-launch-picker {
+	margin: 8px 0 4px;
+}
+
+.vbr-launch-search {
+	position: relative;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-bottom: 10px;
+}
+
+.vbr-place-results {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	z-index: 1000;
+	width: min(100%, 36rem);
+	margin: 4px 0 0;
+	padding: 6px 10px;
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.vbr-place-results li {
+	margin: 4px 0;
+}
+
+.vbr-place-results .button-link {
+	text-align: left;
+}
+
+.vbr-launch-map {
+	height: 320px;
+	max-width: 760px;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+}
