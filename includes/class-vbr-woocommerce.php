@@ -160,11 +160,20 @@ class VBR_WooCommerce {
 					<option value=""><?php esc_html_e( 'Select a strategy', 'virtual-balloon-race' ); ?></option>
 					<?php foreach ( VBR_Balloons::helium_strategies() as $strategy ) : ?>
 						<option value="<?php echo esc_attr( $strategy ); ?>" <?php selected( $posted_helium, $strategy ); ?>>
-							<?php echo esc_html( VBR_Balloons::helium_label( $strategy ) ); ?>
+							<?php echo esc_html( apply_filters( 'vbr_helium_option_label', VBR_Balloons::helium_label( $strategy ), $strategy ) ); ?>
 						</option>
 					<?php endforeach; ?>
 				</select>
 			</p>
+
+			<?php
+			/**
+			 * Extra fields inside the balloon box (paid add-ons).
+			 *
+			 * @param WC_Product $product Product.
+			 */
+			do_action( 'vbr_product_fields_after', $product );
+			?>
 		</div>
 		<?php
 	}

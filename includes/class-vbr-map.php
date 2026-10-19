@@ -129,7 +129,7 @@ class VBR_Map {
 	public function register_assets() {
 		VBR_Settings::register_leaflet();
 
-		wp_register_script( 'vbr-map', VBR_PLUGIN_URL . 'assets/js/map.js', array( 'vbr-leaflet' ), VBR_VERSION, true );
+		wp_register_script( 'vbr-map', VBR_PLUGIN_URL . 'assets/js/map.js', array( 'vbr-leaflet' ), VBR_Balloons::asset_version( 'assets/js/map.js' ), true );
 	}
 
 	/**
@@ -152,7 +152,7 @@ class VBR_Map {
 
 		VBR_Settings::register_leaflet();
 		wp_enqueue_style( 'vbr-leaflet' );
-		wp_enqueue_style( 'vbr-frontend', VBR_PLUGIN_URL . 'assets/css/frontend.css', array(), VBR_VERSION );
+		wp_enqueue_style( 'vbr-frontend', VBR_PLUGIN_URL . 'assets/css/frontend.css', array(), VBR_Balloons::asset_version( 'assets/css/frontend.css' ) );
 		wp_enqueue_script( 'vbr-map' );
 
 		$config = array(

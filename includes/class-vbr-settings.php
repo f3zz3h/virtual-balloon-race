@@ -321,8 +321,8 @@ class VBR_Settings {
 
 		self::register_leaflet();
 
-		wp_enqueue_style( 'vbr-admin', VBR_PLUGIN_URL . 'assets/css/admin.css', array( 'vbr-leaflet' ), VBR_VERSION );
-		wp_enqueue_script( 'vbr-admin-settings', VBR_PLUGIN_URL . 'assets/js/admin-settings.js', array( 'vbr-leaflet' ), VBR_VERSION, true );
+		wp_enqueue_style( 'vbr-admin', VBR_PLUGIN_URL . 'assets/css/admin.css', array( 'vbr-leaflet' ), VBR_Balloons::asset_version( 'assets/css/admin.css' ) );
+		wp_enqueue_script( 'vbr-admin-settings', VBR_PLUGIN_URL . 'assets/js/admin-settings.js', array( 'vbr-leaflet' ), VBR_Balloons::asset_version( 'assets/js/admin-settings.js' ), true );
 		wp_localize_script(
 			'vbr-admin-settings',
 			'vbrSettings',

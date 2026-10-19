@@ -24,6 +24,18 @@ class VBR_Balloons {
 	}
 
 	/**
+	 * Cache-busting version for a plugin asset (changes whenever the file does).
+	 *
+	 * @param string $relative Path relative to the plugin folder.
+	 * @return string
+	 */
+	public static function asset_version( $relative ) {
+		$mtime = @filemtime( VBR_PLUGIN_DIR . $relative ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+
+		return $mtime ? VBR_VERSION . '.' . $mtime : VBR_VERSION;
+	}
+
+	/**
 	 * Allowed balloon colours.
 	 *
 	 * @return string[]
@@ -51,7 +63,7 @@ class VBR_Balloons {
 		$labels = array(
 			'Balanced'   => __( 'Balanced (Medium)', 'virtual-balloon-race' ),
 			'Max Height' => __( 'Max Height (High) — faster, small burst risk', 'virtual-balloon-race' ),
-			'Eco-Glide'  => __( 'Eco-Glide (Low)', 'virtual-balloon-race' ),
+			'Eco-Glide'  => __( 'Eco-Glide (Low) — slower, immune to storm bursts', 'virtual-balloon-race' ),
 			'Low'        => __( 'Low', 'virtual-balloon-race' ),
 			'Medium'     => __( 'Medium', 'virtual-balloon-race' ),
 			'High'       => __( 'High', 'virtual-balloon-race' ),

@@ -50,7 +50,7 @@ class VBR_Admin {
 			'vbr-admin',
 			VBR_PLUGIN_URL . 'assets/css/admin.css',
 			array(),
-			VBR_VERSION
+			VBR_Balloons::asset_version( 'assets/css/admin.css' )
 		);
 	}
 

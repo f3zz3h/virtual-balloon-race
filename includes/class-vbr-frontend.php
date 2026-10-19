@@ -28,14 +28,14 @@ class VBR_Frontend {
 			'vbr-frontend',
 			VBR_PLUGIN_URL . 'assets/css/frontend.css',
 			array(),
-			VBR_VERSION
+			VBR_Balloons::asset_version( 'assets/css/frontend.css' )
 		);
 
 		wp_register_script(
 			'vbr-frontend',
 			VBR_PLUGIN_URL . 'assets/js/frontend.js',
 			array(),
-			VBR_VERSION,
+			VBR_Balloons::asset_version( 'assets/js/frontend.js' ),
 			true
 		);
 
