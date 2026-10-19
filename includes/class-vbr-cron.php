@@ -82,7 +82,6 @@ class VBR_Cron {
 	public static function reschedule() {
 		VBR_Settings::flush_cache();
 
-		$previous = get_option( 'vbr_scheduled_interval', 'off' );
 		self::unschedule();
 
 		$slug    = (string) VBR_Settings::get( 'interval' );
@@ -90,11 +89,6 @@ class VBR_Cron {
 
 		if ( ! $seconds ) {
 			return;
-		}
-
-		// Starting (or restarting) the clock: measure the first tick from now.
-		if ( 'off' === $previous || ! get_option( 'vbr_last_tick' ) ) {
-			update_option( 'vbr_last_tick', time(), false );
 		}
 
 		$first = time() + $seconds;
@@ -139,44 +133,69 @@ class VBR_Cron {
 	}
 
 	/**
-	 * Scheduled tick: move balloons by the real time elapsed since the last tick.
+	 * Scheduled tick: move each flying race by the real time since its last tick
+	 * (counted from launch, stopping at the end time, capped at 3× the interval).
+	 *
+	 * @return array Summaries keyed by race ID.
 	 */
 	public static function run_scheduled() {
 		$interval = VBR_Settings::interval_seconds();
+		$results  = array();
 
 		if ( ! $interval ) {
-			return;
+			return $results;
 		}
 
-		$now  = time();
-		$end  = VBR_Settings::race_end_timestamp();
-		$last = (int) get_option( 'vbr_last_tick', 0 );
-		$last = $last > 0 ? $last : $now - $interval;
+		$now = time();
 
-		if ( $end && $last >= $end ) {
-			return;
+		foreach ( VBR_Races::all() as $race ) {
+			$launch = VBR_Races::ts( $race->launch_at );
+			$end    = VBR_Races::ts( $race->end_at );
+			$last   = max( $launch, VBR_Races::ts( $race->last_tick_at ) );
+			$until  = $end ? min( $now, $end ) : $now;
+
+			// Not launched yet, or already caught up to the end.
+			if ( ! $launch || $now < $launch || $until <= $last ) {
+				continue;
+			}
+
+			$elapsed = min( $until - $last, 3 * $interval );
+			$summary = self::tick(
+				$elapsed / HOUR_IN_SECONDS,
+				array(
+					'race_id' => (int) $race->id,
+					'source'  => 'scheduled',
+				)
+			);
+
+			if ( empty( $summary['locked'] ) ) {
+				VBR_Races::set_time( $race->id, 'last_tick_at', $until );
+			}
+
+			$results[ (int) $race->id ] = $summary;
 		}
 
-		$until   = $end ? min( $now, $end ) : $now;
-		$elapsed = min( max( 0, $until - $last ), 3 * $interval );
-
-		if ( $elapsed < 1 ) {
-			return;
-		}
-
-		$result = self::tick( $elapsed / HOUR_IN_SECONDS, array( 'source' => 'scheduled' ) );
-
-		if ( empty( $result['locked'] ) ) {
-			update_option( 'vbr_last_tick', $until, false );
-		}
+		return $results;
 	}
 
 	/**
-	 * Move every active balloon.
+	 * Last tick summary for a race.
+	 *
+	 * @param int $race_id Race ID.
+	 * @return array
+	 */
+	public static function last_summary( $race_id ) {
+		$all = get_option( 'vbr_tick_summaries', array() );
+
+		return isset( $all[ (int) $race_id ] ) ? (array) $all[ (int) $race_id ] : array();
+	}
+
+	/**
+	 * Move every active balloon in one race.
 	 *
 	 * @param float $hours Hours of drift to simulate.
 	 * @param array $args  {
-	 *     Optional.
+	 *     @type int        $race_id Race to move (required).
 	 *     @type float|null $min_km Fixed range override (min), ignores speed settings.
 	 *     @type float|null $max_km Fixed range override (max).
 	 *     @type string     $source 'scheduled' | 'manual' | 'cli'.
@@ -189,22 +208,30 @@ class VBR_Cron {
 		$args = wp_parse_args(
 			$args,
 			array(
-				'min_km' => null,
-				'max_km' => null,
-				'source' => 'manual',
+				'race_id' => 0,
+				'min_km'  => null,
+				'max_km'  => null,
+				'source'  => 'manual',
 			)
 		);
+
+		$race = VBR_Races::get( (int) $args['race_id'] );
 
 		$summary = array(
 			'advanced'    => 0,
 			'burst'       => 0,
 			'storm_burst' => 0,
 			'wind_cells'  => 0,
+			'race_id'     => $race ? (int) $race->id : 0,
 			'hours'       => round( (float) $hours, 3 ),
 			'source'      => $args['source'],
 			'time'        => time(),
 			'locked'      => false,
 		);
+
+		if ( ! $race ) {
+			return $summary;
+		}
 
 		if ( ! self::acquire_lock() ) {
 			$summary['locked'] = true;
@@ -214,8 +241,8 @@ class VBR_Cron {
 		try {
 			$s        = VBR_Settings::all();
 			$table    = VBR_Balloons::table();
-			$launch   = VBR_Balloons::launch_point();
-			$balloons = $wpdb->get_results( "SELECT id, helium_level, latitude, longitude, start_lat, start_lng, trail_json FROM {$table} WHERE is_burst = 0" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$launch   = VBR_Races::launch_point( $race );
+			$balloons = $wpdb->get_results( $wpdb->prepare( "SELECT id, helium_level, latitude, longitude, start_lat, start_lng, trail_json FROM {$table} WHERE is_burst = 0 AND race_id = %d", (int) $race->id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 			$use_weather = ! empty( $s['weather_enabled'] );
 			$per_balloon = $use_weather && ! empty( $s['per_balloon_wind'] );
@@ -314,7 +341,9 @@ class VBR_Cron {
 				}
 			}
 
-			update_option( 'vbr_last_tick_summary', $summary, false );
+			$all                    = get_option( 'vbr_tick_summaries', array() );
+			$all[ (int) $race->id ]    = $summary;
+			update_option( 'vbr_tick_summaries', $all, false );
 		} finally {
 			self::release_lock();
 		}

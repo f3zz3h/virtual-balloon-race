@@ -96,3 +96,63 @@
 .vbr-schedule-summary li {
 	margin: 2px 0;
 }
+
+/* Races */
+
+.vbr-status--upcoming {
+	background: #f0f0f1;
+	color: #50575e;
+}
+
+.vbr-status--on_sale {
+	background: #e7f0fb;
+	color: #135e96;
+}
+
+.vbr-status--flying {
+	background: #edfaef;
+	color: #1e6b34;
+}
+
+.vbr-status--finished {
+	background: #fcf0e3;
+	color: #8a4b0f;
+}
+
+.vbr-race-summary h2 .vbr-status {
+	margin-left: 6px;
+	vertical-align: middle;
+}
+
+.vbr-race-facts {
+	margin: 0 0 8px;
+}
+
+.vbr-race-facts li {
+	margin: 3px 0;
+}
+
+.vbr-race-picker {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	margin: 12px 0 0;
+}
+
+.vbr-delete-race {
+	margin-left: 12px;
+}
+
+.vbr-coord {
+	width: 10rem;
+}
+
+.vbr-admin-logo {
+	width: 24px;
+	height: 24px;
+	margin-right: 4px;
+	object-fit: cover;
+	border-radius: 50%;
+	vertical-align: middle;
+}

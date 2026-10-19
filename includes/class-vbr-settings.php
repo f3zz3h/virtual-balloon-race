@@ -76,7 +76,6 @@ class VBR_Settings {
 		return array(
 			// Race movement.
 			'interval'          => array( 'section' => 'race', 'type' => 'select', 'default' => 'off', 'label' => __( 'Auto-update interval', 'virtual-balloon-race' ), 'options' => self::interval_labels(), 'help' => __( 'How often balloons move. Scheduled updates run via WooCommerce Action Scheduler (or WP-Cron), which only fires when the site gets traffic. For accurate 5-minute updates, set up a real system cron.', 'virtual-balloon-race' ) ),
-			'race_end'          => array( 'section' => 'race', 'type' => 'datetime', 'default' => '', 'label' => __( 'Race ends', 'virtual-balloon-race' ), 'help' => __( 'Optional. Balloons stop moving after this time (site timezone).', 'virtual-balloon-race' ) ),
 			'base_kmh'          => array( 'section' => 'race', 'type' => 'number', 'default' => 35, 'min' => 0, 'max' => 300, 'step' => 0.1, 'label' => __( 'Base speed (km/h)', 'virtual-balloon-race' ), 'help' => __( 'Average drift speed. Distance per update = speed × hours since the last update × helium × wind × variance.', 'virtual-balloon-race' ) ),
 			'mult_eco'          => array( 'section' => 'race', 'type' => 'number', 'default' => 0.7, 'min' => 0, 'max' => 5, 'step' => 0.01, 'label' => __( 'Eco-Glide multiplier', 'virtual-balloon-race' ) ),
 			'mult_balanced'     => array( 'section' => 'race', 'type' => 'number', 'default' => 1.0, 'min' => 0, 'max' => 5, 'step' => 0.01, 'label' => __( 'Balanced multiplier', 'virtual-balloon-race' ) ),
@@ -86,7 +85,7 @@ class VBR_Settings {
 			// Launch and weather.
 			'launch_label'      => array( 'section' => 'launch', 'type' => 'text', 'default' => 'Horfield, Bristol', 'label' => __( 'Launch name', 'virtual-balloon-race' ) ),
 			'launch_lat'        => array( 'section' => 'launch', 'type' => 'number', 'default' => 51.4885, 'min' => -90, 'max' => 90, 'step' => 0.0000001, 'label' => __( 'Launch latitude', 'virtual-balloon-race' ) ),
-			'launch_lng'        => array( 'section' => 'launch', 'type' => 'number', 'default' => -2.5800, 'min' => -180, 'max' => 180, 'step' => 0.0000001, 'label' => __( 'Launch longitude', 'virtual-balloon-race' ), 'help' => __( 'Search for a place above or click the map to set the launch point.', 'virtual-balloon-race' ) ),
+			'launch_lng'        => array( 'section' => 'launch', 'type' => 'number', 'default' => -2.5800, 'min' => -180, 'max' => 180, 'step' => 0.0000001, 'label' => __( 'Launch longitude', 'virtual-balloon-race' ), 'help' => __( 'Used for new races. Search for a place above or click the map. Each race can have its own launch point.', 'virtual-balloon-race' ) ),
 			'weather_enabled'   => array( 'section' => 'launch', 'type' => 'checkbox', 'default' => 1, 'label' => __( 'Use live wind (Open-Meteo)', 'virtual-balloon-race' ), 'help' => __( 'Free, no API key. When off, balloons follow the default heading at base speed.', 'virtual-balloon-race' ) ),
 			'per_balloon_wind'  => array( 'section' => 'launch', 'type' => 'checkbox', 'default' => 1, 'label' => __( 'Per-balloon wind', 'virtual-balloon-race' ), 'help' => __( 'Fetch wind for each balloon\'s ~11 km area so paths diverge as they spread. Turn off to use launch-point wind only.', 'virtual-balloon-race' ) ),
 			'wind_weight'       => array( 'section' => 'launch', 'type' => 'number', 'default' => 0.6, 'min' => 0, 'max' => 1, 'step' => 0.05, 'label' => __( 'Wind influence (0–1)', 'virtual-balloon-race' ), 'help' => __( '0 = wind only sets direction; 1 = wind speed fully drives distance.', 'virtual-balloon-race' ) ),
@@ -122,7 +121,7 @@ class VBR_Settings {
 	private static function sections() {
 		return array(
 			'race'   => __( 'Race movement', 'virtual-balloon-race' ),
-			'launch' => __( 'Launch point and wind', 'virtual-balloon-race' ),
+			'launch' => __( 'Default launch point and wind', 'virtual-balloon-race' ),
 			'burst'  => __( 'Bursts', 'virtual-balloon-race' ),
 			'map'    => __( 'Map', 'virtual-balloon-race' ),
 			'shop'   => __( 'Shop add-ons', 'virtual-balloon-race' ),
@@ -174,23 +173,6 @@ class VBR_Settings {
 		$slug      = self::get( 'interval' );
 
 		return isset( $intervals[ $slug ] ) ? (int) $intervals[ $slug ] : 0;
-	}
-
-	/**
-	 * Race end as a Unix timestamp, or 0 when not set.
-	 *
-	 * @return int
-	 */
-	public static function race_end_timestamp() {
-		$value = (string) self::get( 'race_end' );
-
-		if ( '' === $value ) {
-			return 0;
-		}
-
-		$date = date_create_immutable_from_format( 'Y-m-d\TH:i', $value, wp_timezone() );
-
-		return $date ? $date->getTimestamp() : 0;
 	}
 
 	/**
@@ -401,7 +383,7 @@ class VBR_Settings {
 		echo '<div class="notice notice-info inline"><p>';
 
 		if ( ! $interval ) {
-			esc_html_e( 'Automatic updates are off. Use “Advance” on the Balloon Race page to move balloons manually.', 'virtual-balloon-race' );
+			esc_html_e( 'Automatic updates are off. Use “Advance now” on the Balloon Race page to move flying balloons manually.', 'virtual-balloon-race' );
 		} elseif ( $next ) {
 			echo esc_html(
 				sprintf(
