@@ -33,6 +33,7 @@ require_once VBR_PLUGIN_DIR . 'includes/class-vbr-weather.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-cron.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-admin.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-frontend.php';
+require_once VBR_PLUGIN_DIR . 'includes/class-vbr-map.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-woocommerce.php';
 
 /**
@@ -82,6 +83,7 @@ final class Virtual_Balloon_Race {
 		new VBR_Settings();
 		new VBR_Cron();
 		new VBR_Frontend();
+		new VBR_Map();
 
 		if ( $this->is_woocommerce_active() ) {
 			new VBR_WooCommerce();

@@ -69,13 +69,15 @@ class VBR_Frontend {
 
 		$atts = shortcode_atts(
 			array(
-				'limit' => 50,
+				'limit'   => 50,
+				'map_url' => '',
 			),
 			$atts,
 			'balloon_leaderboard'
 		);
 
-		$limit = max( 1, intval( $atts['limit'] ) );
+		$limit   = max( 1, intval( $atts['limit'] ) );
+		$map_url = '' !== $atts['map_url'] ? esc_url( $atts['map_url'] ) : '';
 
 		global $wpdb;
 		$table = VBR_Balloons::table();
@@ -126,9 +128,15 @@ class VBR_Frontend {
 								$search_haystack = strtolower( $balloon->balloon_name . ' ' . $balloon->owner_name );
 								$color_slug      = sanitize_html_class( strtolower( $balloon->balloon_color ) );
 								?>
-								<tr data-vbr-search="<?php echo esc_attr( $search_haystack ); ?>">
+								<tr data-vbr-search="<?php echo esc_attr( $search_haystack ); ?>" data-vbr-balloon="<?php echo esc_attr( (string) $balloon->id ); ?>">
 									<td data-label="<?php esc_attr_e( 'Rank', 'virtual-balloon-race' ); ?>"><?php echo esc_html( (string) ( $index + 1 ) ); ?></td>
-									<td data-label="<?php esc_attr_e( 'Balloon Name', 'virtual-balloon-race' ); ?>"><?php echo esc_html( $balloon->balloon_name ); ?></td>
+									<td data-label="<?php esc_attr_e( 'Balloon Name', 'virtual-balloon-race' ); ?>">
+										<?php if ( $map_url ) : ?>
+											<a class="vbr-leaderboard__link" href="<?php echo esc_url( add_query_arg( 'balloon', (int) $balloon->id, $map_url ) ); ?>"><?php echo esc_html( $balloon->balloon_name ); ?></a>
+										<?php else : ?>
+											<?php echo esc_html( $balloon->balloon_name ); ?>
+										<?php endif; ?>
+									</td>
 									<td data-label="<?php esc_attr_e( 'Owner', 'virtual-balloon-race' ); ?>"><?php echo esc_html( $balloon->owner_name ); ?></td>
 									<td data-label="<?php esc_attr_e( 'Color', 'virtual-balloon-race' ); ?>">
 										<span class="vbr-color vbr-color--<?php echo esc_attr( $color_slug ); ?>">
