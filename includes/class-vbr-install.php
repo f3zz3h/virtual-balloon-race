@@ -76,6 +76,7 @@ class VBR_Install {
 	 */
 	public static function drop_site_table( $tables, $site_id ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
 		$tables[] = VBR_Balloons::table();
+		$tables[] = VBR_Races::table();
 
 		return $tables;
 	}
@@ -93,6 +94,7 @@ class VBR_Install {
 
 		$sql = "CREATE TABLE {$table_name} (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			race_id bigint(20) unsigned NOT NULL DEFAULT 0,
 			order_id bigint(20) unsigned NOT NULL DEFAULT 0,
 			user_id bigint(20) unsigned NOT NULL DEFAULT 0,
 			owner_name varchar(255) NOT NULL DEFAULT '',
@@ -106,11 +108,13 @@ class VBR_Install {
 			longitude decimal(10,7) DEFAULT NULL,
 			start_lat decimal(10,7) DEFAULT NULL,
 			start_lng decimal(10,7) DEFAULT NULL,
+			has_custom_start tinyint(1) NOT NULL DEFAULT 0,
 			logo_attachment_id bigint(20) unsigned NOT NULL DEFAULT 0,
 			trail_json longtext DEFAULT NULL,
 			last_moved_at datetime DEFAULT NULL,
 			created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			PRIMARY KEY  (id),
+			KEY race_id (race_id),
 			KEY order_id (order_id),
 			KEY user_id (user_id),
 			KEY is_burst (is_burst),
@@ -119,9 +123,83 @@ class VBR_Install {
 
 		dbDelta( $sql );
 
+		$races = VBR_Races::table();
+
+		dbDelta(
+			"CREATE TABLE {$races} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			name varchar(255) NOT NULL DEFAULT '',
+			slug varchar(200) NOT NULL DEFAULT '',
+			launch_lat decimal(10,7) NOT NULL DEFAULT 0,
+			launch_lng decimal(10,7) NOT NULL DEFAULT 0,
+			launch_label varchar(255) NOT NULL DEFAULT '',
+			sales_open_at datetime DEFAULT NULL,
+			launch_at datetime NOT NULL,
+			end_at datetime DEFAULT NULL,
+			last_tick_at datetime DEFAULT NULL,
+			created_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			KEY slug (slug),
+			KEY launch_at (launch_at)
+		) {$charset_collate};"
+		);
+
 		self::seed_positions();
+		self::migrate_to_races();
 
 		update_option( 'vbr_db_version', VBR_DB_VERSION );
+	}
+
+	/**
+	 * 1.2.0: put balloons that predate races into an auto-created first race.
+	 */
+	private static function migrate_to_races() {
+		global $wpdb;
+
+		$table    = VBR_Balloons::table();
+		$orphans  = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} WHERE race_id = 0" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$races    = VBR_Races::all();
+
+		if ( ! $orphans ) {
+			return;
+		}
+
+		if ( $races ) {
+			$race_id = (int) VBR_Races::current()->id;
+		} else {
+			$settings = get_option( VBR_Settings::OPTION, array() );
+			$launch   = VBR_Balloons::launch_point();
+			$first    = $wpdb->get_var( "SELECT MIN(created_at) FROM {$table}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$first_ts = $first ? strtotime( get_gmt_from_date( $first ) . ' UTC' ) : time();
+			$end_gmt  = ! empty( $settings['race_end'] ) ? VBR_Races::local_input_to_gmt( $settings['race_end'] ) : null;
+
+			// Keep a future end time only; an old one would freeze the race at once.
+			if ( $end_gmt && VBR_Races::ts( $end_gmt ) <= $first_ts ) {
+				$end_gmt = null;
+			}
+
+			$race_id = VBR_Races::save(
+				array(
+					'name'         => __( 'Balloon Race', 'virtual-balloon-race' ),
+					'launch_lat'   => $launch['lat'],
+					'launch_lng'   => $launch['lng'],
+					'launch_label' => $launch['label'],
+					'launch_at'    => gmdate( 'Y-m-d H:i:s', $first_ts ),
+					'end_at'       => $end_gmt,
+				)
+			);
+
+			if ( is_wp_error( $race_id ) ) {
+				return;
+			}
+
+			$last_tick = (int) get_option( 'vbr_last_tick', 0 );
+			if ( $last_tick ) {
+				VBR_Races::set_time( $race_id, 'last_tick_at', $last_tick );
+			}
+		}
+
+		$wpdb->query( $wpdb->prepare( "UPDATE {$table} SET race_id = %d WHERE race_id = 0", $race_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 	}
 
 	/**
