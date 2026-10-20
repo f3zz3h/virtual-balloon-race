@@ -3,7 +3,7 @@
 A WordPress + WooCommerce plugin for running virtual balloon races as fundraisers. Supporters buy a balloon entry for a race, customise it (name, colour, helium strategy, and optional paid extras), and after launch the balloons drift across a live map using real wind data. A leaderboard ranks balloons by distance travelled.
 
 - **Requires:** WordPress 6.0+, PHP 7.4+, WooCommerce 7.0+ (for selling entries)
-- **Version:** 1.2.0 (database schema 1.2.0)
+- **Version:** 1.3.0 (database schema 1.3.0)
 - **Licence:** GPL-2.0-or-later
 
 ---
@@ -59,13 +59,21 @@ You can schedule several races. Usually only one runs at a time, but overlapping
 
 ### 4. Set up the balloon product
 
-1. Create a WooCommerce product (simple product, e.g. £3).
-2. In **Product data → General**, tick **Balloon Entry**. You can also tag the product `balloon-entry` instead.
-3. Choose **Balloon race**:
+The quickest way: open the race (**Balloon Race → Races → Edit**) and click **Create entry product**. This makes a draft product locked to that race and opens it so you can set the price and publish.
+
+Or create one by hand:
+
+1. **Products → Add New**, and set **Product data** to **Balloon race entry**. Entries are always virtual, so there's no shipping.
+2. Set the price (e.g. £3) on the **General** tab.
+3. On the **Balloon race** tab, choose which race it sells:
    - **Any race taking entries** (default): buyers enter whichever race is open. If several are open, they pick one.
    - **A specific race**: the product only sells entries for that race.
 
+The race's edit screen lists every product that sells its entries.
+
 When no race is taking entries, the product can't be added to the basket and shows when entries next open. If a race launches while an entry for it is still in someone's basket, the entry is removed with a message.
+
+> **Upgrading from 1.2:** products marked with the old "Balloon Entry" tick box or `balloon-entry` tag are converted to the new type automatically. Products that weren't simple products (e.g. variable) can't be converted; a notice in admin lists them.
 
 Buyers fill in:
 
@@ -120,7 +128,9 @@ includes/
   class-vbr-frontend.php        [balloon_leaderboard] + frontend assets
   class-vbr-admin.php           Leaderboard admin page (per race)
   class-vbr-admin-races.php     Races admin page
-  class-vbr-woocommerce.php     Balloon product flag, fields, cart, order → balloon rows
+  class-vbr-product-type.php    "Balloon race entry" product type, its admin tab, 1.2 → 1.3 product migration
+  class-wc-product-balloon-entry.php  The product class (always virtual)
+  class-vbr-woocommerce.php     Balloon product fields, cart, order → balloon rows
   class-vbr-race-entries.php    Race choice, purchasability, basket guard, race_id on balloons
   class-vbr-monetization.php    Paid add-ons: strategy fee, custom launch, logo upload
   class-vbr-cli.php             wp vbr …
@@ -134,7 +144,7 @@ assets/js/admin-settings.js     Launch-point picker (Settings and race form)
 - `{prefix}vbr_races`: one row per race. All times are stored in **UTC**. Stages are calculated from the clock and never stored.
 - `{prefix}vbr_balloons`: one row per balloon, with `race_id`, current `latitude`/`longitude`, `start_lat`/`start_lng`, `trail_json` (the most recent `[lat, lng]` points, capped by the trail-length setting), `logo_attachment_id`, `has_custom_start`, `distance_km` and `is_burst`.
 - Settings: the `vbr_settings` option. Last tick per race: the `vbr_tick_summaries` option.
-- Upgrades run on `plugins_loaded` whenever `vbr_db_version` is older than `VBR_DB_VERSION`. Upgrading from 1.1 creates a first race and moves existing balloons into it.
+- Upgrades run on `plugins_loaded` whenever `vbr_db_version` is older than `VBR_DB_VERSION`. Upgrading from 1.1 creates a first race and moves existing balloons into it. Steps that need WooCommerce or rewrite rules (product conversion, default pages, flushing rewrites) are queued in `vbr_pending_setup` and run on the next `init`.
 
 ### How a tick works
 
@@ -169,8 +179,8 @@ wp vbr status                            # schedule + last tick per race
 
 | Hook | Type | Use |
 | --- | --- | --- |
-| `vbr_balloon_product_ids` | filter | Product IDs to treat as balloon entries |
-| `vbr_is_balloon_product` | filter | Custom balloon-product detection |
+| `vbr_is_balloon_product` | filter | Treat other products as balloon entries (`$is_entry, $product_id`) |
+| `vbr_product_data_panel` | action | Add fields to the product's **Balloon race** tab |
 | `vbr_new_balloon_row` | filter | Change a balloon row before insert (`$row, $order_item, $order`) |
 | `vbr_helium_option_label` | filter | Helium option text on the product page |
 | `vbr_product_fields_before` / `vbr_product_fields_after` | action | Add fields inside the balloon box |

@@ -100,6 +100,17 @@ class VBR_Admin_Races {
 				}
 				$this->redirect( array( 'action' => 'edit', 'race' => $id ), 'finished' );
 				break;
+
+			case 'create_product':
+				$race   = VBR_Races::get( $id );
+				$result = $race && class_exists( 'VBR_Product_Type' ) ? VBR_Product_Type::create_for_race( $race ) : new WP_Error( 'vbr_no_woocommerce', __( 'WooCommerce is needed to sell entries.', 'virtual-balloon-race' ) );
+
+				if ( is_wp_error( $result ) ) {
+					$this->redirect( array( 'action' => 'edit', 'race' => $id ), $result->get_error_message() );
+				}
+
+				wp_safe_redirect( admin_url( 'post.php?post=' . (int) $result . '&action=edit' ) );
+				exit;
 		}
 	}
 
@@ -316,6 +327,45 @@ class VBR_Admin_Races {
 	}
 
 	/**
+	 * Entry products that sell this race, with a button to create one.
+	 *
+	 * @param object $race Race.
+	 */
+	private static function render_products( $race ) {
+		if ( ! class_exists( 'VBR_Product_Type' ) ) {
+			return;
+		}
+
+		$locked = VBR_Product_Type::products_for_race( $race->id );
+		$any    = VBR_Product_Type::products_for_race( 0 );
+		?>
+		<section class="vbr-admin-panel vbr-race-products">
+			<h2><?php esc_html_e( 'Entry products', 'virtual-balloon-race' ); ?></h2>
+			<?php if ( $locked || $any ) : ?>
+				<ul>
+					<?php foreach ( array_merge( $locked, $any ) as $product ) : ?>
+						<li>
+							<a href="<?php echo esc_url( get_edit_post_link( $product->get_id() ) ); ?>"><?php echo esc_html( $product->get_name() ); ?></a>
+							&middot; <?php echo wp_kses_post( $product->get_price() !== '' ? wc_price( $product->get_price() ) : __( 'no price', 'virtual-balloon-race' ) ); ?>
+							&middot; <?php echo esc_html( 'publish' === $product->get_status() ? __( 'Published', 'virtual-balloon-race' ) : __( 'Not published', 'virtual-balloon-race' ) ); ?>
+							<?php if ( in_array( $product, $any, true ) ) : ?>
+								&middot; <em><?php esc_html_e( 'any race taking entries', 'virtual-balloon-race' ); ?></em>
+							<?php endif; ?>
+						</li>
+					<?php endforeach; ?>
+				</ul>
+			<?php else : ?>
+				<p><?php esc_html_e( 'No product sells entries for this race yet.', 'virtual-balloon-race' ); ?></p>
+			<?php endif; ?>
+			<p>
+				<a class="button" href="<?php echo esc_url( self::action_url( 'create_product', $race->id ) ); ?>"><?php esc_html_e( 'Create entry product', 'virtual-balloon-race' ); ?></a>
+				<span class="description"><?php esc_html_e( 'Makes a draft "Balloon race entry" product for this race. Set its price and publish it.', 'virtual-balloon-race' ); ?></span>
+			</p>
+		</section>
+		<?php
+	}
+
+	/**
 	 * Nonced action URL.
 	 *
 	 * @param string $action Action.
@@ -369,6 +419,7 @@ class VBR_Admin_Races {
 		<?php
 		if ( $race ) {
 			self::render_race_summary( $race );
+			self::render_products( $race );
 		}
 		?>
 

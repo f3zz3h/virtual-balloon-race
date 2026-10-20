@@ -17,6 +17,7 @@ class VBR_Install {
 	 */
 	public static function init() {
 		add_action( 'plugins_loaded', array( __CLASS__, 'maybe_upgrade' ), 5 );
+		add_action( 'init', array( __CLASS__, 'run_pending' ), 99 );
 		add_action( 'wp_initialize_site', array( __CLASS__, 'install_new_site' ), 20 );
 		add_filter( 'wpmu_drop_tables', array( __CLASS__, 'drop_site_table' ), 10, 2 );
 	}
@@ -89,6 +90,8 @@ class VBR_Install {
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
+		$previous = (string) get_option( 'vbr_db_version', '0' );
+
 		$table_name      = VBR_Balloons::table();
 		$charset_collate = $wpdb->get_charset_collate();
 
@@ -147,7 +150,49 @@ class VBR_Install {
 		self::seed_positions();
 		self::migrate_to_races();
 
+		// Work that needs WooCommerce's post types or rewrite rules runs on the next `init`.
+		$tasks = array( 'pages', 'rewrite' );
+		if ( '0' !== $previous && version_compare( $previous, '1.3.0', '<' ) ) {
+			$tasks[] = 'products';
+		}
+		self::add_pending( $tasks );
+
 		update_option( 'vbr_db_version', VBR_DB_VERSION );
+	}
+
+	/**
+	 * Queue tasks for run_pending().
+	 *
+	 * @param string[] $tasks Task keys.
+	 */
+	public static function add_pending( $tasks ) {
+		$pending = (array) get_option( 'vbr_pending_setup', array() );
+		update_option( 'vbr_pending_setup', array_values( array_unique( array_merge( $pending, $tasks ) ) ) );
+	}
+
+	/**
+	 * Run queued setup tasks once WordPress and WooCommerce are fully loaded.
+	 */
+	public static function run_pending() {
+		$pending = (array) get_option( 'vbr_pending_setup', array() );
+
+		if ( ! $pending ) {
+			return;
+		}
+
+		delete_option( 'vbr_pending_setup' );
+
+		if ( in_array( 'products', $pending, true ) && class_exists( 'VBR_Product_Type' ) ) {
+			VBR_Product_Type::migrate_legacy_products();
+		}
+
+		if ( in_array( 'pages', $pending, true ) && class_exists( 'VBR_Pages' ) ) {
+			VBR_Pages::create_missing();
+		}
+
+		if ( in_array( 'rewrite', $pending, true ) ) {
+			flush_rewrite_rules( false );
+		}
 	}
 
 	/**

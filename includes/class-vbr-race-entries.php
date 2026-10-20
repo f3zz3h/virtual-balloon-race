@@ -19,12 +19,11 @@ class VBR_Race_Entries {
 	 */
 	public function __construct() {
 		// Product admin: lock a product to one race.
-		add_action( 'woocommerce_product_options_general_product_data', array( $this, 'output_product_option' ), 20 );
+		add_action( 'vbr_product_data_panel', array( $this, 'output_product_option' ) );
 		add_action( 'woocommerce_process_product_meta', array( $this, 'save_product_option' ), 20 );
 
 		// Only purchasable while a race is taking entries.
 		add_filter( 'woocommerce_is_purchasable', array( $this, 'is_purchasable' ), 20, 2 );
-		add_filter( 'woocommerce_variation_is_purchasable', array( $this, 'is_purchasable' ), 20, 2 );
 		add_action( 'woocommerce_single_product_summary', array( $this, 'closed_message' ), 31 );
 		add_filter( 'woocommerce_loop_add_to_cart_link', array( $this, 'loop_button' ), 20, 2 );
 
@@ -81,7 +80,7 @@ class VBR_Race_Entries {
 			}
 		}
 
-		echo '<div class="options_group show_if_simple show_if_variable">';
+		echo '<div class="options_group">';
 
 		woocommerce_wp_select(
 			array(
@@ -90,7 +89,7 @@ class VBR_Race_Entries {
 				'options'     => $options,
 				'value'       => $current,
 				'desc_tip'    => true,
-				'description' => __( 'Balloon entries only: which race this product sells entries for. It can only be bought while that race is taking entries.', 'virtual-balloon-race' ),
+				'description' => __( 'Which race this product sells entries for. It can only be bought while that race is taking entries.', 'virtual-balloon-race' ),
 			)
 		);
 
@@ -103,7 +102,8 @@ class VBR_Race_Entries {
 	 * @param int $product_id Product ID.
 	 */
 	public function save_product_option( $product_id ) {
-		if ( ! current_user_can( 'edit_post', $product_id ) ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce verifies the product save nonce.
+		if ( ! current_user_can( 'edit_post', $product_id ) || ! isset( $_POST['product-type'] ) || VBR_Product_Type::TYPE !== $_POST['product-type'] ) {
 			return;
 		}
 
@@ -123,13 +123,11 @@ class VBR_Race_Entries {
 			return $purchasable;
 		}
 
-		$check = $product->get_parent_id() ? $product->get_parent_id() : $product->get_id();
-
-		if ( ! VBR_WooCommerce::is_balloon_product( $check ) ) {
+		if ( ! VBR_WooCommerce::is_balloon_product( $product ) ) {
 			return $purchasable;
 		}
 
-		return (bool) self::open_races_for( $check );
+		return (bool) self::open_races_for( $product->get_id() );
 	}
 
 	/**

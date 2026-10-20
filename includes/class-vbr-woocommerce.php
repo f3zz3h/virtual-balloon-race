@@ -1,6 +1,6 @@
 <?php
 /**
- * WooCommerce integration: product flag, product fields, cart, orders.
+ * WooCommerce integration: product fields, cart, orders.
  *
  * @package Virtual_Balloon_Race
  */
@@ -27,86 +27,33 @@ class VBR_WooCommerce {
 		// Persist custom fields onto the order line item (emails + order screens).
 		add_action( 'woocommerce_checkout_create_order_line_item', array( $this, 'save_order_item_meta' ), 10, 4 );
 
-		// WooCommerce product flag: "Balloon Entry".
-		add_action( 'woocommerce_product_options_general_product_data', array( $this, 'output_product_option' ) );
-		add_action( 'woocommerce_process_product_meta', array( $this, 'save_product_option' ) );
-
 		// Create balloon records when payment is taken / order completes.
 		add_action( 'woocommerce_order_status_processing', array( $this, 'create_balloons_from_order' ) );
 		add_action( 'woocommerce_order_status_completed', array( $this, 'create_balloons_from_order' ) );
 	}
 
 	/**
-	 * Determine whether a product is a balloon race entry.
-	 *
-	 * A product qualifies if:
-	 * - the "Balloon Entry" checkbox is ticked, or
-	 * - it has the product tag `balloon-entry`, or
-	 * - its ID is listed in the `vbr_balloon_product_ids` option / filter.
+	 * Determine whether a product is a balloon race entry (the `balloon_entry` product type).
 	 *
 	 * @param int|WC_Product $product Product ID or object.
 	 * @return bool
 	 */
 	public static function is_balloon_product( $product ) {
-		$product_id = 0;
-
 		if ( is_numeric( $product ) ) {
-			$product_id = (int) $product;
-		} elseif ( is_object( $product ) && method_exists( $product, 'get_id' ) ) {
-			$product_id = (int) $product->get_id();
+			$product = (int) $product > 0 ? wc_get_product( (int) $product ) : null;
 		}
 
-		if ( $product_id <= 0 ) {
+		if ( ! $product instanceof WC_Product ) {
 			return false;
 		}
 
-		$configured_ids = apply_filters( 'vbr_balloon_product_ids', get_option( 'vbr_balloon_product_ids', array() ) );
-		$configured_ids = array_map( 'intval', (array) $configured_ids );
+		$product_id = $product->get_id();
 
-		if ( in_array( $product_id, $configured_ids, true ) ) {
-			return true;
-		}
-
-		if ( 'yes' === get_post_meta( $product_id, '_vbr_is_balloon_entry', true ) ) {
-			return true;
-		}
-
-		if ( has_term( 'balloon-entry', 'product_tag', $product_id ) ) {
+		if ( $product->is_type( VBR_Product_Type::TYPE ) ) {
 			return true;
 		}
 
 		return (bool) apply_filters( 'vbr_is_balloon_product', false, $product_id );
-	}
-
-	/**
-	 * Product data checkbox: mark this product as a balloon entry.
-	 */
-	public function output_product_option() {
-		echo '<div class="options_group">';
-
-		woocommerce_wp_checkbox(
-			array(
-				'id'          => '_vbr_is_balloon_entry',
-				'label'       => __( 'Balloon Entry', 'virtual-balloon-race' ),
-				'description' => __( 'Treat this product as a Virtual Balloon Race entry and show balloon customisation fields.', 'virtual-balloon-race' ),
-			)
-		);
-
-		echo '</div>';
-	}
-
-	/**
-	 * Save the balloon-entry product flag.
-	 *
-	 * @param int $product_id Product ID.
-	 */
-	public function save_product_option( $product_id ) {
-		if ( ! current_user_can( 'edit_post', $product_id ) ) {
-			return;
-		}
-
-		$is_entry = isset( $_POST['_vbr_is_balloon_entry'] ) ? 'yes' : 'no'; // phpcs:ignore WordPress.Security.NonceVerification.Missing
-		update_post_meta( $product_id, '_vbr_is_balloon_entry', $is_entry );
 	}
 
 	/**
