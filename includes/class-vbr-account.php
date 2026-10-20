@@ -138,7 +138,7 @@ class VBR_Account {
 						<td data-title="<?php esc_attr_e( 'Distance', 'virtual-balloon-race' ); ?>">
 							<?php
 							/* translators: %s: distance in km */
-							echo esc_html( sprintf( __( '%s km', 'virtual-balloon-race' ), number_format_i18n( (float) $balloon->distance_km, 1 ) ) );
+							echo esc_html( sprintf( __( '%s km', 'virtual-balloon-race' ), number_format_i18n( VBR_Balloons::ranked_distance( $balloon, $race ), 1 ) ) );
 							?>
 						</td>
 						<td>

@@ -1,9 +1,9 @@
 # Virtual Balloon Race
 
-A WordPress + WooCommerce plugin for running virtual balloon races as fundraisers. Supporters buy a balloon entry for a race, customise it (name, colour, helium strategy, and optional paid extras), and after launch the balloons drift across a live map using real wind data. A leaderboard ranks balloons by distance travelled.
+A WordPress + WooCommerce plugin for running virtual balloon races as fundraisers. Supporters buy a balloon entry for a race, customise it (name, colour, helium strategy, and optional paid extras), and after launch the balloons drift across a live map using real wind data. A leaderboard ranks balloons by how far they get from the launch point (or, per race, by distance travelled).
 
 - **Requires:** WordPress 6.0+, PHP 7.4+, WooCommerce 7.0+ (for selling entries)
-- **Version:** 1.5.0 (database schema 1.4.0)
+- **Version:** 1.5.0 (database schema 1.5.0)
 - **Licence:** GPL-2.0-or-later
 
 ---
@@ -44,6 +44,7 @@ A WordPress + WooCommerce plugin for running virtual balloon races as fundraiser
 | Launch | Entries close and balloons start moving |
 | Ends | Optional. Balloons stop and results become final. Leave blank to finish by hand |
 | Launch point | Where balloons start. Search or click the map |
+| Winner decided by | **Distance from launch** (default): straight-line distance from where the balloon started, as in real balloon races. **Distance travelled**: the whole trail added up, so wandering balloons score more. Team scores use the same measure |
 
 A race goes through four stages on its own:
 
@@ -187,6 +188,7 @@ assets/js/admin-teams.js        Team list editor (Settings and race form)
 
 - `{prefix}vbr_races`: one row per race. All times are stored in **UTC**. Stages are calculated from the clock and never stored.
 - `{prefix}vbr_teams`: one row per team, with `race_id`, `name`, `color`, `sort`. Races have `team_scoring` ('' = the Settings default).
+- Distances: `distance_km` is the whole trail added up; `from_start_km` is the straight-line distance from the balloon's start (its custom launch point, else the race's), updated on every tick. Races have `ranking` ('' or `from_start` = distance from launch, `travelled` = distance travelled), and leaderboards, team scores and REST rank by that column.
 - `{prefix}vbr_balloons`: one row per balloon, with `race_id`, `team_id`, current `latitude`/`longitude`, `start_lat`/`start_lng`, `trail_json` (the most recent `[lat, lng]` points, capped by the trail-length setting), `logo_attachment_id`, `has_custom_start`, `distance_km` and `is_burst`.
 - Settings: the `vbr_settings` option. Tracking page: `vbr_tracking_page_id`. Last tick per race: the `vbr_tick_summaries` option.
 - Upgrades run on `plugins_loaded` whenever `vbr_db_version` is older than `VBR_DB_VERSION`. Upgrading from 1.1 creates a first race and moves existing balloons into it. Steps that need WooCommerce or rewrite rules (product conversion, default pages, flushing rewrites) are queued in `vbr_pending_setup` and run on the next `init`.
@@ -207,7 +209,7 @@ Uncached grid cells are fetched in batches (up to 50 per request), and a failed 
 | Route | Returns |
 | --- | --- |
 | `GET /wp-json/vbr/v1/races` | `{ current, races: [{ id, name, slug, status, status_label, entries_open, launch_at, end_at, launch }] }` |
-| `GET /wp-json/vbr/v1/balloons?race=<id\|slug\|current>` | `{ race, launch, updated_at, next_at, balloons: [{ id, rank, name, owner, color, hex, helium, distance, burst, lat, lng, logo, logo_fit, team, trail }], teams: [{ id, rank, name, color, balloons, score, leader }], scoring }`. `teams` is empty and `team` null when the race doesn't use teams |
+| `GET /wp-json/vbr/v1/balloons?race=<id\|slug\|current>` | `{ race, launch, updated_at, next_at, balloons: [{ id, rank, name, owner, color, hex, helium, distance, burst, lat, lng, logo, logo_fit, team, trail, from_start, travelled }], teams: [{ id, rank, name, color, balloons, score, leader }], scoring, ranking }`. `distance` is the measure the race ranks by. `teams` is empty and `team` null when the race doesn't use teams |
 
 Emails and order details are never included, and owners are first name + initial. Responses are sent with no-cache headers, including LiteSpeed's.
 

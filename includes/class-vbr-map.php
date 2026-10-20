@@ -125,7 +125,8 @@ class VBR_Map {
 		global $wpdb;
 
 		$table = VBR_Balloons::table();
-		$rows  = $race ? $wpdb->get_results( $wpdb->prepare( "SELECT id, team_id, owner_name, balloon_name, balloon_color, helium_level, distance_km, is_burst, latitude, longitude, start_lat, start_lng, logo_attachment_id, trail_json FROM {$table} WHERE race_id = %d ORDER BY distance_km DESC, id ASC", (int) $race->id ) ) : array(); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$order = VBR_Races::ranking_column( $race );
+		$rows  = $race ? $wpdb->get_results( $wpdb->prepare( "SELECT id, team_id, owner_name, balloon_name, balloon_color, helium_level, distance_km, from_start_km, is_burst, latitude, longitude, start_lat, start_lng, logo_attachment_id, trail_json FROM {$table} WHERE race_id = %d ORDER BY {$order} DESC, id ASC", (int) $race->id ) ) : array(); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$hex   = self::color_hex();
 		$last  = $race ? VBR_Cron::last_summary( $race->id ) : array();
 		$next  = $race && VBR_Races::FLYING === VBR_Races::status( $race ) ? VBR_Cron::next_run() : 0;
@@ -150,21 +151,24 @@ class VBR_Map {
 			}
 
 			$balloons[] = array(
-				'id'       => (int) $row->id,
-				'rank'     => $row->is_burst ? null : ++$rank,
-				'name'     => $row->balloon_name,
-				'owner'    => VBR_Balloons::public_owner_name( $row ),
-				'color'    => $row->balloon_color,
-				'hex'      => isset( $hex[ $row->balloon_color ] ) ? $hex[ $row->balloon_color ] : '#555555',
-				'helium'   => $row->helium_level,
-				'distance' => round( (float) $row->distance_km, 2 ),
-				'burst'    => (bool) $row->is_burst,
-				'lat'      => (float) $row->latitude,
-				'lng'      => (float) $row->longitude,
-				'logo'     => $logo,
-				'logo_fit' => $fit,
-				'team'     => isset( $teams[ (int) $row->team_id ] ) ? (int) $row->team_id : null,
-				'trail'    => VBR_Balloons::decode_trail( $row->trail_json ),
+				'id'         => (int) $row->id,
+				'rank'       => $row->is_burst ? null : ++$rank,
+				'name'       => $row->balloon_name,
+				'owner'      => VBR_Balloons::public_owner_name( $row ),
+				'color'      => $row->balloon_color,
+				'hex'        => isset( $hex[ $row->balloon_color ] ) ? $hex[ $row->balloon_color ] : '#555555',
+				'helium'     => $row->helium_level,
+				// `distance` is what the race ranks by; both measures are also given.
+				'distance'   => round( VBR_Balloons::ranked_distance( $row, $race ), 2 ),
+				'from_start' => round( (float) $row->from_start_km, 2 ),
+				'travelled'  => round( (float) $row->distance_km, 2 ),
+				'burst'      => (bool) $row->is_burst,
+				'lat'        => (float) $row->latitude,
+				'lng'        => (float) $row->longitude,
+				'logo'       => $logo,
+				'logo_fit'   => $fit,
+				'team'       => isset( $teams[ (int) $row->team_id ] ) ? (int) $row->team_id : null,
+				'trail'      => VBR_Balloons::decode_trail( $row->trail_json ),
 			);
 		}
 
@@ -173,6 +177,7 @@ class VBR_Map {
 			'launch'     => VBR_Races::launch_point( $race ),
 			'updated_at' => ! empty( $last['time'] ) ? gmdate( 'c', (int) $last['time'] ) : null,
 			'next_at'    => $next ? gmdate( 'c', $next ) : null,
+			'ranking'    => VBR_Races::ranking( $race ),
 			'balloons'   => $balloons,
 			'teams'      => $teams ? VBR_Teams::standings( $race ) : array(),
 			'scoring'    => $teams ? VBR_Teams::scoring( $race ) : null,
@@ -238,9 +243,11 @@ class VBR_Map {
 			'initial'  => self::public_payload( $race ),
 			// Page caches normally skip logged-in visitors, so the viewer's own balloons can go in the HTML.
 			'mine'     => $race && is_user_logged_in() ? array_map( 'intval', wp_list_pluck( VBR_Balloons::owned_by( get_current_user_id(), (int) $race->id ), 'id' ) ) : array(),
-			'i18n'     => array(
+			'i18n' => array(
 				'owner'    => __( 'Owner', 'virtual-balloon-race' ),
-				'distance' => __( 'Distance', 'virtual-balloon-race' ),
+				'distance'  => __( 'Distance', 'virtual-balloon-race' ),
+				'fromStart' => __( 'From launch', 'virtual-balloon-race' ),
+				'travelled' => __( 'Travelled', 'virtual-balloon-race' ),
 				'status'   => __( 'Status', 'virtual-balloon-race' ),
 				'active'   => __( 'Flying', 'virtual-balloon-race' ),
 				'burst'    => __( 'Burst', 'virtual-balloon-race' ),
