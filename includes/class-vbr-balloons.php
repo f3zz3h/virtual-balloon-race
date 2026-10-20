@@ -220,4 +220,38 @@ class VBR_Balloons {
 			)
 		);
 	}
+
+	/**
+	 * Owner name as the public sees it: first name and last initial ("Luke H.").
+	 *
+	 * @param object $balloon Balloon row (needs owner_name).
+	 * @return string
+	 */
+	public static function public_owner_name( $balloon ) {
+		$parts = preg_split( '/\s+/u', trim( (string) $balloon->owner_name ), -1, PREG_SPLIT_NO_EMPTY );
+		$name  = '';
+
+		if ( $parts ) {
+			$name = $parts[0];
+			if ( count( $parts ) > 1 ) {
+				$name .= ' ' . mb_strtoupper( mb_substr( end( $parts ), 0, 1 ) ) . '.';
+			}
+		}
+
+		return (string) apply_filters( 'vbr_public_owner_name', $name, $balloon );
+	}
+
+	/**
+	 * Balloons created from an order.
+	 *
+	 * @param int $order_id Order ID.
+	 * @return object[]
+	 */
+	public static function for_order( $order_id ) {
+		global $wpdb;
+
+		$table = self::table();
+
+		return (array) $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE order_id = %d ORDER BY id ASC", (int) $order_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	}
 }

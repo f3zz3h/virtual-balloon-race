@@ -34,6 +34,12 @@
 		this.listEl = root.querySelector('.vbr-map__list');
 		this.searchEl = root.querySelector('.vbr-map__search');
 		this.metaEl = root.querySelector('.vbr-map__meta');
+		this.mine = {};
+		this.onlyMine = false;
+
+		(this.config.mine || []).forEach(function (id) {
+			this.mine[id] = true;
+		}, this);
 
 		var launch = (this.config.initial && this.config.initial.launch) || { lat: 51.4885, lng: -2.58 };
 
@@ -61,6 +67,12 @@
 			this.searchEl.addEventListener('input', this.filterList.bind(this));
 		}
 
+		root.querySelectorAll('[data-vbr-show]').forEach(function (btn) {
+			btn.addEventListener('click', function () {
+				this.showOnlyMine(btn.getAttribute('data-vbr-show') === 'mine');
+			}.bind(this));
+		}, this);
+
 		var params = new URLSearchParams(window.location.search);
 		var wanted = parseInt(params.get('balloon'), 10);
 
@@ -68,14 +80,53 @@
 			this.update(this.config.initial);
 		}
 
+		var own = this.firstMine();
+
 		if (wanted && this.items[wanted]) {
 			this.select(wanted, true);
+		} else if (own) {
+			// Logged-in entrants open on their own balloon.
+			this.select(own, true);
 		} else {
 			this.fitAll();
 		}
 
 		this.poll();
 	}
+
+	RaceMap.prototype.isMine = function (id) {
+		return !!this.mine[id];
+	};
+
+	// The viewer's best-placed balloon (balloons arrive sorted by distance).
+	RaceMap.prototype.firstMine = function () {
+		var balloons = (this.data && this.data.balloons) || [];
+		for (var i = 0; i < balloons.length; i++) {
+			if (this.isMine(balloons[i].id)) {
+				return balloons[i].id;
+			}
+		}
+		return null;
+	};
+
+	RaceMap.prototype.showOnlyMine = function (on) {
+		this.onlyMine = !!on;
+
+		this.root.querySelectorAll('[data-vbr-show]').forEach(function (btn) {
+			btn.setAttribute('aria-pressed', String((btn.getAttribute('data-vbr-show') === 'mine') === this.onlyMine));
+		}, this);
+
+		if (this.onlyMine && this.selectedId !== null && !this.isMine(this.selectedId)) {
+			this.select(null);
+		}
+
+		this.applyStyles();
+		this.filterList();
+
+		if (this.onlyMine) {
+			this.fitTo(Object.keys(this.mine));
+		}
+	};
 
 	RaceMap.prototype.poll = function () {
 		var self = this;
@@ -298,6 +349,20 @@
 			var b = item.data;
 			var selected = hasSelection && b.id === self.selectedId;
 			var hex = b.burst ? BURST_HEX : b.hex;
+			var shown = !self.onlyMine || self.isMine(b.id);
+
+			// "My balloons" hides everyone else's balloon and trail.
+			[item.line, item.marker].forEach(function (layer) {
+				if (shown && !self.map.hasLayer(layer)) {
+					layer.addTo(self.map);
+				} else if (!shown && self.map.hasLayer(layer)) {
+					layer.remove();
+				}
+			});
+
+			if (!shown) {
+				return;
+			}
 
 			item.line.setStyle({
 				color: hex,
@@ -350,6 +415,11 @@
 			return;
 		}
 
+		// Picking someone else's balloon (e.g. from the leaderboard) shows everyone again.
+		if (id !== null && this.onlyMine && !this.isMine(id)) {
+			this.showOnlyMine(false);
+		}
+
 		this.selectedId = id;
 		this.applyStyles();
 		this.syncUrl();
@@ -393,14 +463,20 @@
 	};
 
 	RaceMap.prototype.fitAll = function () {
+		this.fitTo(Object.keys(this.items), true);
+	};
+
+	RaceMap.prototype.fitTo = function (ids, withLaunch) {
 		var points = [];
 		var self = this;
 
-		Object.keys(this.items).forEach(function (id) {
-			points = points.concat(self.items[id].data.trail);
+		ids.forEach(function (id) {
+			if (self.items[id]) {
+				points = points.concat(self.items[id].data.trail);
+			}
 		});
 
-		if (this.data && this.data.launch) {
+		if (withLaunch && this.data && this.data.launch) {
 			points.push([this.data.launch.lat, this.data.launch.lng]);
 		}
 
@@ -428,7 +504,7 @@
 		}
 
 		balloons.forEach(function (b) {
-			var li = el('li', 'vbr-map__item' + (b.burst ? ' is-burst' : ''));
+			var li = el('li', 'vbr-map__item' + (b.burst ? ' is-burst' : '') + (self.isMine(b.id) ? ' is-mine' : ''));
 			var btn = el('button', 'vbr-map__item-btn');
 			var dot = el('span', 'vbr-map__dot');
 
@@ -440,6 +516,9 @@
 			btn.appendChild(el('span', 'vbr-map__rank', b.rank ? String(b.rank) : '–'));
 			btn.appendChild(dot);
 			btn.appendChild(el('span', 'vbr-map__name', b.name));
+			if (self.isMine(b.id)) {
+				btn.appendChild(el('span', 'vbr-map__yours', self.i18n.yours || 'Yours'));
+			}
 			btn.appendChild(el('span', 'vbr-map__km', formatKm(b.distance) + ' ' + (self.i18n.km || 'km')));
 
 			btn.addEventListener('click', function () {
@@ -454,12 +533,14 @@
 	};
 
 	RaceMap.prototype.filterList = function () {
-		if (!this.listEl || !this.searchEl) {
+		if (!this.listEl) {
 			return;
 		}
-		var q = this.searchEl.value.toLowerCase().trim();
+		var self = this;
+		var q = this.searchEl ? this.searchEl.value.toLowerCase().trim() : '';
 		this.listEl.querySelectorAll('[data-search]').forEach(function (li) {
-			li.hidden = !!q && li.getAttribute('data-search').indexOf(q) === -1;
+			var mineOk = !self.onlyMine || self.isMine(parseInt(li.getAttribute('data-id'), 10));
+			li.hidden = !mineOk || (!!q && li.getAttribute('data-search').indexOf(q) === -1);
 		});
 	};
 

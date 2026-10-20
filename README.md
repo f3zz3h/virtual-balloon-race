@@ -115,6 +115,13 @@ You can still build your own pages:
 
 On the map, clicking a balloon (or its name in the list or leaderboard) highlights its trail and fades the others. Click the map background to clear the highlight.
 
+#### What entrants see
+
+- **Their own balloon.** Logged-in entrants see their balloons marked **Yours**. The map opens on their best-placed balloon, the leaderboard pins **Your balloons** with each one's position, and both have an **All balloons / My balloons** toggle. A balloon counts as theirs if they bought it while logged in, or if the order's email matches their account email or billing email (so guest orders count once they register).
+- **Guests** get **Track your balloon** links on the order confirmation page and in their order emails.
+- **Search.** The map list and the leaderboard both search by balloon name or owner. Leaderboard search covers every balloon in the race, not just the top `limit` rows.
+- **Owner names** are shown publicly as first name and last initial ("Luke H."), on the map, the leaderboard and the REST API. Search only matches that short form. Admin screens and the CSV keep full names.
+
 ### 6. During the race
 
 **Balloon Race → Leaderboard** (pick the race at the top):
@@ -182,7 +189,7 @@ Uncached grid cells are fetched in batches (up to 50 per request), and a failed 
 | `GET /wp-json/vbr/v1/races` | `{ current, races: [{ id, name, slug, status, status_label, entries_open, launch_at, end_at, launch }] }` |
 | `GET /wp-json/vbr/v1/balloons?race=<id\|slug\|current>` | `{ race, launch, updated_at, next_at, balloons: [{ id, rank, name, owner, color, hex, helium, distance, burst, lat, lng, logo, trail }] }` |
 
-Emails and order details are never included. Responses are sent with no-cache headers, including LiteSpeed's.
+Emails and order details are never included, and owners are first name + initial. Responses are sent with no-cache headers, including LiteSpeed's.
 
 ### WP-CLI
 
@@ -203,7 +210,7 @@ wp vbr status                            # schedule + last tick per race
 | `vbr_helium_option_label` | filter | Helium option text on the product page |
 | `vbr_product_fields_before` / `vbr_product_fields_after` | action | Add fields inside the balloon box |
 | `vbr_color_hex` | filter | Map colours for balloon colour names |
-| `vbr_public_owner_name` | filter | What the public sees as the owner (e.g. first name only) |
+| `vbr_public_owner_name` | filter | Public owner name, after shortening to first name + initial (`$name, $balloon`) |
 | `vbr_after_tick` | action | Runs after a race moves (`$summary`) |
 
 ### Testing on the dev site

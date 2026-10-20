@@ -568,3 +568,108 @@
 	border-radius: 50%;
 	vertical-align: baseline;
 }
+
+/* All / My balloons toggle (map side panel and leaderboard) */
+.vbr-toggle {
+	display: inline-flex;
+	border: 1px solid #cfe0ee;
+	border-radius: 999px;
+	overflow: hidden;
+	background: #ffffff;
+}
+
+.vbr-toggle__btn {
+	margin: 0;
+	padding: 0.35rem 0.8rem;
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	color: #12324a;
+	font: inherit;
+	font-size: 0.85rem;
+	line-height: 1.4;
+	cursor: pointer;
+}
+
+.vbr-toggle__btn[aria-pressed="true"] {
+	background: #12324a;
+	color: #ffffff;
+}
+
+.vbr-map__filter {
+	margin-bottom: 0.5rem;
+}
+
+.vbr-map__yours,
+.vbr-leaderboard__yours {
+	display: inline-block;
+	margin-left: 0.4rem;
+	padding: 0 0.45rem;
+	border-radius: 999px;
+	background: #e26a2c;
+	color: #ffffff;
+	font-size: 0.7rem;
+	font-weight: 700;
+	line-height: 1.6;
+	text-transform: uppercase;
+	vertical-align: middle;
+}
+
+.vbr-map__item.is-mine .vbr-map__item-btn {
+	grid-template-columns: 1.6rem 0.8rem minmax(0, 1fr) auto auto;
+}
+
+.vbr-map__item.is-mine .vbr-map__name {
+	font-weight: 700;
+}
+
+.vbr-map__yours {
+	margin-left: 0;
+}
+
+.vbr-leaderboard__tools {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.6rem;
+}
+
+.vbr-leaderboard__mine {
+	margin: 0 0 1rem;
+	padding: 0.85rem 1rem;
+	border: 1px solid #f3c9ad;
+	border-radius: 12px;
+	background: #fff7f1;
+}
+
+.vbr-leaderboard__mine-title {
+	margin: 0 0 0.4rem;
+	font-size: 1rem;
+}
+
+.vbr-leaderboard__mine-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.vbr-leaderboard__mine-list li {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.25rem 0.75rem;
+	padding: 0.2rem 0;
+}
+
+.vbr-leaderboard__mine-where {
+	color: var(--vbr-muted);
+}
+
+.vbr-leaderboard__table tr.is-mine td {
+	background: #fff7f1;
+}
+
+.vbr-leaderboard__more {
+	margin: 0.75rem 0 0;
+	color: var(--vbr-muted);
+	font-size: 0.9rem;
+}

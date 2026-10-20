@@ -148,7 +148,7 @@ class VBR_Map {
 				'id'       => (int) $row->id,
 				'rank'     => $row->is_burst ? null : ++$rank,
 				'name'     => $row->balloon_name,
-				'owner'    => apply_filters( 'vbr_public_owner_name', $row->owner_name, $row ),
+				'owner'    => VBR_Balloons::public_owner_name( $row ),
 				'color'    => $row->balloon_color,
 				'hex'      => isset( $hex[ $row->balloon_color ] ) ? $hex[ $row->balloon_color ] : '#555555',
 				'helium'   => $row->helium_level,
@@ -217,6 +217,8 @@ class VBR_Map {
 			'zoom'     => (int) VBR_Settings::get( 'map_zoom' ),
 			'refresh'  => (int) VBR_Settings::get( 'map_refresh' ),
 			'initial'  => self::public_payload( $race ),
+			// Page caches normally skip logged-in visitors, so the viewer's own balloons can go in the HTML.
+			'mine'     => $race && is_user_logged_in() ? array_map( 'intval', wp_list_pluck( VBR_Balloons::owned_by( get_current_user_id(), (int) $race->id ), 'id' ) ) : array(),
 			'i18n'     => array(
 				'owner'    => __( 'Owner', 'virtual-balloon-race' ),
 				'distance' => __( 'Distance', 'virtual-balloon-race' ),
@@ -239,6 +241,9 @@ class VBR_Map {
 				'waiting'  => __( 'Waiting for launch', 'virtual-balloon-race' ),
 				'noRace'   => __( 'No race scheduled yet.', 'virtual-balloon-race' ),
 				'km'       => __( 'km', 'virtual-balloon-race' ),
+				'mine'     => __( 'My balloons', 'virtual-balloon-race' ),
+				'all'      => __( 'All balloons', 'virtual-balloon-race' ),
+				'yours'    => __( 'Yours', 'virtual-balloon-race' ),
 			),
 		);
 
@@ -250,6 +255,12 @@ class VBR_Map {
 			<div class="vbr-map__canvas" style="height: <?php echo esc_attr( $height ); ?>"></div>
 			<?php if ( 'no' !== $atts['list'] ) : ?>
 				<aside class="vbr-map__side" style="max-height: <?php echo esc_attr( $height ); ?>">
+					<?php if ( $config['mine'] ) : ?>
+						<div class="vbr-map__filter vbr-toggle" role="group" aria-label="<?php esc_attr_e( 'Show', 'virtual-balloon-race' ); ?>">
+							<button type="button" class="vbr-toggle__btn" data-vbr-show="all" aria-pressed="true"><?php echo esc_html( $config['i18n']['all'] ); ?></button>
+							<button type="button" class="vbr-toggle__btn" data-vbr-show="mine" aria-pressed="false"><?php echo esc_html( $config['i18n']['mine'] ); ?></button>
+						</div>
+					<?php endif; ?>
 					<input type="search" class="vbr-map__search" placeholder="<?php echo esc_attr( $config['i18n']['search'] ); ?>" aria-label="<?php echo esc_attr( $config['i18n']['search'] ); ?>" />
 					<ol class="vbr-map__list"></ol>
 				</aside>

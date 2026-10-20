@@ -1,6 +1,6 @@
 <?php
 /**
- * WooCommerce My Account → My balloons.
+ * WooCommerce customer pages: My Account → My balloons, and Track your balloon links on orders.
  *
  * @package Virtual_Balloon_Race
  */
@@ -8,7 +8,7 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Lists the logged-in customer's balloons across every race.
+ * Shows customers their balloons: in My Account, on order pages and in order emails.
  */
 class VBR_Account {
 
@@ -22,6 +22,10 @@ class VBR_Account {
 		add_filter( 'woocommerce_account_menu_items', array( $this, 'menu_item' ) );
 		add_filter( 'woocommerce_endpoint_' . self::ENDPOINT . '_title', array( $this, 'title' ) );
 		add_action( 'woocommerce_account_' . self::ENDPOINT . '_endpoint', array( $this, 'render' ) );
+
+		// Order received / view order pages, and customer emails (guests have no account to look in).
+		add_action( 'woocommerce_order_details_after_order_table', array( $this, 'order_links' ) );
+		add_action( 'woocommerce_email_after_order_table', array( $this, 'email_links' ), 10, 3 );
 	}
 
 	/**
@@ -133,5 +137,106 @@ class VBR_Account {
 			</tbody>
 		</table>
 		<?php
+	}
+
+	/**
+	 * Track links for an order's balloons.
+	 *
+	 * @param WC_Order $order Order.
+	 * @return array[] Each `[ name, url ]`; empty when the order has no balloon entries or there's no tracking page.
+	 */
+	private static function order_balloon_links( $order ) {
+		if ( ! $order instanceof WC_Order || ! VBR_Pages::tracking_page_id() ) {
+			return array();
+		}
+
+		$links = array();
+
+		foreach ( VBR_Balloons::for_order( $order->get_id() ) as $balloon ) {
+			$links[] = array( $balloon->balloon_name, VBR_Pages::tracking_url( VBR_Races::get( (int) $balloon->race_id ), (int) $balloon->id ) );
+		}
+
+		return $links;
+	}
+
+	/**
+	 * Whether an order includes balloon entries (balloons only exist once it's paid).
+	 *
+	 * @param WC_Order $order Order.
+	 * @return bool
+	 */
+	private static function has_entries( $order ) {
+		foreach ( $order->get_items() as $item ) {
+			if ( VBR_WooCommerce::is_balloon_product( $item->get_product() ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Order received / view order: Track your balloon.
+	 *
+	 * @param WC_Order $order Order.
+	 */
+	public function order_links( $order ) {
+		if ( ! $order instanceof WC_Order || ! VBR_Pages::tracking_page_id() || ! self::has_entries( $order ) ) {
+			return;
+		}
+
+		$links = self::order_balloon_links( $order );
+		?>
+		<section class="vbr-order-balloons">
+			<h2><?php echo esc_html( _n( 'Track your balloon', 'Track your balloons', max( 1, count( $links ) ), 'virtual-balloon-race' ) ); ?></h2>
+			<?php if ( $links ) : ?>
+				<ul>
+					<?php foreach ( $links as $link ) : ?>
+						<li><a href="<?php echo esc_url( $link[1] ); ?>"><?php echo esc_html( $link[0] ); ?></a></li>
+					<?php endforeach; ?>
+				</ul>
+			<?php else : ?>
+				<p>
+					<?php esc_html_e( 'Your balloon appears on the race map once payment is confirmed.', 'virtual-balloon-race' ); ?>
+					<a href="<?php echo esc_url( VBR_Pages::tracking_url() ); ?>"><?php esc_html_e( 'See the race', 'virtual-balloon-race' ); ?></a>
+				</p>
+			<?php endif; ?>
+		</section>
+		<?php
+	}
+
+	/**
+	 * Customer emails: Track your balloon links.
+	 *
+	 * @param WC_Order $order         Order.
+	 * @param bool     $sent_to_admin Whether the email goes to the shop admin.
+	 * @param bool     $plain_text    Plain-text email.
+	 */
+	public function email_links( $order, $sent_to_admin, $plain_text ) {
+		if ( $sent_to_admin ) {
+			return;
+		}
+
+		$links = self::order_balloon_links( $order );
+
+		if ( ! $links ) {
+			return;
+		}
+
+		$title = _n( 'Track your balloon', 'Track your balloons', count( $links ), 'virtual-balloon-race' );
+
+		if ( $plain_text ) {
+			echo "\n" . esc_html( mb_strtoupper( $title ) ) . "\n\n";
+			foreach ( $links as $link ) {
+				echo esc_html( $link[0] ) . ': ' . esc_url_raw( $link[1] ) . "\n";
+			}
+			echo "\n";
+			return;
+		}
+
+		echo '<h2>' . esc_html( $title ) . '</h2><ul>';
+		foreach ( $links as $link ) {
+			echo '<li><a href="' . esc_url( $link[1] ) . '">' . esc_html( $link[0] ) . '</a></li>';
+		}
+		echo '</ul>';
 	}
 }

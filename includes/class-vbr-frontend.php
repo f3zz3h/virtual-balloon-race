@@ -94,13 +94,20 @@ class VBR_Frontend {
 		$stage    = $race ? VBR_Races::status( $race ) : '';
 
 		if ( $race ) {
+			// Every flying balloon is rendered so search covers the whole race; rows past `limit` start hidden.
 			$balloons = $wpdb->get_results(
 				$wpdb->prepare(
-					"SELECT * FROM {$table} WHERE is_burst = 0 AND race_id = %d ORDER BY distance_km DESC, id ASC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-					(int) $race->id,
-					$limit
+					"SELECT * FROM {$table} WHERE is_burst = 0 AND race_id = %d ORDER BY distance_km DESC, id ASC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+					(int) $race->id
 				)
 			);
+		}
+
+		// Page caches normally skip logged-in visitors, so the viewer's own balloons can go in the HTML.
+		$mine  = $race && is_user_logged_in() ? VBR_Balloons::owned_by( get_current_user_id(), (int) $race->id ) : array();
+		$ranks = array();
+		foreach ( $balloons as $index => $balloon ) {
+			$ranks[ (int) $balloon->id ] = $index + 1;
 		}
 
 		$pill = array(
@@ -128,9 +135,11 @@ class VBR_Frontend {
 			$subtitle = $dates[ $stage ];
 		}
 
+		$waiting = in_array( $stage, array( VBR_Races::UPCOMING, VBR_Races::ON_SALE ), true );
+
 		ob_start();
 		?>
-		<div class="vbr-leaderboard" data-vbr-leaderboard>
+		<div class="vbr-leaderboard" data-vbr-leaderboard data-vbr-limit="<?php echo esc_attr( (string) $limit ); ?>">
 			<div class="vbr-leaderboard__header">
 				<div>
 					<h2 class="vbr-leaderboard__title"><?php echo esc_html( $race ? $race->name : __( 'Balloon Race Leaderboard', 'virtual-balloon-race' ) ); ?></h2>
@@ -138,16 +147,57 @@ class VBR_Frontend {
 						<p class="vbr-leaderboard__subtitle"><?php echo esc_html( $subtitle ); ?></p>
 					<?php endif; ?>
 				</div>
-				<label class="vbr-leaderboard__search">
-					<span class="screen-reader-text"><?php esc_html_e( 'Search balloons', 'virtual-balloon-race' ); ?></span>
-					<input
-						type="search"
-						class="vbr-leaderboard__search-input"
-						placeholder="<?php esc_attr_e( 'Search balloon or owner name…', 'virtual-balloon-race' ); ?>"
-						autocomplete="off"
-					/>
-				</label>
+				<div class="vbr-leaderboard__tools">
+					<?php if ( $mine ) : ?>
+						<div class="vbr-toggle" role="group" aria-label="<?php esc_attr_e( 'Show', 'virtual-balloon-race' ); ?>">
+							<button type="button" class="vbr-toggle__btn" data-vbr-show="all" aria-pressed="true"><?php esc_html_e( 'All balloons', 'virtual-balloon-race' ); ?></button>
+							<button type="button" class="vbr-toggle__btn" data-vbr-show="mine" aria-pressed="false"><?php esc_html_e( 'My balloons', 'virtual-balloon-race' ); ?></button>
+						</div>
+					<?php endif; ?>
+					<label class="vbr-leaderboard__search">
+						<span class="screen-reader-text"><?php esc_html_e( 'Search balloons', 'virtual-balloon-race' ); ?></span>
+						<input
+							type="search"
+							class="vbr-leaderboard__search-input"
+							placeholder="<?php esc_attr_e( 'Search balloon or owner name…', 'virtual-balloon-race' ); ?>"
+							autocomplete="off"
+						/>
+					</label>
+				</div>
 			</div>
+
+			<?php if ( $mine ) : ?>
+				<div class="vbr-leaderboard__mine">
+					<h3 class="vbr-leaderboard__mine-title"><?php echo esc_html( _n( 'Your balloon', 'Your balloons', count( $mine ), 'virtual-balloon-race' ) ); ?></h3>
+					<ul class="vbr-leaderboard__mine-list">
+						<?php foreach ( $mine as $own ) : ?>
+							<?php
+							if ( (int) $own->is_burst ) {
+								$where = __( 'Burst', 'virtual-balloon-race' );
+							} elseif ( $waiting ) {
+								$where = __( 'Waiting for launch', 'virtual-balloon-race' );
+							} else {
+								$where = sprintf(
+									/* translators: 1: position, 2: number of balloons, 3: distance in km */
+									__( '#%1$s of %2$s · %3$s km', 'virtual-balloon-race' ),
+									number_format_i18n( isset( $ranks[ (int) $own->id ] ) ? $ranks[ (int) $own->id ] : 0 ),
+									number_format_i18n( count( $balloons ) ),
+									number_format_i18n( (float) $own->distance_km, 1 )
+								);
+							}
+							?>
+							<li data-vbr-balloon="<?php echo esc_attr( (string) $own->id ); ?>">
+								<?php if ( $map_url ) : ?>
+									<a class="vbr-leaderboard__link" href="<?php echo esc_url( add_query_arg( 'balloon', (int) $own->id, $map_url ) ); ?>"><?php echo esc_html( $own->balloon_name ); ?></a>
+								<?php else : ?>
+									<strong><?php echo esc_html( $own->balloon_name ); ?></strong>
+								<?php endif; ?>
+								<span class="vbr-leaderboard__mine-where"><?php echo esc_html( $where ); ?></span>
+							</li>
+						<?php endforeach; ?>
+					</ul>
+				</div>
+			<?php endif; ?>
 
 			<div class="vbr-leaderboard__table-wrap">
 				<table class="vbr-leaderboard__table">
@@ -174,12 +224,16 @@ class VBR_Frontend {
 								</td>
 							</tr>
 						<?php else : ?>
+							<?php $mine_ids = array_map( 'intval', wp_list_pluck( $mine, 'id' ) ); ?>
 							<?php foreach ( $balloons as $index => $balloon ) : ?>
 								<?php
-								$search_haystack = strtolower( $balloon->balloon_name . ' ' . $balloon->owner_name );
+								$owner           = VBR_Balloons::public_owner_name( $balloon );
+								$search_haystack = mb_strtolower( $balloon->balloon_name . ' ' . $owner );
 								$color_slug      = sanitize_html_class( strtolower( $balloon->balloon_color ) );
+								$is_mine         = in_array( (int) $balloon->id, $mine_ids, true );
+								$classes         = array_filter( array( $is_mine ? 'is-mine' : '', $index >= $limit ? 'is-extra' : '' ) );
 								?>
-								<tr data-vbr-search="<?php echo esc_attr( $search_haystack ); ?>" data-vbr-balloon="<?php echo esc_attr( (string) $balloon->id ); ?>">
+								<tr data-vbr-search="<?php echo esc_attr( $search_haystack ); ?>" data-vbr-balloon="<?php echo esc_attr( (string) $balloon->id ); ?>"<?php echo $classes ? ' class="' . esc_attr( implode( ' ', $classes ) ) . '"' : ''; ?><?php echo $is_mine ? ' data-vbr-mine' : ''; ?><?php echo $index >= $limit ? ' hidden' : ''; ?>>
 									<td data-label="<?php esc_attr_e( 'Rank', 'virtual-balloon-race' ); ?>"><?php echo esc_html( (string) ( $index + 1 ) ); ?></td>
 									<td data-label="<?php esc_attr_e( 'Balloon Name', 'virtual-balloon-race' ); ?>">
 										<?php if ( $map_url ) : ?>
@@ -187,8 +241,11 @@ class VBR_Frontend {
 										<?php else : ?>
 											<?php echo esc_html( $balloon->balloon_name ); ?>
 										<?php endif; ?>
+										<?php if ( $is_mine ) : ?>
+											<span class="vbr-leaderboard__yours"><?php esc_html_e( 'Yours', 'virtual-balloon-race' ); ?></span>
+										<?php endif; ?>
 									</td>
-									<td data-label="<?php esc_attr_e( 'Owner', 'virtual-balloon-race' ); ?>"><?php echo esc_html( $balloon->owner_name ); ?></td>
+									<td data-label="<?php esc_attr_e( 'Owner', 'virtual-balloon-race' ); ?>"><?php echo esc_html( $owner ); ?></td>
 									<td data-label="<?php esc_attr_e( 'Color', 'virtual-balloon-race' ); ?>">
 										<span class="vbr-color vbr-color--<?php echo esc_attr( $color_slug ); ?>">
 											<?php echo esc_html( $balloon->balloon_color ); ?>
@@ -206,6 +263,20 @@ class VBR_Frontend {
 					</tbody>
 				</table>
 			</div>
+			<?php if ( count( $balloons ) > $limit ) : ?>
+				<p class="vbr-leaderboard__more">
+					<?php
+					echo esc_html(
+						sprintf(
+							/* translators: 1: rows shown, 2: total balloons */
+							__( 'Showing the top %1$s of %2$s balloons. Search to find any balloon.', 'virtual-balloon-race' ),
+							number_format_i18n( $limit ),
+							number_format_i18n( count( $balloons ) )
+						)
+					);
+					?>
+				</p>
+			<?php endif; ?>
 			<p class="vbr-leaderboard__empty-search" hidden><?php esc_html_e( 'No balloons match that search.', 'virtual-balloon-race' ); ?></p>
 		</div>
 		<?php
