@@ -245,7 +245,7 @@ class VBR_Race_Entries {
 	 * @param int $product_id Product ID.
 	 * @return object|null
 	 */
-	private function posted_race( $product_id ) {
+	public static function posted_race( $product_id ) {
 		$id = isset( $_POST['vbr_race_id'] ) ? absint( $_POST['vbr_race_id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified by VBR_WooCommerce.
 
 		foreach ( self::open_races_for( $product_id ) as $race ) {
@@ -269,7 +269,7 @@ class VBR_Race_Entries {
 			return $passed;
 		}
 
-		if ( ! $this->posted_race( $product_id ) ) {
+		if ( ! self::posted_race( $product_id ) ) {
 			wc_add_notice( __( 'Please choose a race that is taking entries.', 'virtual-balloon-race' ), 'error' );
 			return false;
 		}
@@ -289,7 +289,7 @@ class VBR_Race_Entries {
 			return $cart_item_data;
 		}
 
-		$race = $this->posted_race( $product_id );
+		$race = self::posted_race( $product_id );
 
 		if ( $race ) {
 			$cart_item_data['vbr_race_id'] = (int) $race->id;

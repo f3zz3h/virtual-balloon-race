@@ -1,4 +1,4 @@
-/* Virtual Balloon Race — product page add-ons: launch picker + logo preview on a balloon. */
+/* Virtual Balloon Race — product page add-ons: team choice, launch picker, logo preview on a balloon. */
 (function () {
 	'use strict';
 
@@ -207,6 +207,41 @@
 		});
 	}
 
+	// With several races open, only offer the chosen race's teams; hide the field for races without teams.
+	function initTeams(select) {
+		var raceSelect = document.querySelector('select[name="vbr_race_id"]');
+		var row = select.closest('.vbr-team-field') || select.parentNode;
+
+		if (!raceSelect) {
+			return;
+		}
+
+		function filter() {
+			var race = raceSelect.value;
+			var any = false;
+
+			[].forEach.call(select.options, function (option) {
+				if (!option.value) {
+					return;
+				}
+				var match = option.getAttribute('data-race') === race;
+				option.hidden = !match;
+				option.disabled = !match;
+				any = any || match;
+				if (!match && option.selected) {
+					select.value = '';
+				}
+			});
+
+			row.hidden = !any;
+			select.required = any;
+		}
+
+		raceSelect.addEventListener('change', filter);
+		filter();
+	}
+
+	document.querySelectorAll('select[name="vbr_team_id"]').forEach(initTeams);
 	document.querySelectorAll('[data-vbr-launch]').forEach(initLaunch);
 	document.querySelectorAll('input[name="vbr_logo"]').forEach(initLogo);
 })();
