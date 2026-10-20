@@ -19,6 +19,51 @@
 		return node;
 	}
 
+	function safeHex(hex) {
+		return /^#[0-9a-f]{3}([0-9a-f]{3})?$/i.test(hex || '') ? hex : '#555555';
+	}
+
+	// Lighten (amount > 0) or darken (amount < 0) a hex colour.
+	function shade(hex, amount) {
+		var h = safeHex(hex).slice(1);
+		if (h.length === 3) {
+			h = h.replace(/./g, '$&$&');
+		}
+		var n = parseInt(h, 16);
+		return 'rgb(' + [n >> 16, (n >> 8) & 255, n & 255].map(function (c) {
+			return Math.round(amount < 0 ? c * (1 + amount) : c + (255 - c) * amount);
+		}).join(',') + ')';
+	}
+
+	// A balloon drawn in a 24×36 box. The string ends at the bottom centre, which sits on the balloon's position.
+	function balloonSvg(hex, burst) {
+		var string = '<path d="M12 26.8c-1.8 2.2 1.8 4.4 0 6.6-.6.8-.6 1.6-.2 2.4" fill="none" stroke="#5b6b78" stroke-width="0.9" stroke-linecap="round"/>';
+
+		if (burst) {
+			return '<svg class="vbr-balloon__svg" viewBox="0 0 24 36" aria-hidden="true">' +
+				'<path d="M12 22.5c-1.8 2.6 1.8 5.2 0 7.8-.6 1-.6 2.6-.2 5" fill="none" stroke="#5b6b78" stroke-width="0.9" stroke-linecap="round"/>' +
+				'<path d="M12 4.5l1.7 4.6 4.5-2.1-1.9 4.6 4.8 1.3-4.4 2.3 2.8 4.1-4.8-.9.1 4.9L12 19.6l-2.8 3.7.1-4.9-4.8.9 2.8-4.1-4.4-2.3 4.8-1.3L5.8 7l4.5 2.1z" fill="' + BURST_HEX + '" stroke="#6b7079" stroke-width="0.8" stroke-linejoin="round"/>' +
+				'</svg>';
+		}
+
+		var fill = safeHex(hex);
+		var edge = shade(fill, -0.35);
+
+		return '<svg class="vbr-balloon__svg" viewBox="0 0 24 36" aria-hidden="true">' +
+			string +
+			'<path d="M12 1C5.9 1 2 5.9 2 11.6 2 18.2 7.3 23.6 12 25c4.7-1.4 10-6.8 10-13.4C22 5.9 18.1 1 12 1z" fill="' + fill + '" stroke="' + edge + '" stroke-width="1"/>' +
+			'<path d="M10.4 26.8 12 24.6l1.6 2.2z" fill="' + edge + '" stroke="' + edge + '" stroke-width="0.6" stroke-linejoin="round"/>' +
+			'<ellipse cx="7.6" cy="8" rx="2.1" ry="3.6" transform="rotate(25 7.6 8)" fill="#fff" fill-opacity=".45"/>' +
+			'</svg>';
+	}
+
+	// Small balloon for the side list and popups.
+	function miniBalloon(b) {
+		var span = el('span', 'vbr-mini-balloon');
+		span.innerHTML = balloonSvg(b.hex, b.burst);
+		return span;
+	}
+
 	function formatKm(value) {
 		return Number(value).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 	}
@@ -190,7 +235,12 @@
 
 		if (!this.launchMarker) {
 			this.launchMarker = L.marker(latlng, {
-				icon: L.divIcon({ className: 'vbr-launch-icon', html: '<span aria-hidden="true">⚑</span>', iconSize: [28, 28], iconAnchor: [6, 26] }),
+				icon: L.divIcon({
+					className: 'vbr-launch-icon',
+					html: '<svg viewBox="0 0 24 28" aria-hidden="true"><path d="M4 2v25" stroke="#12324a" stroke-width="2" stroke-linecap="round"/><path d="M5 3h15l-3.5 4.5L20 12H5z" fill="#e26a2c" stroke="#b5501d" stroke-width="1" stroke-linejoin="round"/></svg>',
+					iconSize: [24, 28],
+					iconAnchor: [4, 27]
+				}),
 				keyboard: false,
 				zIndexOffset: -100
 			}).addTo(this.map);
@@ -222,31 +272,20 @@
 	};
 
 	RaceMap.prototype.buildMarker = function (item) {
-		var b = item.data;
 		var self = this;
 
 		if (item.marker) {
 			item.marker.remove();
 		}
 
-		if (b.logo) {
-			item.marker = L.marker([b.lat, b.lng], {
-				icon: this.logoIcon(b, false),
-				bubblingMouseEvents: false,
-				riseOnHover: true,
-				title: b.name
-			});
-		} else {
-			item.marker = L.circleMarker([b.lat, b.lng], {
-				bubblingMouseEvents: false,
-				radius: 7,
-				weight: 2,
-				color: '#ffffff',
-				fillOpacity: 1
-			});
-		}
+		item.iconKey = null;
+		item.marker = L.marker([item.data.lat, item.data.lng], {
+			icon: this.balloonIcon(item.data, false),
+			bubblingMouseEvents: false,
+			riseOnHover: true,
+			title: item.data.name
+		});
 
-		item.markerType = b.logo ? 'logo:' + b.logo : 'dot';
 		item.marker.bindPopup(function () { return self.popupContent(item.data); });
 		item.marker.on('click', function () {
 			self.select(item.data.id);
@@ -254,31 +293,29 @@
 		item.marker.addTo(this.map);
 	};
 
-	RaceMap.prototype.logoIcon = function (b, selected) {
-		var size = selected ? 46 : 34;
-		var border = b.burst ? BURST_HEX : b.hex;
-		var html = '<span class="vbr-logo-pin' + (b.burst ? ' is-burst' : '') + '" style="border-color:' + border + '"><img src="' + encodeURI(b.logo) + '" alt="" /></span>';
+	RaceMap.prototype.balloonIcon = function (b, selected) {
+		var width = (b.logo ? 34 : 22) * (selected ? 1.35 : 1);
+		var height = width * 1.5;
+		var html = '<span class="vbr-balloon' + (b.logo ? ' vbr-balloon--logo' : '') + (b.burst ? ' is-burst' : '') + '">' + balloonSvg(b.hex, b.burst);
+
+		// Logo balloons show the picture inside the balloon body.
+		if (b.logo && !b.burst) {
+			html += '<span class="vbr-balloon__logo"><img src="' + encodeURI(b.logo) + '" alt="" /></span>';
+		}
 
 		return L.divIcon({
-			className: 'vbr-logo-icon' + (selected ? ' is-selected' : ''),
-			html: html,
-			iconSize: [size, size],
-			iconAnchor: [size / 2, size / 2],
-			popupAnchor: [0, -size / 2]
+			className: 'vbr-balloon-icon' + (selected ? ' is-selected' : '') + (this.isMine(b.id) ? ' is-mine' : ''),
+			html: html + '</span>',
+			iconSize: [width, height],
+			iconAnchor: [width / 2, height],
+			popupAnchor: [0, -height * 0.85]
 		});
 	};
 
 	RaceMap.prototype.updateItem = function (item, b) {
-		var markerType = b.logo ? 'logo:' + b.logo : 'dot';
-
 		item.data = b;
 		item.line.setLatLngs(b.trail);
-
-		if (markerType !== item.markerType) {
-			this.buildMarker(item);
-		} else {
-			item.marker.setLatLng([b.lat, b.lng]);
-		}
+		item.marker.setLatLng([b.lat, b.lng]);
 
 		if (item.marker.isPopupOpen()) {
 			item.marker.setPopupContent(this.popupContent(b));
@@ -297,10 +334,8 @@
 		var i18n = this.i18n;
 		var wrap = el('div', 'vbr-popup');
 		var title = el('strong', 'vbr-popup__title', b.name);
-		var dot = el('span', 'vbr-popup__dot');
 
-		dot.style.background = b.hex;
-		title.prepend(dot);
+		title.prepend(miniBalloon(b));
 		wrap.appendChild(title);
 
 		[
@@ -380,23 +415,14 @@
 				item.line.bringToFront();
 			}
 
-			if (item.markerType === 'dot') {
-				item.marker.setStyle({
-					radius: selected ? 11 : 7,
-					fillColor: hex,
-					color: selected ? '#12324a' : '#ffffff',
-					weight: selected ? 3 : 2,
-					opacity: hasSelection && !selected ? 0.5 : 1,
-					fillOpacity: hasSelection && !selected ? 0.45 : 1
-				});
-				if (selected) {
-					item.marker.bringToFront();
-				}
-			} else {
-				item.marker.setIcon(self.logoIcon(b, selected));
-				item.marker.setOpacity(hasSelection && !selected ? 0.55 : 1);
-				item.marker.setZIndexOffset(selected ? 1000 : 0);
+			// Only rebuild the icon when something it shows has changed.
+			var key = [b.hex, b.burst, b.logo, selected, self.isMine(b.id)].join('|');
+			if (key !== item.iconKey) {
+				item.marker.setIcon(self.balloonIcon(b, selected));
+				item.iconKey = key;
 			}
+			item.marker.setOpacity(hasSelection && !selected ? 0.5 : 1);
+			item.marker.setZIndexOffset(selected ? 1000 : (self.isMine(b.id) ? 500 : 0));
 		});
 
 		if (this.listEl) {
@@ -506,15 +532,13 @@
 		balloons.forEach(function (b) {
 			var li = el('li', 'vbr-map__item' + (b.burst ? ' is-burst' : '') + (self.isMine(b.id) ? ' is-mine' : ''));
 			var btn = el('button', 'vbr-map__item-btn');
-			var dot = el('span', 'vbr-map__dot');
 
 			li.setAttribute('data-id', b.id);
 			li.setAttribute('data-search', (b.name + ' ' + (b.owner || '')).toLowerCase());
 			btn.type = 'button';
-			dot.style.background = b.burst ? BURST_HEX : b.hex;
 
 			btn.appendChild(el('span', 'vbr-map__rank', b.rank ? String(b.rank) : '–'));
-			btn.appendChild(dot);
+			btn.appendChild(miniBalloon(b));
 			btn.appendChild(el('span', 'vbr-map__name', b.name));
 			if (self.isMine(b.id)) {
 				btn.appendChild(el('span', 'vbr-map__yours', self.i18n.yours || 'Yours'));

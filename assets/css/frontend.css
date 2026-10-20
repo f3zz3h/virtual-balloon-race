@@ -280,13 +280,17 @@
 	color: inherit;
 }
 
-.vbr-map__dot,
-.vbr-popup__dot {
+.vbr-mini-balloon {
 	display: inline-block;
+	flex: none;
 	width: 0.8rem;
-	height: 0.8rem;
-	border-radius: 50%;
-	box-shadow: 0 0 0 2px #fff, 0 0 0 3px rgba(18, 50, 74, 0.15);
+	height: 1.2rem;
+}
+
+.vbr-mini-balloon .vbr-balloon__svg {
+	display: block;
+	width: 100%;
+	height: 100%;
 }
 
 .vbr-map__name {
@@ -328,37 +332,67 @@
 	color: var(--vbr-muted, #4d6a80);
 }
 
-.vbr-launch-icon {
-	font-size: 26px;
-	line-height: 1;
-	color: #e26a2c;
-	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
-}
-
-.vbr-logo-pin {
+.vbr-launch-icon svg {
 	display: block;
 	width: 100%;
 	height: 100%;
-	overflow: hidden;
-	border: 3px solid;
-	border-radius: 50%;
-	background: #fff;
-	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+	filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.35));
 }
 
-.vbr-logo-pin img {
+/* Balloon map markers: an SVG balloon whose string tip sits on the position. */
+.vbr-balloon-icon {
+	background: none;
+	border: 0;
+}
+
+.vbr-balloon {
+	position: relative;
+	display: block;
+	width: 100%;
+	height: 100%;
+	filter: drop-shadow(0 1px 1.5px rgba(18, 50, 74, 0.35));
+	transition: filter 0.15s ease;
+}
+
+.vbr-balloon .vbr-balloon__svg {
+	display: block;
+	width: 100%;
+	height: 100%;
+	overflow: visible;
+}
+
+.vbr-balloon-icon.is-mine .vbr-balloon {
+	filter: drop-shadow(0 0 1px #ffffff) drop-shadow(0 0 1px #ffffff) drop-shadow(0 0 3px #e26a2c) drop-shadow(0 0 5px #e26a2c);
+}
+
+.vbr-balloon-icon.is-selected .vbr-balloon {
+	filter: drop-shadow(0 0 2px #ffffff) drop-shadow(0 0 4px rgba(18, 50, 74, 0.8));
+}
+
+/* Logo sits in the balloon body: centre (12, 12) of the 24×36 drawing, 12 units across. */
+.vbr-balloon__logo {
+	position: absolute;
+	left: 25%;
+	top: 16.7%;
+	width: 50%;
+	height: 33.3%;
+	overflow: hidden;
+	border-radius: 50%;
+	background: #ffffff;
+	box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.9);
+}
+
+.vbr-balloon__logo img {
 	display: block;
 	width: 100%;
 	height: 100%;
 	object-fit: cover;
 }
 
-.vbr-logo-pin.is-burst img {
-	filter: grayscale(1);
-}
-
-.vbr-logo-icon.is-selected .vbr-logo-pin {
-	box-shadow: 0 0 0 3px #12324a, 0 4px 12px rgba(0, 0, 0, 0.35);
+@media (prefers-reduced-motion: reduce) {
+	.vbr-balloon {
+		transition: none;
+	}
 }
 
 .vbr-leaderboard [data-vbr-balloon] {
