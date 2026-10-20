@@ -63,6 +63,7 @@ class VBR_Admin_Races {
 		$action = isset( $_GET['action'] ) ? sanitize_key( $_GET['action'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( in_array( $action, array( 'new', 'edit' ), true ) ) {
 			wp_enqueue_script( 'vbr-admin-settings', VBR_PLUGIN_URL . 'assets/js/admin-settings.js', array( 'vbr-leaflet' ), VBR_Balloons::asset_version( 'assets/js/admin-settings.js' ), true );
+			wp_enqueue_script( 'vbr-admin-teams', VBR_PLUGIN_URL . 'assets/js/admin-teams.js', array(), VBR_Balloons::asset_version( 'assets/js/admin-teams.js' ), true );
 		}
 	}
 
@@ -145,6 +146,10 @@ class VBR_Admin_Races {
 			'end_at'        => VBR_Races::local_input_to_gmt( isset( $in['end_at'] ) ? sanitize_text_field( $in['end_at'] ) : '' ),
 		);
 
+		if ( VBR_Teams::enabled() ) {
+			$data['team_scoring'] = isset( $in['team_scoring'] ) ? sanitize_key( $in['team_scoring'] ) : '';
+		}
+
 		$result = VBR_Races::save( $data, $id );
 
 		if ( is_wp_error( $result ) ) {
@@ -153,7 +158,17 @@ class VBR_Admin_Races {
 			$this->redirect( array( 'action' => $id ? 'edit' : 'new', 'race' => $id ), $result->get_error_message() );
 		}
 
-		$this->redirect( array( 'action' => 'edit', 'race' => $result ), $id ? 'updated' : 'created' );
+		$notice = $id ? 'updated' : 'created';
+
+		if ( VBR_Teams::enabled() ) {
+			$blocked = VBR_Teams::save_for_race( $result, VBR_Teams::clean_rows( isset( $in['teams'] ) ? $in['teams'] : array() ) );
+			if ( $blocked ) {
+				/* translators: %s: team names */
+				$notice = sprintf( __( 'Race saved, but these teams have balloons so they were kept: %s', 'virtual-balloon-race' ), implode( ', ', $blocked ) );
+			}
+		}
+
+		$this->redirect( array( 'action' => 'edit', 'race' => $result ), $notice );
 	}
 
 	/**
@@ -327,6 +342,62 @@ class VBR_Admin_Races {
 	}
 
 	/**
+	 * Teams and team scoring for a race (only while teams are switched on).
+	 *
+	 * @param object|null $race Race being edited, or null for a new race.
+	 */
+	private function render_teams_panel( $race ) {
+		if ( ! VBR_Teams::enabled() ) {
+			return;
+		}
+
+		$defaults = VBR_Teams::clean_rows( (array) VBR_Settings::get( 'default_teams' ) );
+
+		if ( $race ) {
+			$teams = array();
+			foreach ( VBR_Teams::for_race( (int) $race->id ) as $team ) {
+				$teams[] = array(
+					'id'       => (int) $team->id,
+					'name'     => $team->name,
+					'color'    => $team->color,
+					'balloons' => VBR_Teams::balloon_count( (int) $team->id ),
+				);
+			}
+		} else {
+			// A new race starts with the default teams.
+			$teams = $defaults;
+		}
+
+		$scoring = $race ? (string) $race->team_scoring : '';
+		$labels  = VBR_Teams::scoring_labels();
+		?>
+		<section class="vbr-admin-panel">
+			<h2><?php esc_html_e( 'Teams', 'virtual-balloon-race' ); ?></h2>
+			<p class="description"><?php esc_html_e( 'Buyers must pick one of these teams. Leave the list empty to run this race without teams.', 'virtual-balloon-race' ); ?></p>
+			<?php VBR_Teams::render_editor( 'vbr_race[teams]', $teams, $defaults ); ?>
+			<table class="form-table" role="presentation">
+				<tr>
+					<th scope="row"><label for="vbr_race_team_scoring"><?php esc_html_e( 'Team scoring', 'virtual-balloon-race' ); ?></label></th>
+					<td>
+						<select id="vbr_race_team_scoring" name="vbr_race[team_scoring]">
+							<option value="">
+								<?php
+								/* translators: %s: default scoring method */
+								echo esc_html( sprintf( __( 'Default (%s)', 'virtual-balloon-race' ), $labels[ VBR_Teams::scoring( null ) ] ) );
+								?>
+							</option>
+							<?php foreach ( $labels as $value => $label ) : ?>
+								<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $scoring, $value ); ?>><?php echo esc_html( $label ); ?></option>
+							<?php endforeach; ?>
+						</select>
+					</td>
+				</tr>
+			</table>
+		</section>
+		<?php
+	}
+
+	/**
 	 * Entry products that sell this race, with a button to create one.
 	 *
 	 * @param object $race Race.
@@ -493,6 +564,8 @@ class VBR_Admin_Races {
 					</tr>
 				</table>
 			</section>
+
+			<?php $this->render_teams_panel( $race ); ?>
 
 			<p class="submit">
 				<?php submit_button( $race ? __( 'Save race', 'virtual-balloon-race' ) : __( 'Create race', 'virtual-balloon-race' ), 'primary', 'submit', false ); ?>

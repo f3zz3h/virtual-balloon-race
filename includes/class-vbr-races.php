@@ -407,6 +407,10 @@ class VBR_Races {
 			'end_at'        => $end ? gmdate( 'Y-m-d H:i:s', $end ) : null,
 		);
 
+		if ( isset( $data['team_scoring'] ) ) {
+			$row['team_scoring'] = isset( VBR_Teams::scoring_labels()[ $data['team_scoring'] ] ) ? $data['team_scoring'] : '';
+		}
+
 		if ( $id ) {
 			$ok = $wpdb->update( self::table(), $row, array( 'id' => (int) $id ) );
 		} else {
@@ -504,6 +508,7 @@ class VBR_Races {
 		}
 
 		$wpdb->delete( self::table(), array( 'id' => (int) $id ), array( '%d' ) );
+		VBR_Teams::delete_for_race( $id );
 		self::flush();
 
 		return true;

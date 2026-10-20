@@ -98,6 +98,7 @@ class VBR_Install {
 		$sql = "CREATE TABLE {$table_name} (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			race_id bigint(20) unsigned NOT NULL DEFAULT 0,
+			team_id bigint(20) unsigned NOT NULL DEFAULT 0,
 			order_id bigint(20) unsigned NOT NULL DEFAULT 0,
 			user_id bigint(20) unsigned NOT NULL DEFAULT 0,
 			owner_name varchar(255) NOT NULL DEFAULT '',
@@ -118,6 +119,7 @@ class VBR_Install {
 			created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			PRIMARY KEY  (id),
 			KEY race_id (race_id),
+			KEY team_id (team_id),
 			KEY order_id (order_id),
 			KEY user_id (user_id),
 			KEY is_burst (is_burst),
@@ -140,10 +142,25 @@ class VBR_Install {
 			launch_at datetime NOT NULL,
 			end_at datetime DEFAULT NULL,
 			last_tick_at datetime DEFAULT NULL,
+			team_scoring varchar(20) NOT NULL DEFAULT '',
 			created_at datetime NOT NULL,
 			PRIMARY KEY  (id),
 			KEY slug (slug),
 			KEY launch_at (launch_at)
+		) {$charset_collate};"
+		);
+
+		$teams = VBR_Teams::table();
+
+		dbDelta(
+			"CREATE TABLE {$teams} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			race_id bigint(20) unsigned NOT NULL DEFAULT 0,
+			name varchar(100) NOT NULL DEFAULT '',
+			color varchar(7) NOT NULL DEFAULT '',
+			sort int(11) NOT NULL DEFAULT 0,
+			PRIMARY KEY  (id),
+			KEY race_id (race_id)
 		) {$charset_collate};"
 		);
 

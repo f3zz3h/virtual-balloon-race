@@ -156,3 +156,21 @@
 	border-radius: 50%;
 	vertical-align: middle;
 }
+
+/* Team list editor */
+.vbr-teams-editor__list {
+	margin: 0 0 0.5rem;
+}
+
+.vbr-teams-editor__row {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-bottom: 0.4rem;
+}
+
+.vbr-teams-editor__row input[type="color"] {
+	width: 2.25rem;
+	height: 2rem;
+	padding: 0 2px;
+}

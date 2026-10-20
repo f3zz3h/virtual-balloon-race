@@ -3,7 +3,7 @@
  * Plugin Name:       Virtual Balloon Race
  * Plugin URI:        https://example.com/virtual-balloon-race
  * Description:       Sell virtual balloon race entries via WooCommerce, capture balloon customizations, and display a live fundraising leaderboard.
- * Version:           1.3.0
+ * Version:           1.4.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Virtual Balloon Race
@@ -18,8 +18,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'VBR_VERSION', '1.3.0' );
-define( 'VBR_DB_VERSION', '1.3.0' );
+define( 'VBR_VERSION', '1.4.0' );
+define( 'VBR_DB_VERSION', '1.4.0' );
 define( 'VBR_PLUGIN_FILE', __FILE__ );
 define( 'VBR_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'VBR_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -27,6 +27,7 @@ define( 'VBR_TABLE_SUFFIX', 'vbr_balloons' );
 
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-balloons.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-races.php';
+require_once VBR_PLUGIN_DIR . 'includes/class-vbr-teams.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-install.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-settings.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-geo.php';

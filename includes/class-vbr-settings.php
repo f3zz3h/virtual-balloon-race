@@ -110,6 +110,11 @@ class VBR_Settings {
 			'enable_logo'       => array( 'section' => 'shop', 'type' => 'checkbox', 'default' => 1, 'label' => __( 'Offer logo / image upload', 'virtual-balloon-race' ) ),
 			/* translators: %s: currency symbol */
 			'price_logo'        => array( 'section' => 'shop', 'type' => 'number', 'default' => 2, 'min' => 0, 'max' => 1000, 'step' => 0.01, 'label' => sprintf( __( 'Logo upload (%s)', 'virtual-balloon-race' ), $currency ) ),
+
+			// Teams.
+			'teams_enabled'     => array( 'section' => 'teams', 'type' => 'checkbox', 'default' => 0, 'label' => __( 'Enable teams', 'virtual-balloon-race' ), 'help' => __( 'Buyers pick a team for each balloon, and a team leaderboard ranks the teams. When off, teams are hidden everywhere but kept.', 'virtual-balloon-race' ) ),
+			'team_scoring'      => array( 'section' => 'teams', 'type' => 'select', 'default' => 'average', 'label' => __( 'Default team scoring', 'virtual-balloon-race' ), 'options' => VBR_Teams::scoring_labels(), 'help' => __( 'Average is fairest between big and small teams. Each race can choose its own.', 'virtual-balloon-race' ) ),
+			'default_teams'     => array( 'section' => 'teams', 'type' => 'teams', 'default' => array(), 'label' => __( 'Default teams', 'virtual-balloon-race' ), 'help' => __( 'New races start with these teams. Change a race’s own teams on its race screen.', 'virtual-balloon-race' ) ),
 		);
 	}
 
@@ -125,6 +130,7 @@ class VBR_Settings {
 			'burst'  => __( 'Bursts', 'virtual-balloon-race' ),
 			'map'    => __( 'Map', 'virtual-balloon-race' ),
 			'shop'   => __( 'Shop add-ons', 'virtual-balloon-race' ),
+			'teams'  => __( 'Teams', 'virtual-balloon-race' ),
 		);
 	}
 
@@ -242,6 +248,18 @@ class VBR_Settings {
 					$output[ $key ] = min( (float) $field['max'], max( (float) $field['min'], (float) $raw ) );
 					break;
 
+				case 'teams':
+					$output[ $key ] = array_map(
+						static function ( $team ) {
+							return array(
+								'name'  => $team['name'],
+								'color' => $team['color'],
+							);
+						},
+						VBR_Teams::clean_rows( $raw )
+					);
+					break;
+
 				case 'datetime':
 					$raw            = sanitize_text_field( (string) $raw );
 					$output[ $key ] = date_create_immutable_from_format( 'Y-m-d\TH:i', $raw ) ? $raw : '';
@@ -305,6 +323,7 @@ class VBR_Settings {
 
 		wp_enqueue_style( 'vbr-admin', VBR_PLUGIN_URL . 'assets/css/admin.css', array( 'vbr-leaflet' ), VBR_Balloons::asset_version( 'assets/css/admin.css' ) );
 		wp_enqueue_script( 'vbr-admin-settings', VBR_PLUGIN_URL . 'assets/js/admin-settings.js', array( 'vbr-leaflet' ), VBR_Balloons::asset_version( 'assets/js/admin-settings.js' ), true );
+		wp_enqueue_script( 'vbr-admin-teams', VBR_PLUGIN_URL . 'assets/js/admin-teams.js', array(), VBR_Balloons::asset_version( 'assets/js/admin-teams.js' ), true );
 		wp_localize_script(
 			'vbr-admin-settings',
 			'vbrSettings',
@@ -440,6 +459,10 @@ class VBR_Settings {
 							esc_attr( (string) $field['max'] ),
 							esc_attr( (string) $field['step'] )
 						);
+						break;
+
+					case 'teams':
+						VBR_Teams::render_editor( $name, (array) $value );
 						break;
 
 					case 'datetime':
