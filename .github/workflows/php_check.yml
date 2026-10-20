@@ -27,7 +27,7 @@ jobs:
           # PHP version to use
           php_version: 8.2 # optional, default is 8.2
           # Plugin/theme text domain
-          text_domain: VirtualBalloonRace
+          text_domain: virtual-balloon-race
           # Function/class prefixes (comma-separated)
           #prefixes: # optional, default is 
           # Minimum PHP version for compatibility checks
