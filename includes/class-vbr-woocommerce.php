@@ -27,6 +27,10 @@ class VBR_WooCommerce {
 		// Persist custom fields onto the order line item (emails + order screens).
 		add_action( 'woocommerce_checkout_create_order_line_item', array( $this, 'save_order_item_meta' ), 10, 4 );
 
+		// One balloon per basket line: clearer button and message, fresh name for the next balloon.
+		add_filter( 'woocommerce_product_single_add_to_cart_text', array( $this, 'add_to_cart_text' ), 10, 2 );
+		add_filter( 'wc_add_to_cart_message_html', array( $this, 'added_message' ), 10, 2 );
+
 		// Create balloon records when payment is taken / order completes.
 		add_action( 'woocommerce_order_status_processing', array( $this, 'create_balloons_from_order' ) );
 		add_action( 'woocommerce_order_status_completed', array( $this, 'create_balloons_from_order' ) );
@@ -68,7 +72,8 @@ class VBR_WooCommerce {
 
 		wp_nonce_field( 'vbr_add_balloon', 'vbr_balloon_nonce' );
 
-		$posted_name   = isset( $_POST['vbr_balloon_name'] ) ? sanitize_text_field( wp_unslash( $_POST['vbr_balloon_name'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		// After a balloon is added, keep the other choices but start the next balloon with a fresh name.
+		$posted_name   = isset( $_POST['vbr_balloon_name'] ) && ! did_action( 'woocommerce_add_to_cart' ) ? sanitize_text_field( wp_unslash( $_POST['vbr_balloon_name'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$posted_color  = isset( $_POST['vbr_balloon_color'] ) ? sanitize_text_field( wp_unslash( $_POST['vbr_balloon_color'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$posted_helium = isset( $_POST['vbr_helium_level'] ) ? sanitize_text_field( wp_unslash( $_POST['vbr_helium_level'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		?>
@@ -199,6 +204,48 @@ class VBR_WooCommerce {
 		$cart_item_data['vbr_unique_key'] = md5( microtime() . wp_rand() );
 
 		return $cart_item_data;
+	}
+
+	/**
+	 * "Add balloon to basket" on balloon entry products.
+	 *
+	 * @param string     $text    Button text.
+	 * @param WC_Product $product Product.
+	 * @return string
+	 */
+	public function add_to_cart_text( $text, $product ) {
+		return self::is_balloon_product( $product ) ? __( 'Add balloon to basket', 'virtual-balloon-race' ) : $text;
+	}
+
+	/**
+	 * After adding a balloon: name it and offer to design another.
+	 *
+	 * @param string $message  Message HTML.
+	 * @param array  $products Product ID => quantity.
+	 * @return string
+	 */
+	public function added_message( $message, $products ) {
+		$ids = array_keys( (array) $products );
+
+		if ( 1 !== count( $ids ) || ! self::is_balloon_product( $ids[0] ) ) {
+			return $message;
+		}
+
+		$name = isset( $_POST['vbr_balloon_name'] ) ? sanitize_text_field( wp_unslash( $_POST['vbr_balloon_name'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- display only.
+
+		return sprintf(
+			'<a href="%1$s" class="button wc-forward">%2$s</a> %3$s <a href="%4$s">%5$s</a>',
+			esc_url( wc_get_cart_url() ),
+			esc_html__( 'View basket', 'virtual-balloon-race' ),
+			esc_html(
+				'' !== $name
+					/* translators: %s: balloon name */
+					? sprintf( __( '“%s” is in your basket.', 'virtual-balloon-race' ), $name )
+					: __( 'Your balloon is in your basket.', 'virtual-balloon-race' )
+			),
+			esc_url( get_permalink( $ids[0] ) ),
+			esc_html__( 'Design another balloon', 'virtual-balloon-race' )
+		);
 	}
 
 	/**

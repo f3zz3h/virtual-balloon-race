@@ -90,6 +90,8 @@ Buyers fill in:
 - Optional **custom launch point** (+£2 by default): search or click a map to start from their school or hometown
 - Optional **logo or picture** (+£2 by default): PNG, JPG or WebP up to 1 MB. It fills the balloon on the map; very wide or tall pictures are shown whole instead of cropped. The product page's balloon preview shows it as soon as it's chosen
 
+Entries are sold **one balloon per basket line**: there's no quantity box on the product page or in the basket, because each balloon has its own name, colour and picture. After adding a balloon, the buyer sees "“Sky Rocket” is in your basket" with **Design another balloon** and **View basket**; the form keeps their race, team and colour and clears the name for the next one. Identical balloons can still be added as separate lines.
+
 A balloon is created when its order reaches **Processing** or **Completed**.
 
 ### 5. The race tracking page

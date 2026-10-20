@@ -108,7 +108,9 @@ class VBR_Product_Type {
 		?>
 		<script>
 		jQuery( function ( $ ) {
-			$( '.options_group.pricing, ._manage_stock_field, ._sold_individually_field, .inventory_sold_individually, .stock_fields' ).addClass( 'show_if_<?php echo $type; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- esc_js above. ?>' );
+			$( '.options_group.pricing, ._manage_stock_field, .stock_fields' ).addClass( 'show_if_<?php echo $type; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- esc_js above. ?>' );
+			// Entries are always sold one balloon per basket line.
+			$( '._sold_individually_field, .inventory_sold_individually' ).addClass( 'hide_if_<?php echo $type; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- esc_js above. ?>' );
 			$( 'select#product-type' ).trigger( 'change' );
 		} );
 		</script>
