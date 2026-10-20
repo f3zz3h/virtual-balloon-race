@@ -83,21 +83,37 @@ Buyers fill in:
 
 A balloon is created when its order reaches **Processing** or **Completed**.
 
-### 5. Put the race on a page
+### 5. The race tracking page
+
+Activating the plugin creates a **Balloon Race** page (`/balloon-race/`) with the live map, the leaderboard and a list of races. It's ordinary page content (three shortcode blocks), so you can edit it, add text or rearrange it.
+
+**Balloon Race → Settings → Pages**:
+
+- **Race tracking page**: choose which page is the tracking page. Leaderboard names, My Account and order emails link to it.
+- **Create tracking page**: shown when none is set (for example after the page was deleted).
+- **Regenerate page content**: resets the page to the default map, leaderboard and race list. Your edits to that page are lost.
+
+One page serves every race. `/balloon-race/` shows the **current** race (the one flying, or else the next one taking entries, or else the next upcoming one, or else the last one finished). `/balloon-race/?race=summer-2026` shows a particular race, and the race list links to each one. Links like `/balloon-race/?race=summer-2026&balloon=12` open with that balloon selected.
+
+Logged-in customers also get **My Account → My balloons**: each balloon they've entered, in every race, with its position, distance and a **Track** link.
+
+#### Shortcodes
+
+You can still build your own pages:
 
 ```
 [balloon_map]
-[balloon_leaderboard map_url="/race-map/"]
+[balloon_leaderboard]
+[balloon_races]
 ```
 
 | Shortcode | Attributes |
 | --- | --- |
-| `[balloon_map]` | `race` = ID, slug or `current` (default). `height` (default `520px`). `list="no"` hides the side list |
-| `[balloon_leaderboard]` | `race` (as above). `limit` (default 50). `map_url` makes each name link to the map with that balloon highlighted |
+| `[balloon_map]` | `race` = ID, slug or `current`. Without it, the page's `?race=` is used, else the current race. `height` (default `520px`). `list="no"` hides the side list |
+| `[balloon_leaderboard]` | `race` (as above). `limit` (default 50). `map_url`: where names link (default: the tracking page) |
+| `[balloon_races]` | Links to every race on the same page. `title` (default "All races"). `min` (default 2): hidden when there are fewer races |
 
-The **current** race is the one flying, or else the next one taking entries, or else the next upcoming one, or else the last one finished. The race list shows each race's own shortcode.
-
-On the map, clicking a balloon (or its name in the list or leaderboard) highlights its trail and fades the others. Click the map background to clear the highlight. Links like `/race-map/?balloon=12` open with that balloon selected.
+On the map, clicking a balloon (or its name in the list or leaderboard) highlights its trail and fades the others. Click the map background to clear the highlight.
 
 ### 6. During the race
 
@@ -125,7 +141,9 @@ includes/
   class-vbr-weather.php         Open-Meteo wind, batched by ~11 km grid cell, cached in transients
   class-vbr-geo.php             Great-circle destination / distance
   class-vbr-map.php             REST API + [balloon_map]
-  class-vbr-frontend.php        [balloon_leaderboard] + frontend assets
+  class-vbr-frontend.php        [balloon_leaderboard], [balloon_races] + frontend assets
+  class-vbr-pages.php           Tracking page: create on install, Settings → Pages, tracking_url()
+  class-vbr-account.php         My Account → My balloons
   class-vbr-admin.php           Leaderboard admin page (per race)
   class-vbr-admin-races.php     Races admin page
   class-vbr-product-type.php    "Balloon race entry" product type, its admin tab, 1.2 → 1.3 product migration
@@ -143,7 +161,7 @@ assets/js/admin-settings.js     Launch-point picker (Settings and race form)
 
 - `{prefix}vbr_races`: one row per race. All times are stored in **UTC**. Stages are calculated from the clock and never stored.
 - `{prefix}vbr_balloons`: one row per balloon, with `race_id`, current `latitude`/`longitude`, `start_lat`/`start_lng`, `trail_json` (the most recent `[lat, lng]` points, capped by the trail-length setting), `logo_attachment_id`, `has_custom_start`, `distance_km` and `is_burst`.
-- Settings: the `vbr_settings` option. Last tick per race: the `vbr_tick_summaries` option.
+- Settings: the `vbr_settings` option. Tracking page: `vbr_tracking_page_id`. Last tick per race: the `vbr_tick_summaries` option.
 - Upgrades run on `plugins_loaded` whenever `vbr_db_version` is older than `VBR_DB_VERSION`. Upgrading from 1.1 creates a first race and moves existing balloons into it. Steps that need WooCommerce or rewrite rules (product conversion, default pages, flushing rewrites) are queued in `vbr_pending_setup` and run on the next `init`.
 
 ### How a tick works

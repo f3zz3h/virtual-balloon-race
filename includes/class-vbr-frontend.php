@@ -18,6 +18,7 @@ class VBR_Frontend {
 	public function __construct() {
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_assets' ) );
 		add_shortcode( 'balloon_leaderboard', array( $this, 'render_leaderboard_shortcode' ) );
+		add_shortcode( 'balloon_races', array( $this, 'render_races_shortcode' ) );
 	}
 
 	/**
@@ -42,7 +43,7 @@ class VBR_Frontend {
 		$needs_leaderboard = false;
 		if ( is_singular() ) {
 			$post = get_post();
-			if ( $post && has_shortcode( $post->post_content, 'balloon_leaderboard' ) ) {
+			if ( $post && ( has_shortcode( $post->post_content, 'balloon_leaderboard' ) || has_shortcode( $post->post_content, 'balloon_races' ) ) ) {
 				$needs_leaderboard = true;
 			}
 		}
@@ -67,6 +68,7 @@ class VBR_Frontend {
 		wp_enqueue_style( 'vbr-frontend' );
 		wp_enqueue_script( 'vbr-frontend' );
 
+		$ref  = VBR_Races::ref_from_shortcode( $atts );
 		$atts = shortcode_atts(
 			array(
 				'limit'   => 50,
@@ -77,10 +79,10 @@ class VBR_Frontend {
 			'balloon_leaderboard'
 		);
 
-		$limit   = max( 1, intval( $atts['limit'] ) );
-		$map_url = '' !== $atts['map_url'] ? esc_url( $atts['map_url'] ) : '';
-
-		$race = VBR_Races::resolve( $atts['race'] );
+		$atts['race'] = $ref;
+		$limit        = max( 1, intval( $atts['limit'] ) );
+		$race         = VBR_Races::resolve( $atts['race'] );
+		$map_url      = '' !== $atts['map_url'] ? esc_url( $atts['map_url'] ) : VBR_Pages::tracking_url( $race );
 
 		if ( ! $race && 'current' !== $atts['race'] ) {
 			return current_user_can( 'manage_options' ) ? '<p>' . esc_html__( 'Balloon leaderboard: race not found.', 'virtual-balloon-race' ) . '</p>' : '';
@@ -206,6 +208,64 @@ class VBR_Frontend {
 			</div>
 			<p class="vbr-leaderboard__empty-search" hidden><?php esc_html_e( 'No balloons match that search.', 'virtual-balloon-race' ); ?></p>
 		</div>
+		<?php
+		return ob_get_clean();
+	}
+
+	/**
+	 * Render [balloon_races]: links to each race on this page (shown when there are at least `min` races).
+	 *
+	 * @param array|string $atts Shortcode attributes.
+	 * @return string
+	 */
+	public function render_races_shortcode( $atts ) {
+		$atts = shortcode_atts(
+			array(
+				'title' => __( 'All races', 'virtual-balloon-race' ),
+				'min'   => 2,
+			),
+			$atts,
+			'balloon_races'
+		);
+
+		$races = VBR_Races::all();
+
+		if ( count( $races ) < max( 1, (int) $atts['min'] ) ) {
+			return '';
+		}
+
+		wp_enqueue_style( 'vbr-frontend' );
+
+		$shown = VBR_Races::resolve( VBR_Races::ref_from_shortcode( array() ) );
+		$base  = remove_query_arg( array( 'race', 'balloon' ) );
+		$pill  = array(
+			VBR_Races::UPCOMING => 'waiting',
+			VBR_Races::ON_SALE  => 'waiting',
+			VBR_Races::FLYING   => 'active',
+			VBR_Races::FINISHED => 'finished',
+		);
+
+		ob_start();
+		?>
+		<nav class="vbr-races" aria-label="<?php echo esc_attr( $atts['title'] ); ?>">
+			<?php if ( '' !== $atts['title'] ) : ?>
+				<h2 class="vbr-races__title"><?php echo esc_html( $atts['title'] ); ?></h2>
+			<?php endif; ?>
+			<ul class="vbr-races__list">
+				<?php foreach ( $races as $race ) : ?>
+					<?php
+					$stage   = VBR_Races::status( $race );
+					$current = $shown && (int) $shown->id === (int) $race->id;
+					$date    = VBR_Races::FINISHED === $stage && $race->end_at ? $race->end_at : $race->launch_at;
+					?>
+					<li class="vbr-races__item<?php echo $current ? ' is-current' : ''; ?>">
+						<a href="<?php echo esc_url( add_query_arg( 'race', $race->slug, $base ) ); ?>"<?php echo $current ? ' aria-current="page"' : ''; ?>><?php echo esc_html( $race->name ); ?></a>
+						<span class="vbr-pill vbr-pill--<?php echo esc_attr( $pill[ $stage ] ); ?>"><?php echo esc_html( VBR_Races::status_label( $race ) ); ?></span>
+						<span class="vbr-races__date"><?php echo esc_html( VBR_Races::format_date( $date ) ); ?></span>
+					</li>
+				<?php endforeach; ?>
+			</ul>
+		</nav>
 		<?php
 		return ob_get_clean();
 	}

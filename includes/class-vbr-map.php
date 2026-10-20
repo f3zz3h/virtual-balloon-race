@@ -186,6 +186,7 @@ class VBR_Map {
 	 * @return string
 	 */
 	public function render_shortcode( $atts ) {
+		$ref  = VBR_Races::ref_from_shortcode( $atts );
 		$atts = shortcode_atts(
 			array(
 				'height' => '520px',
@@ -195,6 +196,8 @@ class VBR_Map {
 			$atts,
 			'balloon_map'
 		);
+
+		$atts['race'] = $ref;
 
 		$height = preg_match( '/^\d+(\.\d+)?(px|vh|rem|em|%)$/', (string) $atts['height'] ) ? $atts['height'] : '520px';
 

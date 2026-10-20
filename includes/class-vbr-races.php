@@ -125,6 +125,22 @@ class VBR_Races {
 	}
 
 	/**
+	 * Race reference for a shortcode: its `race` attribute, else a valid `?race=` on the page, else "current".
+	 *
+	 * @param array|string $atts Raw shortcode attributes.
+	 * @return string
+	 */
+	public static function ref_from_shortcode( $atts ) {
+		if ( is_array( $atts ) && isset( $atts['race'] ) && '' !== trim( (string) $atts['race'] ) ) {
+			return (string) $atts['race'];
+		}
+
+		$query = isset( $_GET['race'] ) ? sanitize_title( wp_unslash( $_GET['race'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+
+		return '' !== $query && self::resolve( $query ) ? $query : 'current';
+	}
+
+	/**
 	 * The race to show by default: flying (latest launch), else the next one
 	 * taking entries, else the next upcoming, else the last finished.
 	 *

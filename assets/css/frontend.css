@@ -516,3 +516,55 @@
 	background: #fcf0e3;
 	color: #8a4b0f;
 }
+
+/* [balloon_races] */
+.vbr-races {
+	margin: 2rem 0;
+	color: #12324a;
+}
+
+.vbr-races__title {
+	margin: 0 0 0.75rem;
+	font-size: 1.25rem;
+}
+
+.vbr-races__list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	border-top: 1px solid #cfe0ee;
+}
+
+.vbr-races__item {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.35rem 0.75rem;
+	padding: 0.6rem 0;
+	border-bottom: 1px solid #cfe0ee;
+}
+
+.vbr-races__item a {
+	font-weight: 600;
+}
+
+.vbr-races__item.is-current a {
+	color: inherit;
+	text-decoration: none;
+}
+
+.vbr-races__date {
+	margin-left: auto;
+	color: #4d6a80;
+	font-size: 0.9rem;
+}
+
+/* My Account → My balloons */
+.vbr-account-balloons .vbr-color-dot {
+	display: inline-block;
+	width: 0.75em;
+	height: 0.75em;
+	margin-right: 0.35em;
+	border-radius: 50%;
+	vertical-align: baseline;
+}

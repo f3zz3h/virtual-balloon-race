@@ -369,6 +369,8 @@ class VBR_Settings {
 
 				<?php submit_button(); ?>
 			</form>
+
+			<?php do_action( 'vbr_settings_page_end' ); ?>
 		</div>
 		<?php
 	}
