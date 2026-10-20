@@ -1,0 +1,54 @@
+name: PHP checks
+run-name: PHP checks on ${{ github.ref_name }} by ${{ github.actor }}
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  syntax:
+    name: PHP ${{ matrix.php }} syntax
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 7.4 is the plugin's minimum ("Requires PHP"); the dev site runs 8.3.
+        php: ['7.4', '8.0', '8.3']
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v6
+
+      - name: Set up PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          tools: none
+
+      - name: Check PHP syntax
+        run: |
+          status=0
+          while IFS= read -r -d '' file; do
+            php -l "$file" > /dev/null || status=1
+          done < <(find . -name '*.php' -not -path './.git/*' -print0)
+          exit $status
+
+  wpcs:
+    name: WordPress Coding Standards
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v6
+
+      # Errors fail the check; warnings (e.g. direct queries on the plugin's own tables) are reported only.
+      - name: WPCS
+        uses: arraystory/action-wpcs@9045bb523f173750aaa52ed08b7f0f932ee4a23b # v1
+        with:
+          php_version: 8.2
+          text_domain: virtual-balloon-race
+          minimum_php: 7.4
+          paths: .
