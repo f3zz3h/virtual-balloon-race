@@ -82,11 +82,13 @@ When no race is taking entries, the product can't be added to the basket and sho
 
 > **Upgrading from 1.2:** products marked with the old "Balloon Entry" tick box or `balloon-entry` tag are converted to the new type automatically. Products that weren't simple products (e.g. variable) can't be converted; a notice in admin lists them.
 
+On balloon entry products, the product images are replaced by a **live balloon preview**: a balloon on a sky background that follows the buyer's choices (colour, uploaded picture, balloon name, team and helium strategy). To keep the normal product images, add `add_filter( 'vbr_product_preview', '__return_false' );`.
+
 Buyers fill in:
 
 - **Balloon name**, **colour** and **helium strategy** (Balanced is free; Max Height and Eco-Glide cost the "tactical strategy" price)
 - Optional **custom launch point** (+£2 by default): search or click a map to start from their school or hometown
-- Optional **logo or picture** (+£2 by default): PNG, JPG or WebP up to 1 MB. It fills the balloon on the map; very wide or tall pictures are shown whole instead of cropped. The product page previews it on a balloon in the chosen colour
+- Optional **logo or picture** (+£2 by default): PNG, JPG or WebP up to 1 MB. It fills the balloon on the map; very wide or tall pictures are shown whole instead of cropped. The product page's balloon preview shows it as soon as it's chosen
 
 A balloon is created when its order reaches **Processing** or **Completed**.
 
@@ -168,6 +170,7 @@ includes/
   class-vbr-teams.php           Teams: per-race lists, scoring, standings, the team editor
   class-vbr-team-entries.php    Team choice on the product page → basket → order → team_id on balloons
   class-vbr-monetization.php    Paid add-ons: strategy fee, custom launch, logo upload
+  class-vbr-product-preview.php Live balloon preview in place of the product images
   class-vbr-cli.php             wp vbr …
 assets/js/balloon.js            Balloon drawing (SVG) shared by the map and product page
 assets/js/map.js                Public Leaflet map
@@ -223,6 +226,7 @@ wp vbr status                            # schedule + last tick per race
 | `vbr_helium_option_label` | filter | Helium option text on the product page |
 | `vbr_product_fields_before` / `vbr_product_fields_after` | action | Add fields inside the balloon box |
 | `vbr_color_hex` | filter | Map colours for balloon colour names |
+| `vbr_product_preview` | filter | Return false to keep the product images instead of the live balloon preview (`$show, $product`) |
 | `vbr_public_owner_name` | filter | Public owner name, after shortening to first name + initial (`$name, $balloon`) |
 | `vbr_after_tick` | action | Runs after a race moves (`$summary`) |
 

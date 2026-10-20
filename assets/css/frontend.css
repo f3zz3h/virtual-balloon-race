@@ -727,3 +727,106 @@
 .vbr-map__item.has-team .vbr-map__item-btn {
 	box-shadow: inset 3px 0 0 var(--vbr-team);
 }
+
+/* Product page: live balloon preview in place of the product images */
+.vbr-product-preview {
+	margin-bottom: 2em;
+}
+
+.vbr-product-preview__sky {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 380px;
+	overflow: hidden;
+	border-radius: 16px;
+	background: linear-gradient(180deg, #bfe3ff 0%, #e6f4ff 70%, #f6fbff 100%);
+}
+
+.vbr-product-preview__balloon {
+	filter: drop-shadow(0 10px 12px rgba(18, 50, 74, 0.25));
+	animation: vbr-bob 4s ease-in-out infinite;
+}
+
+.vbr-product-preview__balloon .vbr-balloon__svg {
+	display: block;
+	width: 100%;
+	height: 100%;
+	overflow: visible;
+}
+
+/* Max Height floats a little higher, Eco-Glide a little lower. */
+.vbr-product-preview[data-helium="Max Height"] .vbr-product-preview__balloon {
+	margin-bottom: 60px;
+}
+
+.vbr-product-preview[data-helium="Eco-Glide"] .vbr-product-preview__balloon {
+	margin-top: 50px;
+}
+
+.vbr-product-preview.is-unpicked .vbr-product-preview__balloon {
+	opacity: 0.7;
+}
+
+.vbr-product-preview__cloud {
+	position: absolute;
+	width: 140px;
+	height: 44px;
+	border-radius: 999px;
+	background: #ffffff;
+	opacity: 0.85;
+	box-shadow: 30px -18px 0 4px #ffffff, 70px -6px 0 -2px #ffffff;
+}
+
+.vbr-product-preview__cloud--one {
+	top: 18%;
+	left: -30px;
+}
+
+.vbr-product-preview__cloud--two {
+	right: 40px;
+	bottom: 16%;
+	transform: scale(0.7);
+	opacity: 0.7;
+}
+
+.vbr-product-preview__caption {
+	margin-top: 0.75rem;
+	text-align: center;
+}
+
+.vbr-product-preview__name {
+	margin: 0;
+	font-size: 1.25rem;
+	font-weight: 700;
+	overflow-wrap: anywhere;
+}
+
+.vbr-product-preview__meta {
+	margin: 0.15rem 0 0;
+	color: #4d6a80;
+}
+
+@keyframes vbr-bob {
+	0%,
+	100% {
+		transform: translateY(0) rotate(-2deg);
+	}
+
+	50% {
+		transform: translateY(-12px) rotate(2deg);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.vbr-product-preview__balloon {
+		animation: none;
+	}
+}
+
+@media (max-width: 760px) {
+	.vbr-product-preview__sky {
+		min-height: 300px;
+	}
+}

@@ -42,6 +42,7 @@ require_once VBR_PLUGIN_DIR . 'includes/class-vbr-woocommerce.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-monetization.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-race-entries.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-team-entries.php';
+require_once VBR_PLUGIN_DIR . 'includes/class-vbr-product-preview.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-product-type.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-account.php';
 
@@ -102,6 +103,7 @@ final class Virtual_Balloon_Race {
 			new VBR_Monetization();
 			new VBR_Race_Entries();
 			new VBR_Team_Entries();
+			new VBR_Product_Preview();
 			new VBR_Account();
 		}
 	}

@@ -134,12 +134,14 @@ class VBR_Monetization {
 				'maxLogo' => self::LOGO_MAX_BYTES,
 				'colors'  => VBR_Map::color_hex(),
 				'i18n'    => array(
-					'searching' => __( 'Searching…', 'virtual-balloon-race' ),
-					'noResults' => __( 'No places found.', 'virtual-balloon-race' ),
-					'error'     => __( 'Search failed. Click the map instead.', 'virtual-balloon-race' ),
-					'tooBig'    => __( 'That image is over 1 MB. Please choose a smaller file.', 'virtual-balloon-race' ),
-					'badType'   => __( 'Please choose a PNG, JPG or WebP image.', 'virtual-balloon-race' ),
-					'chosen'    => __( 'Launching from:', 'virtual-balloon-race' ),
+					'searching'   => __( 'Searching…', 'virtual-balloon-race' ),
+					'noResults'   => __( 'No places found.', 'virtual-balloon-race' ),
+					'error'       => __( 'Search failed. Click the map instead.', 'virtual-balloon-race' ),
+					'tooBig'      => __( 'That image is over 1 MB. Please choose a smaller file.', 'virtual-balloon-race' ),
+					'badType'     => __( 'Please choose a PNG, JPG or WebP image.', 'virtual-balloon-race' ),
+					'chosen'      => __( 'Launching from:', 'virtual-balloon-race' ),
+					'yourBalloon' => __( 'Your balloon', 'virtual-balloon-race' ),
+					'pickColour'  => __( 'Pick a colour to see your balloon.', 'virtual-balloon-race' ),
 				),
 			)
 		);

@@ -4,6 +4,32 @@
 
 	var cfg = window.vbrProduct || {};
 	var i18n = cfg.i18n || {};
+	var UNPICKED_HEX = '#b8c4d0';
+
+	// The uploaded picture, shared by the big preview and the small one under the upload field.
+	var look = { logo: null, fit: 'cover' };
+	var redrawers = [];
+
+	function redraw() {
+		redrawers.forEach(function (fn) {
+			fn();
+		});
+	}
+
+	function field(name) {
+		return document.querySelector('[name="' + name + '"]');
+	}
+
+	function chosenHex() {
+		var select = field('vbr_balloon_color');
+		return (cfg.colors || {})[select ? select.value : ''] || '';
+	}
+
+	function chosenText(name) {
+		var select = field(name);
+		var option = select && select.value && select.options ? select.options[select.selectedIndex] : null;
+		return option ? option.textContent.trim() : '';
+	}
 
 	function initLaunch(root) {
 		var toggle = root.querySelector('input[name="vbr_custom_launch"]');
@@ -149,33 +175,29 @@
 
 	function initLogo(input) {
 		var preview = input.parentNode.querySelector('.vbr-addon__preview');
-		var colorSelect = document.querySelector('select[name="vbr_balloon_color"]');
 		var allowed = ['image/png', 'image/jpeg', 'image/webp'];
-		var logo = null;
-		var fit = 'cover';
 
-		// Draw the picture on a balloon in the chosen colour, as it will look on the map.
-		function render() {
-			if (!preview || !logo || !window.vbrBalloon) {
-				return;
-			}
-			var hex = (cfg.colors || {})[colorSelect ? colorSelect.value : ''] || '#2b6cb0';
-			preview.innerHTML = window.vbrBalloon.svg(hex, false, logo, fit);
-			preview.hidden = false;
-		}
-
-		if (colorSelect) {
-			colorSelect.addEventListener('change', render);
+		// Without the big preview, draw the picture on a small balloon under the upload field.
+		if (preview && !document.querySelector('[data-vbr-preview]')) {
+			redrawers.push(function () {
+				if (!look.logo || !window.vbrBalloon) {
+					preview.hidden = true;
+					return;
+				}
+				preview.innerHTML = window.vbrBalloon.svg(chosenHex() || '#2b6cb0', false, look.logo, look.fit);
+				preview.hidden = false;
+			});
 		}
 
 		input.addEventListener('change', function () {
 			var file = input.files && input.files[0];
 
 			input.setCustomValidity('');
-			logo = null;
-			if (preview) {
-				preview.hidden = true;
+			if (look.logo && window.URL && URL.revokeObjectURL) {
+				URL.revokeObjectURL(look.logo);
 			}
+			look.logo = null;
+			redraw();
 
 			if (!file) {
 				return;
@@ -192,19 +214,55 @@
 				return;
 			}
 
-			if (preview && window.URL && URL.createObjectURL) {
+			if (window.URL && URL.createObjectURL) {
 				var url = URL.createObjectURL(file);
 				var img = new Image();
 				// Same rule as the map: very wide or tall pictures are shown whole, others fill the balloon.
 				img.onload = function () {
 					var ratio = img.naturalHeight ? img.naturalWidth / img.naturalHeight : 1;
-					fit = ratio > 1.6 || ratio < 0.6 ? 'contain' : 'cover';
-					logo = url;
-					render();
+					look.fit = ratio > 1.6 || ratio < 0.6 ? 'contain' : 'cover';
+					look.logo = url;
+					redraw();
 				};
 				img.src = url;
 			}
 		});
+	}
+
+	// Big balloon in place of the product images: colour, picture, name, team and helium as chosen.
+	function initPreview(root) {
+		var balloon = root.querySelector('.vbr-product-preview__balloon');
+		var nameEl = root.querySelector('.vbr-product-preview__name');
+		var metaEl = root.querySelector('.vbr-product-preview__meta');
+
+		redrawers.push(function () {
+			var hex = chosenHex();
+			var nameInput = field('vbr_balloon_name');
+			var name = nameInput ? nameInput.value.trim() : '';
+			var helium = field('vbr_helium_level');
+			// Helium option labels include prices and notes; the value is the short strategy name.
+			var meta = [chosenText('vbr_balloon_color'), chosenText('vbr_team_id'), helium ? helium.value : ''].filter(Boolean);
+
+			if (window.vbrBalloon) {
+				balloon.innerHTML = window.vbrBalloon.svg(hex || UNPICKED_HEX, false, look.logo, look.fit);
+			}
+			root.classList.toggle('is-unpicked', !hex && !look.logo);
+			root.setAttribute('data-helium', helium ? helium.value : '');
+			nameEl.textContent = name || i18n.yourBalloon || 'Your balloon';
+			metaEl.textContent = hex ? meta.join(' · ') : (i18n.pickColour || 'Pick a colour to see your balloon.');
+		});
+
+		['vbr_balloon_color', 'vbr_team_id', 'vbr_helium_level', 'vbr_race_id'].forEach(function (name) {
+			var el = field(name);
+			if (el) {
+				el.addEventListener('change', redraw);
+			}
+		});
+
+		var nameInput = field('vbr_balloon_name');
+		if (nameInput) {
+			nameInput.addEventListener('input', redraw);
+		}
 	}
 
 	// With several races open, only offer the chosen race's teams; hide the field for races without teams.
@@ -241,7 +299,15 @@
 		filter();
 	}
 
+	document.querySelectorAll('[data-vbr-preview]').forEach(initPreview);
 	document.querySelectorAll('select[name="vbr_team_id"]').forEach(initTeams);
 	document.querySelectorAll('[data-vbr-launch]').forEach(initLaunch);
 	document.querySelectorAll('input[name="vbr_logo"]').forEach(initLogo);
+
+	// Keep the colour list in step with the preview too (the small preview only needs this).
+	var colorSelect = field('vbr_balloon_color');
+	if (colorSelect && !document.querySelector('[data-vbr-preview]')) {
+		colorSelect.addEventListener('change', redraw);
+	}
+	redraw();
 })();
