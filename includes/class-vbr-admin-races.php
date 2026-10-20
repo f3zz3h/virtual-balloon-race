@@ -144,6 +144,7 @@ class VBR_Admin_Races {
 			'sales_open_at' => VBR_Races::local_input_to_gmt( isset( $in['sales_open_at'] ) ? sanitize_text_field( $in['sales_open_at'] ) : '' ),
 			'launch_at'     => VBR_Races::local_input_to_gmt( isset( $in['launch_at'] ) ? sanitize_text_field( $in['launch_at'] ) : '' ),
 			'end_at'        => VBR_Races::local_input_to_gmt( isset( $in['end_at'] ) ? sanitize_text_field( $in['end_at'] ) : '' ),
+			'ranking'       => isset( $in['ranking'] ) ? sanitize_key( $in['ranking'] ) : VBR_Races::FROM_START,
 		);
 
 		if ( VBR_Teams::enabled() ) {
@@ -471,6 +472,7 @@ class VBR_Admin_Races {
 			'sales_open_at' => $race ? VBR_Races::gmt_to_local_input( $race->sales_open_at ) : '',
 			'launch_at'     => $race ? VBR_Races::gmt_to_local_input( $race->launch_at ) : '',
 			'end_at'        => $race ? VBR_Races::gmt_to_local_input( $race->end_at ) : '',
+			'ranking'       => VBR_Races::ranking( $race ),
 		);
 
 		// Re-fill after a validation error.
@@ -524,6 +526,17 @@ class VBR_Admin_Races {
 						<td>
 							<input type="datetime-local" id="vbr_race_end_at" name="vbr_race[end_at]" value="<?php echo esc_attr( $values['end_at'] ); ?>" />
 							<p class="description"><?php esc_html_e( 'Optional. Balloons stop and the leaderboard is final after this time. Leave blank to finish by hand.', 'virtual-balloon-race' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="vbr_race_ranking"><?php esc_html_e( 'Winner decided by', 'virtual-balloon-race' ); ?></label></th>
+						<td>
+							<select id="vbr_race_ranking" name="vbr_race[ranking]">
+								<?php foreach ( VBR_Races::ranking_labels() as $value => $label ) : ?>
+									<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $values['ranking'], $value ); ?>><?php echo esc_html( $label ); ?></option>
+								<?php endforeach; ?>
+							</select>
+							<p class="description"><?php esc_html_e( 'Distance from launch is the usual rule: the balloon furthest away in a straight line wins. Custom launch points are measured from their own start. Distance travelled adds up the whole trail, so wandering balloons score more. Team scores use the same measure.', 'virtual-balloon-race' ); ?></p>
 						</td>
 					</tr>
 					<tr>

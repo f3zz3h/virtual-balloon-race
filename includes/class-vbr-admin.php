@@ -208,7 +208,7 @@ class VBR_Admin {
 		$races = VBR_Races::table();
 		$where = $race_id ? $wpdb->prepare( 'WHERE b.race_id = %d', $race_id ) : '';
 		$teams = VBR_Teams::table();
-		$rows  = $wpdb->get_results( "SELECT b.*, r.name AS race_name, t.name AS team_name FROM {$table} b LEFT JOIN {$races} r ON r.id = b.race_id LEFT JOIN {$teams} t ON t.id = b.team_id {$where} ORDER BY b.race_id DESC, b.distance_km DESC, b.id ASC", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$rows  = $wpdb->get_results( "SELECT b.*, r.name AS race_name, t.name AS team_name FROM {$table} b LEFT JOIN {$races} r ON r.id = b.race_id LEFT JOIN {$teams} t ON t.id = b.team_id {$where} ORDER BY b.race_id DESC, b.from_start_km DESC, b.id ASC", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		$race     = $race_id ? VBR_Races::get( $race_id ) : null;
 		$filename = 'virtual-balloon-race-' . ( $race ? $race->slug . '-' : '' ) . gmdate( 'Y-m-d-His' ) . '.csv';
@@ -221,7 +221,7 @@ class VBR_Admin {
 
 		fputcsv(
 			$output,
-			array( 'ID', 'Race', 'Team', 'Order ID', 'User ID', 'Owner Name', 'Owner Email', 'Balloon Name', 'Balloon Color', 'Helium Level', 'Distance (km)', 'Is Burst', 'Latitude', 'Longitude', 'Created At' )
+			array( 'ID', 'Race', 'Team', 'Order ID', 'User ID', 'Owner Name', 'Owner Email', 'Balloon Name', 'Balloon Color', 'Helium Level', 'From Start (km)', 'Travelled (km)', 'Is Burst', 'Latitude', 'Longitude', 'Created At' )
 		);
 
 		foreach ( (array) $rows as $row ) {
@@ -238,6 +238,7 @@ class VBR_Admin {
 					$row['balloon_name'],
 					$row['balloon_color'],
 					$row['helium_level'],
+					$row['from_start_km'],
 					$row['distance_km'],
 					$row['is_burst'] ? 'Yes' : 'No',
 					$row['latitude'],
@@ -282,7 +283,8 @@ class VBR_Admin {
 			endif;
 
 			$table    = VBR_Balloons::table();
-			$balloons = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE race_id = %d ORDER BY distance_km DESC, id ASC", (int) $race->id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$order    = VBR_Races::ranking_column( $race );
+			$balloons = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE race_id = %d ORDER BY {$order} DESC, id ASC", (int) $race->id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$status   = VBR_Races::status( $race );
 			$teams    = VBR_Teams::by_id( $race );
 
@@ -379,7 +381,8 @@ class VBR_Admin {
 							<?php endif; ?>
 							<th><?php esc_html_e( 'Color', 'virtual-balloon-race' ); ?></th>
 							<th><?php esc_html_e( 'Helium', 'virtual-balloon-race' ); ?></th>
-							<th><?php esc_html_e( 'Distance (KM)', 'virtual-balloon-race' ); ?></th>
+							<th><?php esc_html_e( 'From launch (km)', 'virtual-balloon-race' ); ?></th>
+							<th><?php esc_html_e( 'Travelled (km)', 'virtual-balloon-race' ); ?></th>
 							<th><?php esc_html_e( 'Burst Status', 'virtual-balloon-race' ); ?></th>
 							<th><?php esc_html_e( 'Actions', 'virtual-balloon-race' ); ?></th>
 						</tr>
@@ -387,7 +390,7 @@ class VBR_Admin {
 					<tbody>
 						<?php if ( empty( $balloons ) ) : ?>
 							<tr>
-								<td colspan="<?php echo esc_attr( (string) ( $teams ? 9 : 8 ) ); ?>"><?php esc_html_e( 'No balloons in this race yet.', 'virtual-balloon-race' ); ?></td>
+								<td colspan="<?php echo esc_attr( (string) ( $teams ? 10 : 9 ) ); ?>"><?php esc_html_e( 'No balloons in this race yet.', 'virtual-balloon-race' ); ?></td>
 							</tr>
 						<?php else : ?>
 							<?php foreach ( $balloons as $balloon ) : ?>
@@ -424,7 +427,8 @@ class VBR_Admin {
 									<?php endif; ?>
 									<td><?php echo esc_html( $balloon->balloon_color ); ?></td>
 									<td><?php echo esc_html( $balloon->helium_level ); ?></td>
-									<td><?php echo esc_html( number_format_i18n( (float) $balloon->distance_km, 2 ) ); ?></td>
+									<td<?php echo 'from_start_km' === $order ? ' class="vbr-ranked"' : ''; ?>><?php echo esc_html( number_format_i18n( (float) $balloon->from_start_km, 2 ) ); ?></td>
+									<td<?php echo 'distance_km' === $order ? ' class="vbr-ranked"' : ''; ?>><?php echo esc_html( number_format_i18n( (float) $balloon->distance_km, 2 ) ); ?></td>
 									<td>
 										<?php
 										echo $balloon->is_burst

@@ -308,6 +308,14 @@ class VBR_Cron {
 
 				list( $lat, $lng ) = VBR_Geo::destination( $b->latitude, $b->longitude, $bearing, $step );
 
+				// Straight-line distance from where this balloon started (its own launch point, else the race's).
+				$from_start = VBR_Geo::distance_km(
+					null !== $b->start_lat ? (float) $b->start_lat : $launch['lat'],
+					null !== $b->start_lng ? (float) $b->start_lng : $launch['lng'],
+					$lat,
+					$lng
+				);
+
 				$trail   = VBR_Balloons::decode_trail( $b->trail_json );
 				$trail   = $trail ? $trail : array( array( $b->latitude, $b->longitude ) );
 				$trail[] = array( $lat, $lng );
@@ -325,8 +333,9 @@ class VBR_Cron {
 
 				$wpdb->query(
 					$wpdb->prepare(
-						"UPDATE {$table} SET distance_km = distance_km + %f, latitude = %f, longitude = %f, trail_json = %s, last_moved_at = %s, is_burst = %d WHERE id = %d AND is_burst = 0", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+						"UPDATE {$table} SET distance_km = distance_km + %f, from_start_km = %f, latitude = %f, longitude = %f, trail_json = %s, last_moved_at = %s, is_burst = %d WHERE id = %d AND is_burst = 0", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 						$step,
+						round( $from_start, 2 ),
 						$lat,
 						$lng,
 						VBR_Balloons::encode_trail( $trail ),

@@ -94,14 +94,26 @@ class VBR_Frontend {
 		$balloons = array();
 		$stage    = $race ? VBR_Races::status( $race ) : '';
 
+		$order    = VBR_Races::ranking_column( $race );
+		$by_start = VBR_Races::FROM_START === VBR_Races::ranking( $race );
+
 		if ( $race ) {
 			// Every flying balloon is rendered so search covers the whole race; rows past `limit` start hidden.
 			$balloons = $wpdb->get_results(
 				$wpdb->prepare(
-					"SELECT * FROM {$table} WHERE is_burst = 0 AND race_id = %d ORDER BY distance_km DESC, id ASC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+					"SELECT * FROM {$table} WHERE is_burst = 0 AND race_id = %d ORDER BY {$order} DESC, id ASC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 					(int) $race->id
 				)
 			);
+		}
+
+		// Two distance columns, the one that decides the race first.
+		$distance_columns = array(
+			'from_start_km' => __( 'From launch (km)', 'virtual-balloon-race' ),
+			'distance_km'   => __( 'Travelled (km)', 'virtual-balloon-race' ),
+		);
+		if ( ! $by_start ) {
+			$distance_columns = array_reverse( $distance_columns, true );
 		}
 
 		// Page caches normally skip logged-in visitors, so the viewer's own balloons can go in the HTML.
@@ -180,11 +192,14 @@ class VBR_Frontend {
 								$where = __( 'Waiting for launch', 'virtual-balloon-race' );
 							} else {
 								$where = sprintf(
-									/* translators: 1: position, 2: number of balloons, 3: distance in km */
-									__( '#%1$s of %2$s · %3$s km', 'virtual-balloon-race' ),
+									$by_start
+										/* translators: 1: position, 2: number of balloons, 3: distance in km */
+										? __( '#%1$s of %2$s · %3$s km from launch', 'virtual-balloon-race' )
+										/* translators: 1: position, 2: number of balloons, 3: distance in km */
+										: __( '#%1$s of %2$s · %3$s km travelled', 'virtual-balloon-race' ),
 									number_format_i18n( isset( $ranks[ (int) $own->id ] ) ? $ranks[ (int) $own->id ] : 0 ),
 									number_format_i18n( count( $balloons ) ),
-									number_format_i18n( (float) $own->distance_km, 1 )
+									number_format_i18n( VBR_Balloons::ranked_distance( $own, $race ), 1 )
 								);
 							}
 							?>
@@ -212,14 +227,16 @@ class VBR_Frontend {
 								<th><?php esc_html_e( 'Team', 'virtual-balloon-race' ); ?></th>
 							<?php endif; ?>
 							<th><?php esc_html_e( 'Color', 'virtual-balloon-race' ); ?></th>
-							<th><?php esc_html_e( 'Distance (km)', 'virtual-balloon-race' ); ?></th>
+							<?php foreach ( $distance_columns as $label ) : ?>
+								<th><?php echo esc_html( $label ); ?></th>
+							<?php endforeach; ?>
 							<th><?php esc_html_e( 'Status', 'virtual-balloon-race' ); ?></th>
 						</tr>
 					</thead>
 					<tbody>
 						<?php if ( empty( $balloons ) ) : ?>
 							<tr class="vbr-leaderboard__empty">
-								<td colspan="<?php echo esc_attr( (string) ( $teams ? 7 : 6 ) ); ?>">
+								<td colspan="<?php echo esc_attr( (string) ( $teams ? 8 : 7 ) ); ?>">
 									<?php
 									echo esc_html(
 										! $race ? __( 'No race scheduled yet.', 'virtual-balloon-race' )
@@ -264,9 +281,9 @@ class VBR_Frontend {
 											<?php echo esc_html( $balloon->balloon_color ); ?>
 										</span>
 									</td>
-									<td data-label="<?php esc_attr_e( 'Distance (km)', 'virtual-balloon-race' ); ?>">
-										<?php echo esc_html( number_format_i18n( (float) $balloon->distance_km, 2 ) ); ?>
-									</td>
+									<?php foreach ( $distance_columns as $column => $label ) : ?>
+										<td data-label="<?php echo esc_attr( $label ); ?>"><?php echo esc_html( number_format_i18n( (float) $balloon->{$column}, 1 ) ); ?></td>
+									<?php endforeach; ?>
 									<td data-label="<?php esc_attr_e( 'Status', 'virtual-balloon-race' ); ?>">
 										<span class="vbr-pill vbr-pill--<?php echo esc_attr( $pill[0] ); ?>"><?php echo esc_html( $pill[1] ); ?></span>
 									</td>
@@ -410,8 +427,14 @@ class VBR_Frontend {
 						echo esc_html(
 							$waiting
 								? __( 'Teams are ranked once the balloons launch.', 'virtual-balloon-race' )
-								/* translators: %s: scoring method, e.g. Average distance */
-								: sprintf( __( 'Ranked by %s', 'virtual-balloon-race' ), mb_strtolower( $labels[ $method ] ) )
+								: sprintf(
+									/* translators: 1: scoring method, e.g. Average distance; 2: how distance is measured */
+									__( 'Ranked by %1$s, %2$s', 'virtual-balloon-race' ),
+									mb_strtolower( $labels[ $method ] ),
+									VBR_Races::FROM_START === VBR_Races::ranking( $race )
+										? __( 'measured from the launch point', 'virtual-balloon-race' )
+										: __( 'measured along the whole trail', 'virtual-balloon-race' )
+								)
 						);
 						?>
 					</p>

@@ -341,10 +341,17 @@
 		title.prepend(miniBalloon(b));
 		wrap.appendChild(title);
 
+		var km = ' ' + (i18n.km || 'km');
+		var fromStart = [i18n.fromStart || 'From launch', b.from_start !== undefined ? formatKm(b.from_start) + km : ''];
+		var travelled = [i18n.travelled || 'Travelled', b.travelled !== undefined ? formatKm(b.travelled) + km : ''];
+		// The measure that decides the race comes first.
+		var distances = this.data && this.data.ranking === 'travelled' ? [travelled, fromStart] : [fromStart, travelled];
+
 		[
 			[i18n.owner || 'Owner', b.owner],
 			[i18n.team || 'Team', this.teamName(b)],
-			[i18n.distance || 'Distance', formatKm(b.distance) + ' ' + (i18n.km || 'km')],
+			distances[0],
+			distances[1],
 			[i18n.status || 'Status', this.balloonStatus(b)]
 		].forEach(function (row) {
 			if (!row[1]) {

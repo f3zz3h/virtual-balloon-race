@@ -208,14 +208,17 @@ class VBR_Balloons {
 			return null;
 		}
 
-		$table = self::table();
+		$table  = self::table();
+		$race   = VBR_Races::get( (int) $balloon->race_id );
+		$column = VBR_Races::ranking_column( $race );
+		$value  = self::ranked_distance( $balloon, $race );
 
 		return 1 + (int) $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT COUNT(*) FROM {$table} WHERE race_id = %d AND is_burst = 0 AND ( distance_km > %f OR ( distance_km = %f AND id < %d ) )", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				"SELECT COUNT(*) FROM {$table} WHERE race_id = %d AND is_burst = 0 AND ( {$column} > %f OR ( {$column} = %f AND id < %d ) )", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				(int) $balloon->race_id,
-				(float) $balloon->distance_km,
-				(float) $balloon->distance_km,
+				$value,
+				$value,
 				(int) $balloon->id
 			)
 		);
@@ -253,5 +256,54 @@ class VBR_Balloons {
 		$table = self::table();
 
 		return (array) $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE order_id = %d ORDER BY id ASC", (int) $order_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	}
+
+	/**
+	 * Where a balloon is measured from: its own start (custom launch point), else its race's launch point.
+	 *
+	 * @param object $balloon Balloon row (start_lat, start_lng, race_id).
+	 * @return float[] [lat, lng]
+	 */
+	public static function start_point( $balloon ) {
+		if ( null !== $balloon->start_lat && null !== $balloon->start_lng ) {
+			return array( (float) $balloon->start_lat, (float) $balloon->start_lng );
+		}
+
+		$launch = VBR_Races::launch_point( VBR_Races::get( (int) $balloon->race_id ) );
+
+		return array( (float) $launch['lat'], (float) $launch['lng'] );
+	}
+
+	/**
+	 * 1.5.0: work out the straight-line distance from start for existing balloons.
+	 */
+	public static function backfill_from_start() {
+		global $wpdb;
+
+		$table = self::table();
+		$rows  = (array) $wpdb->get_results( "SELECT id, race_id, latitude, longitude, start_lat, start_lng FROM {$table} WHERE latitude IS NOT NULL AND longitude IS NOT NULL" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		foreach ( $rows as $row ) {
+			list( $lat, $lng ) = self::start_point( $row );
+
+			$wpdb->update(
+				$table,
+				array( 'from_start_km' => round( VBR_Geo::distance_km( $lat, $lng, (float) $row->latitude, (float) $row->longitude ), 2 ) ),
+				array( 'id' => (int) $row->id ),
+				array( '%f' ),
+				array( '%d' )
+			);
+		}
+	}
+
+	/**
+	 * The distance a race ranks balloons by.
+	 *
+	 * @param object      $balloon Balloon row.
+	 * @param object|null $race    Race.
+	 * @return float
+	 */
+	public static function ranked_distance( $balloon, $race ) {
+		return (float) $balloon->{VBR_Races::ranking_column( $race )};
 	}
 }

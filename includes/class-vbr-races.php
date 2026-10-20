@@ -27,6 +27,41 @@ class VBR_Races {
 	 */
 	private static $cache = array();
 
+	const FROM_START = 'from_start';
+	const TRAVELLED  = 'travelled';
+
+	/**
+	 * How a race decides its winner.
+	 *
+	 * @return array
+	 */
+	public static function ranking_labels() {
+		return array(
+			self::FROM_START => __( 'Distance from launch (as the crow flies)', 'virtual-balloon-race' ),
+			self::TRAVELLED  => __( 'Distance travelled (whole trail)', 'virtual-balloon-race' ),
+		);
+	}
+
+	/**
+	 * A race's ranking rule (distance from launch unless it chose distance travelled).
+	 *
+	 * @param object|null $race Race.
+	 * @return string
+	 */
+	public static function ranking( $race ) {
+		return $race && isset( $race->ranking ) && self::TRAVELLED === $race->ranking ? self::TRAVELLED : self::FROM_START;
+	}
+
+	/**
+	 * Balloons-table column a race is ranked by (a fixed column name, safe to put in SQL).
+	 *
+	 * @param object|null $race Race.
+	 * @return string
+	 */
+	public static function ranking_column( $race ) {
+		return self::TRAVELLED === self::ranking( $race ) ? 'distance_km' : 'from_start_km';
+	}
+
 	/**
 	 * Races table name.
 	 *
@@ -406,6 +441,10 @@ class VBR_Races {
 			'launch_at'     => gmdate( 'Y-m-d H:i:s', $launch ),
 			'end_at'        => $end ? gmdate( 'Y-m-d H:i:s', $end ) : null,
 		);
+
+		if ( isset( $data['ranking'] ) ) {
+			$row['ranking'] = self::TRAVELLED === $data['ranking'] ? self::TRAVELLED : self::FROM_START;
+		}
 
 		if ( isset( $data['team_scoring'] ) ) {
 			$row['team_scoring'] = isset( VBR_Teams::scoring_labels()[ $data['team_scoring'] ] ) ? $data['team_scoring'] : '';

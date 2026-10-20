@@ -241,7 +241,7 @@ class VBR_Teams {
 	}
 
 	/**
-	 * Team standings for a race, best first. Teams without balloons come last.
+	 * Team standings for a race, best first, scored on the race's ranking distance. Teams without balloons come last.
 	 *
 	 * @param object $race Race.
 	 * @return array[] Each: id, rank, name, color, balloons, score, leader (balloon name).
@@ -256,14 +256,15 @@ class VBR_Teams {
 		$teams    = self::table();
 		$balloons = VBR_Balloons::table();
 		$method   = self::scoring( $race );
+		$column   = VBR_Races::ranking_column( $race );
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$rows = (array) $wpdb->get_results( $wpdb->prepare( "SELECT t.id, t.name, t.color, COUNT(b.id) AS balloons, COALESCE(SUM(b.distance_km), 0) AS total, COALESCE(AVG(b.distance_km), 0) AS average, COALESCE(MAX(b.distance_km), 0) AS best FROM {$teams} t LEFT JOIN {$balloons} b ON b.team_id = t.id AND b.race_id = t.race_id WHERE t.race_id = %d GROUP BY t.id, t.name, t.color, t.sort ORDER BY t.sort ASC, t.id ASC", (int) $race->id ) );
+		$rows = (array) $wpdb->get_results( $wpdb->prepare( "SELECT t.id, t.name, t.color, COUNT(b.id) AS balloons, COALESCE(SUM(b.{$column}), 0) AS total, COALESCE(AVG(b.{$column}), 0) AS average, COALESCE(MAX(b.{$column}), 0) AS best FROM {$teams} t LEFT JOIN {$balloons} b ON b.team_id = t.id AND b.race_id = t.race_id WHERE t.race_id = %d GROUP BY t.id, t.name, t.color, t.sort ORDER BY t.sort ASC, t.id ASC", (int) $race->id ) );
 
 		// Furthest balloon per team, for the "leading balloon" column.
 		$leaders = array();
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		foreach ( (array) $wpdb->get_results( $wpdb->prepare( "SELECT team_id, balloon_name, distance_km FROM {$balloons} WHERE race_id = %d AND team_id > 0 ORDER BY distance_km DESC, id ASC", (int) $race->id ) ) as $b ) {
+		foreach ( (array) $wpdb->get_results( $wpdb->prepare( "SELECT team_id, balloon_name FROM {$balloons} WHERE race_id = %d AND team_id > 0 ORDER BY {$column} DESC, id ASC", (int) $race->id ) ) as $b ) {
 			if ( ! isset( $leaders[ (int) $b->team_id ] ) ) {
 				$leaders[ (int) $b->team_id ] = $b->balloon_name;
 			}

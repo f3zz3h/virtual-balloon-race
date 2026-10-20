@@ -107,6 +107,7 @@ class VBR_Install {
 			balloon_color varchar(50) NOT NULL DEFAULT '',
 			helium_level varchar(50) NOT NULL DEFAULT '',
 			distance_km decimal(10,2) NOT NULL DEFAULT 0.00,
+			from_start_km decimal(10,2) NOT NULL DEFAULT 0.00,
 			is_burst tinyint(1) NOT NULL DEFAULT 0,
 			latitude decimal(10,7) DEFAULT NULL,
 			longitude decimal(10,7) DEFAULT NULL,
@@ -123,7 +124,8 @@ class VBR_Install {
 			KEY order_id (order_id),
 			KEY user_id (user_id),
 			KEY is_burst (is_burst),
-			KEY distance_km (distance_km)
+			KEY distance_km (distance_km),
+			KEY from_start_km (from_start_km)
 		) {$charset_collate};";
 
 		dbDelta( $sql );
@@ -143,6 +145,7 @@ class VBR_Install {
 			end_at datetime DEFAULT NULL,
 			last_tick_at datetime DEFAULT NULL,
 			team_scoring varchar(20) NOT NULL DEFAULT '',
+			ranking varchar(20) NOT NULL DEFAULT '',
 			created_at datetime NOT NULL,
 			PRIMARY KEY  (id),
 			KEY slug (slug),
@@ -166,6 +169,10 @@ class VBR_Install {
 
 		self::seed_positions();
 		self::migrate_to_races();
+
+		if ( version_compare( $previous, '1.5.0', '<' ) ) {
+			VBR_Balloons::backfill_from_start();
+		}
 
 		// Work that needs WooCommerce's post types or rewrite rules runs on the next `init`.
 		$tasks = array( 'pages', 'rewrite' );
