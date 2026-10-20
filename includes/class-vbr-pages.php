@@ -281,8 +281,8 @@ class VBR_Pages {
 								array(
 									'name'              => 'vbr_tracking_page',
 									'id'                => 'vbr_tracking_page',
-									'selected'          => $id,
-									'show_option_none'  => __( '— None —', 'virtual-balloon-race' ),
+									'selected'          => absint( $id ),
+									'show_option_none'  => esc_html__( '— None —', 'virtual-balloon-race' ),
 									'option_none_value' => 0,
 									'post_status'       => array( 'publish', 'private', 'draft' ),
 								)

@@ -231,7 +231,8 @@ class VBR_Admin_Races {
 			return;
 		}
 
-		$key      = sanitize_text_field( rawurldecode( wp_unslash( $_GET['vbr_notice'] ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		// redirect() URL-encodes the notice once and PHP decodes $_GET once, so no further decoding is needed.
+		$key      = sanitize_text_field( wp_unslash( $_GET['vbr_notice'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$messages = array(
 			'created'  => __( 'Race created.', 'virtual-balloon-race' ),
 			'updated'  => __( 'Race saved.', 'virtual-balloon-race' ),
