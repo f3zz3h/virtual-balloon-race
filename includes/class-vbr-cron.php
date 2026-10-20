@@ -242,7 +242,7 @@ class VBR_Cron {
 			$s        = VBR_Settings::all();
 			$table    = VBR_Balloons::table();
 			$launch   = VBR_Races::launch_point( $race );
-			$balloons = $wpdb->get_results( $wpdb->prepare( "SELECT id, helium_level, latitude, longitude, start_lat, start_lng, trail_json FROM {$table} WHERE is_burst = 0 AND race_id = %d", (int) $race->id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$balloons = $wpdb->get_results( $wpdb->prepare( "SELECT id, helium_level, latitude, longitude, start_lat, start_lng, trail_json, flight_hours FROM {$table} WHERE is_burst = 0 AND race_id = %d", (int) $race->id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 			$use_weather = ! empty( $s['weather_enabled'] );
 			$per_balloon = $use_weather && ! empty( $s['per_balloon_wind'] );
@@ -280,6 +280,7 @@ class VBR_Cron {
 			$p_storm  = self::per_tick_probability( (float) $s['burst_storm_daily'] / 100, $days );
 			$fixed    = null !== $args['min_km'] && null !== $args['max_km'];
 			$now_sql  = current_time( 'mysql' );
+			$mode     = VBR_Flight_Modes::for_race( $race );
 
 			foreach ( $balloons as $b ) {
 				$wind = $per_balloon ? VBR_Weather::for_cell( $b->cell ) : null;
@@ -301,7 +302,12 @@ class VBR_Cron {
 				} else {
 					$wind_factor = $base > 0 ? ( 1 - $weight ) + $weight * ( $wind_kmh / $base ) : 1;
 					$wind_factor = min( 2.5, max( 0.25, $wind_factor ) );
-					$step        = $base * self::helium_multiplier( $b->helium_level, $s ) * (float) $hours * $wind_factor * ( 1 + self::rand_float( -$variance, $variance ) );
+					// The flight mode slows balloons as they age, so use full-speed-equivalent hours.
+					$flown = VBR_Flight_Modes::effective_hours( $mode, (float) $b->flight_hours, (float) $hours );
+					if ( $flown <= 0 ) {
+						continue; // Landed (Drift): it stays where it came down.
+					}
+					$step = $base * self::helium_multiplier( $b->helium_level, $s ) * $flown * $wind_factor * ( 1 + self::rand_float( -$variance, $variance ) );
 				}
 
 				$step = max( 0.0, round( $step, 2 ) );
@@ -333,9 +339,10 @@ class VBR_Cron {
 
 				$wpdb->query(
 					$wpdb->prepare(
-						"UPDATE {$table} SET distance_km = distance_km + %f, from_start_km = %f, latitude = %f, longitude = %f, trail_json = %s, last_moved_at = %s, is_burst = %d WHERE id = %d AND is_burst = 0", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+						"UPDATE {$table} SET distance_km = distance_km + %f, from_start_km = %f, flight_hours = flight_hours + %f, latitude = %f, longitude = %f, trail_json = %s, last_moved_at = %s, is_burst = %d WHERE id = %d AND is_burst = 0", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 						$step,
 						round( $from_start, 2 ),
+						(float) $hours,
 						$lat,
 						$lng,
 						VBR_Balloons::encode_trail( $trail ),

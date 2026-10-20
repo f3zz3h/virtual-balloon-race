@@ -145,6 +145,7 @@ class VBR_Admin_Races {
 			'launch_at'     => VBR_Races::local_input_to_gmt( isset( $in['launch_at'] ) ? sanitize_text_field( $in['launch_at'] ) : '' ),
 			'end_at'        => VBR_Races::local_input_to_gmt( isset( $in['end_at'] ) ? sanitize_text_field( $in['end_at'] ) : '' ),
 			'ranking'       => isset( $in['ranking'] ) ? sanitize_key( $in['ranking'] ) : VBR_Races::FROM_START,
+			'flight_mode'   => isset( $in['flight_mode'] ) ? sanitize_key( $in['flight_mode'] ) : '',
 		);
 
 		if ( VBR_Teams::enabled() ) {
@@ -473,6 +474,7 @@ class VBR_Admin_Races {
 			'launch_at'     => $race ? VBR_Races::gmt_to_local_input( $race->launch_at ) : '',
 			'end_at'        => $race ? VBR_Races::gmt_to_local_input( $race->end_at ) : '',
 			'ranking'       => VBR_Races::ranking( $race ),
+			'flight_mode'   => $race ? (string) $race->flight_mode : '',
 		);
 
 		// Re-fill after a validation error.
@@ -526,6 +528,24 @@ class VBR_Admin_Races {
 						<td>
 							<input type="datetime-local" id="vbr_race_end_at" name="vbr_race[end_at]" value="<?php echo esc_attr( $values['end_at'] ); ?>" />
 							<p class="description"><?php esc_html_e( 'Optional. Balloons stop and the leaderboard is final after this time. Leave blank to finish by hand.', 'virtual-balloon-race' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="vbr_race_flight_mode"><?php esc_html_e( 'Flight mode', 'virtual-balloon-race' ); ?></label></th>
+						<td>
+							<select id="vbr_race_flight_mode" name="vbr_race[flight_mode]">
+								<option value="">
+									<?php
+									$modes = VBR_Flight_Modes::all();
+									/* translators: %s: default flight mode */
+									echo esc_html( sprintf( __( 'Default (%s)', 'virtual-balloon-race' ), $modes[ VBR_Flight_Modes::for_race( null ) ]['label'] ) );
+									?>
+								</option>
+								<?php foreach ( $modes as $value => $mode ) : ?>
+									<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $values['flight_mode'], $value ); ?>><?php echo esc_html( $mode['label'] . ' — ' . $mode['tagline'] ); ?></option>
+								<?php endforeach; ?>
+							</select>
+							<p class="description"><?php esc_html_e( 'How quickly balloons lose lift. Drift is true to life, Soar slows gradually, Jetstream never slows. See Settings for details and distance estimates.', 'virtual-balloon-race' ); ?></p>
 						</td>
 					</tr>
 					<tr>

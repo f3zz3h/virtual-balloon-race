@@ -75,6 +75,7 @@ class VBR_Settings {
 
 		return array(
 			// Race movement.
+			'flight_mode'       => array( 'section' => 'race', 'type' => 'modes', 'default' => 'soar', 'label' => __( 'Flight mode', 'virtual-balloon-race' ), 'help' => __( 'How quickly balloons lose lift, and so how far a race goes. Each race can choose its own.', 'virtual-balloon-race' ) ),
 			'interval'          => array( 'section' => 'race', 'type' => 'select', 'default' => 'off', 'label' => __( 'Auto-update interval', 'virtual-balloon-race' ), 'options' => self::interval_labels(), 'help' => __( 'How often balloons move. Scheduled updates run via WooCommerce Action Scheduler (or WP-Cron), which only fires when the site gets traffic. For accurate 5-minute updates, set up a real system cron.', 'virtual-balloon-race' ) ),
 			'base_kmh'          => array( 'section' => 'race', 'type' => 'number', 'default' => 35, 'min' => 0, 'max' => 300, 'step' => 0.1, 'label' => __( 'Base speed (km/h)', 'virtual-balloon-race' ), 'help' => __( 'Average drift speed. Distance per update = speed × hours since the last update × helium × wind × variance.', 'virtual-balloon-race' ) ),
 			'mult_eco'          => array( 'section' => 'race', 'type' => 'number', 'default' => 0.7, 'min' => 0, 'max' => 5, 'step' => 0.01, 'label' => __( 'Eco-Glide multiplier', 'virtual-balloon-race' ) ),
@@ -246,6 +247,11 @@ class VBR_Settings {
 						break;
 					}
 					$output[ $key ] = min( (float) $field['max'], max( (float) $field['min'], (float) $raw ) );
+					break;
+
+				case 'modes':
+					$raw            = sanitize_key( (string) $raw );
+					$output[ $key ] = array_key_exists( $raw, VBR_Flight_Modes::all() ) ? $raw : $field['default'];
 					break;
 
 				case 'teams':
@@ -463,6 +469,10 @@ class VBR_Settings {
 
 					case 'teams':
 						VBR_Teams::render_editor( $name, (array) $value );
+						break;
+
+					case 'modes':
+						VBR_Flight_Modes::render_cards( $name, (string) $value );
 						break;
 
 					case 'datetime':

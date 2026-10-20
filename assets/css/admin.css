@@ -179,3 +179,78 @@
 .vbr-admin-table td.vbr-ranked {
 	font-weight: 600;
 }
+
+/* Flight mode cards (Settings) */
+.vbr-mode-cards {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: 0.75rem;
+	max-width: 960px;
+}
+
+.vbr-mode-card {
+	position: relative;
+	display: block;
+	cursor: pointer;
+}
+
+.vbr-mode-card input {
+	position: absolute;
+	top: 0.85rem;
+	right: 0.85rem;
+	margin: 0;
+}
+
+.vbr-mode-card__body {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+	height: 100%;
+	padding: 0.85rem 2.25rem 0.85rem 0.9rem;
+	border: 1px solid #c3c4c7;
+	border-radius: 8px;
+	background: #ffffff;
+	box-sizing: border-box;
+}
+
+.vbr-mode-card input:checked + .vbr-mode-card__body {
+	border-color: #2271b1;
+	box-shadow: 0 0 0 1px #2271b1;
+	background: #f0f6fc;
+}
+
+.vbr-mode-card input:focus-visible + .vbr-mode-card__body {
+	outline: 2px solid #2271b1;
+	outline-offset: 2px;
+}
+
+.vbr-mode-card__name {
+	font-size: 1.1em;
+}
+
+.vbr-mode-card__tagline {
+	color: #2271b1;
+	font-weight: 600;
+}
+
+.vbr-mode-card__description {
+	color: #50575e;
+}
+
+.vbr-mode-card__estimate {
+	display: flex;
+	flex-direction: column;
+	gap: 0.1rem;
+	margin-top: auto;
+	padding-top: 0.4rem;
+	border-top: 1px solid #dcdcde;
+	font-size: 0.9em;
+	color: #1d2327;
+}
+
+.vbr-mode-card__estimate-title {
+	color: #50575e;
+	font-size: 0.85em;
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+}
