@@ -35,8 +35,17 @@
 		}).join(',') + ')';
 	}
 
+	function escapeAttr(value) {
+		return String(value).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+	}
+
+	var clipCount = 0;
+	var BODY_PATH = 'M12 1C5.9 1 2 5.9 2 11.6 2 18.2 7.3 23.6 12 25c4.7-1.4 10-6.8 10-13.4C22 5.9 18.1 1 12 1z';
+
 	// A balloon drawn in a 24×36 box. The string ends at the bottom centre, which sits on the balloon's position.
-	function balloonSvg(hex, burst) {
+	// With a logo, the picture fills the balloon body over the balloon colour: cropped to fit,
+	// or shown whole when `fit` is "contain" (very wide or tall pictures).
+	function balloonSvg(hex, burst, logo, fit) {
 		var string = '<path d="M12 26.8c-1.8 2.2 1.8 4.4 0 6.6-.6.8-.6 1.6-.2 2.4" fill="none" stroke="#5b6b78" stroke-width="0.9" stroke-linecap="round"/>';
 
 		if (burst) {
@@ -49,11 +58,21 @@
 		var fill = safeHex(hex);
 		var edge = shade(fill, -0.35);
 
+		var picture = '';
+
+		if (logo) {
+			var clipId = 'vbr-balloon-clip-' + (++clipCount);
+			picture = '<clipPath id="' + clipId + '"><path d="' + BODY_PATH + '"/></clipPath>' +
+				'<image href="' + escapeAttr(logo) + '" x="2" y="1" width="20" height="24" preserveAspectRatio="xMidYMid ' + (fit === 'contain' ? 'meet' : 'slice') + '" clip-path="url(#' + clipId + ')"/>';
+		}
+
 		return '<svg class="vbr-balloon__svg" viewBox="0 0 24 36" aria-hidden="true">' +
 			string +
-			'<path d="M12 1C5.9 1 2 5.9 2 11.6 2 18.2 7.3 23.6 12 25c4.7-1.4 10-6.8 10-13.4C22 5.9 18.1 1 12 1z" fill="' + fill + '" stroke="' + edge + '" stroke-width="1"/>' +
+			'<path d="' + BODY_PATH + '" fill="' + fill + '"/>' +
+			picture +
+			'<path d="' + BODY_PATH + '" fill="none" stroke="' + edge + '" stroke-width="' + (logo ? 1.4 : 1) + '"/>' +
 			'<path d="M10.4 26.8 12 24.6l1.6 2.2z" fill="' + edge + '" stroke="' + edge + '" stroke-width="0.6" stroke-linejoin="round"/>' +
-			'<ellipse cx="7.6" cy="8" rx="2.1" ry="3.6" transform="rotate(25 7.6 8)" fill="#fff" fill-opacity=".45"/>' +
+			'<ellipse cx="7.6" cy="8" rx="2.1" ry="3.6" transform="rotate(25 7.6 8)" fill="#fff" fill-opacity="' + (logo ? '.3' : '.45') + '"/>' +
 			'</svg>';
 	}
 
@@ -296,12 +315,7 @@
 	RaceMap.prototype.balloonIcon = function (b, selected) {
 		var width = (b.logo ? 34 : 22) * (selected ? 1.35 : 1);
 		var height = width * 1.5;
-		var html = '<span class="vbr-balloon' + (b.logo ? ' vbr-balloon--logo' : '') + (b.burst ? ' is-burst' : '') + '">' + balloonSvg(b.hex, b.burst);
-
-		// Logo balloons show the picture inside the balloon body.
-		if (b.logo && !b.burst) {
-			html += '<span class="vbr-balloon__logo"><img src="' + encodeURI(b.logo) + '" alt="" /></span>';
-		}
+		var html = '<span class="vbr-balloon' + (b.logo ? ' vbr-balloon--logo' : '') + (b.burst ? ' is-burst' : '') + '">' + balloonSvg(b.hex, b.burst, b.logo, b.logo_fit);
 
 		return L.divIcon({
 			className: 'vbr-balloon-icon' + (selected ? ' is-selected' : '') + (this.isMine(b.id) ? ' is-mine' : ''),
@@ -416,7 +430,7 @@
 			}
 
 			// Only rebuild the icon when something it shows has changed.
-			var key = [b.hex, b.burst, b.logo, selected, self.isMine(b.id)].join('|');
+			var key = [b.hex, b.burst, b.logo, b.logo_fit, selected, self.isMine(b.id)].join('|');
 			if (key !== item.iconKey) {
 				item.marker.setIcon(self.balloonIcon(b, selected));
 				item.iconKey = key;

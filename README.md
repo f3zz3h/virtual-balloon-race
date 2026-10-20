@@ -187,7 +187,7 @@ Uncached grid cells are fetched in batches (up to 50 per request), and a failed 
 | Route | Returns |
 | --- | --- |
 | `GET /wp-json/vbr/v1/races` | `{ current, races: [{ id, name, slug, status, status_label, entries_open, launch_at, end_at, launch }] }` |
-| `GET /wp-json/vbr/v1/balloons?race=<id\|slug\|current>` | `{ race, launch, updated_at, next_at, balloons: [{ id, rank, name, owner, color, hex, helium, distance, burst, lat, lng, logo, trail }] }` |
+| `GET /wp-json/vbr/v1/balloons?race=<id\|slug\|current>` | `{ race, launch, updated_at, next_at, balloons: [{ id, rank, name, owner, color, hex, helium, distance, burst, lat, lng, logo, logo_fit, trail }] }` |
 
 Emails and order details are never included, and owners are first name + initial. Responses are sent with no-cache headers, including LiteSpeed's.
 

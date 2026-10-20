@@ -139,9 +139,13 @@ class VBR_Map {
 			}
 
 			$logo = '';
+			$fit  = 'cover';
 			if ( (int) $row->logo_attachment_id ) {
-				$src  = wp_get_attachment_image_src( (int) $row->logo_attachment_id, 'thumbnail' );
+				$src  = wp_get_attachment_image_src( (int) $row->logo_attachment_id, 'medium' );
 				$logo = $src ? $src[0] : '';
+				// Pictures much wider or taller than the balloon are shown whole rather than cropped.
+				$ratio = $src && $src[2] ? $src[1] / $src[2] : 1;
+				$fit   = $ratio > 1.6 || $ratio < 0.6 ? 'contain' : 'cover';
 			}
 
 			$balloons[] = array(
@@ -157,6 +161,7 @@ class VBR_Map {
 				'lat'      => (float) $row->latitude,
 				'lng'      => (float) $row->longitude,
 				'logo'     => $logo,
+				'logo_fit' => $fit,
 				'trail'    => VBR_Balloons::decode_trail( $row->trail_json ),
 			);
 		}
