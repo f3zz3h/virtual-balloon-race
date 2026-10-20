@@ -172,6 +172,9 @@ class VBR_Install {
 		if ( '0' !== $previous && version_compare( $previous, '1.3.0', '<' ) ) {
 			$tasks[] = 'products';
 		}
+		if ( '0' !== $previous && version_compare( $previous, '1.4.0', '<' ) ) {
+			$tasks[] = 'pages_1_4';
+		}
 		self::add_pending( $tasks );
 
 		update_option( 'vbr_db_version', VBR_DB_VERSION );
@@ -205,6 +208,10 @@ class VBR_Install {
 
 		if ( in_array( 'pages', $pending, true ) && class_exists( 'VBR_Pages' ) ) {
 			VBR_Pages::create_missing();
+		}
+
+		if ( in_array( 'pages_1_4', $pending, true ) && class_exists( 'VBR_Pages' ) ) {
+			VBR_Pages::upgrade_default_content();
 		}
 
 		if ( in_array( 'rewrite', $pending, true ) ) {

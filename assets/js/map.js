@@ -45,6 +45,9 @@
 		this.metaEl = root.querySelector('.vbr-map__meta');
 		this.mine = {};
 		this.onlyMine = false;
+		this.teams = {};
+		this.teamFilter = null;
+		this.teamEl = root.querySelector('.vbr-map__team');
 
 		(this.config.mine || []).forEach(function (id) {
 			this.mine[id] = true;
@@ -74,6 +77,12 @@
 
 		if (this.searchEl) {
 			this.searchEl.addEventListener('input', this.filterList.bind(this));
+		}
+
+		if (this.teamEl) {
+			this.teamEl.addEventListener('change', function () {
+				this.showTeam(this.teamEl.value ? parseInt(this.teamEl.value, 10) : null);
+			}.bind(this));
 		}
 
 		root.querySelectorAll('[data-vbr-show]').forEach(function (btn) {
@@ -116,6 +125,37 @@
 			}
 		}
 		return null;
+	};
+
+	// Whether a balloon passes the My balloons and team filters.
+	RaceMap.prototype.isShown = function (b) {
+		return (!this.onlyMine || this.isMine(b.id)) && (this.teamFilter === null || b.team === this.teamFilter);
+	};
+
+	RaceMap.prototype.showTeam = function (teamId) {
+		var self = this;
+
+		this.teamFilter = teamId;
+		if (this.teamEl) {
+			this.teamEl.value = teamId === null ? '' : String(teamId);
+		}
+
+		if (this.selectedId !== null && this.items[this.selectedId] && !this.isShown(this.items[this.selectedId].data)) {
+			this.select(null);
+		}
+
+		this.applyStyles();
+		this.filterList();
+
+		if (teamId !== null) {
+			this.fitTo(Object.keys(this.items).filter(function (id) {
+				return self.isShown(self.items[id].data);
+			}));
+		}
+	};
+
+	RaceMap.prototype.teamName = function (b) {
+		return b.team && this.teams[b.team] ? this.teams[b.team].name : '';
 	};
 
 	RaceMap.prototype.showOnlyMine = function (on) {
@@ -185,6 +225,10 @@
 		});
 
 		this.data = data;
+		this.teams = {};
+		(data.teams || []).forEach(function (team) {
+			self.teams[team.id] = team;
+		});
 		this.renderList();
 		this.applyStyles();
 		this.renderMeta(data);
@@ -299,6 +343,7 @@
 
 		[
 			[i18n.owner || 'Owner', b.owner],
+			[i18n.team || 'Team', this.teamName(b)],
 			[i18n.distance || 'Distance', formatKm(b.distance) + ' ' + (i18n.km || 'km')],
 			[i18n.status || 'Status', this.balloonStatus(b)]
 		].forEach(function (row) {
@@ -343,9 +388,9 @@
 			var b = item.data;
 			var selected = hasSelection && b.id === self.selectedId;
 			var hex = b.burst ? BURST_HEX : b.hex;
-			var shown = !self.onlyMine || self.isMine(b.id);
+			var shown = self.isShown(b);
 
-			// "My balloons" hides everyone else's balloon and trail.
+			// "My balloons" and the team filter hide other balloons and trails.
 			[item.line, item.marker].forEach(function (layer) {
 				if (shown && !self.map.hasLayer(layer)) {
 					layer.addTo(self.map);
@@ -400,9 +445,12 @@
 			return;
 		}
 
-		// Picking someone else's balloon (e.g. from the leaderboard) shows everyone again.
+		// Picking a balloon hidden by a filter (e.g. from the leaderboard) clears that filter.
 		if (id !== null && this.onlyMine && !this.isMine(id)) {
 			this.showOnlyMine(false);
+		}
+		if (id !== null && this.teamFilter !== null && this.items[id].data.team !== this.teamFilter) {
+			this.showTeam(null);
 		}
 
 		this.selectedId = id;
@@ -493,7 +541,12 @@
 			var btn = el('button', 'vbr-map__item-btn');
 
 			li.setAttribute('data-id', b.id);
-			li.setAttribute('data-search', (b.name + ' ' + (b.owner || '')).toLowerCase());
+			li.setAttribute('data-search', (b.name + ' ' + (b.owner || '') + ' ' + self.teamName(b)).toLowerCase());
+			if (b.team && self.teams[b.team]) {
+				li.classList.add('has-team');
+				li.style.setProperty('--vbr-team', self.teams[b.team].color);
+				li.title = self.teamName(b);
+			}
 			btn.type = 'button';
 
 			btn.appendChild(el('span', 'vbr-map__rank', b.rank ? String(b.rank) : '–'));
@@ -522,8 +575,9 @@
 		var self = this;
 		var q = this.searchEl ? this.searchEl.value.toLowerCase().trim() : '';
 		this.listEl.querySelectorAll('[data-search]').forEach(function (li) {
-			var mineOk = !self.onlyMine || self.isMine(parseInt(li.getAttribute('data-id'), 10));
-			li.hidden = !mineOk || (!!q && li.getAttribute('data-search').indexOf(q) === -1);
+			var item = self.items[li.getAttribute('data-id')];
+			var ok = !item || self.isShown(item.data);
+			li.hidden = !ok || (!!q && li.getAttribute('data-search').indexOf(q) === -1);
 		});
 	};
 

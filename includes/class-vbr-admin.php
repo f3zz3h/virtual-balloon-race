@@ -207,7 +207,8 @@ class VBR_Admin {
 		$table = VBR_Balloons::table();
 		$races = VBR_Races::table();
 		$where = $race_id ? $wpdb->prepare( 'WHERE b.race_id = %d', $race_id ) : '';
-		$rows  = $wpdb->get_results( "SELECT b.*, r.name AS race_name FROM {$table} b LEFT JOIN {$races} r ON r.id = b.race_id {$where} ORDER BY b.race_id DESC, b.distance_km DESC, b.id ASC", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$teams = VBR_Teams::table();
+		$rows  = $wpdb->get_results( "SELECT b.*, r.name AS race_name, t.name AS team_name FROM {$table} b LEFT JOIN {$races} r ON r.id = b.race_id LEFT JOIN {$teams} t ON t.id = b.team_id {$where} ORDER BY b.race_id DESC, b.distance_km DESC, b.id ASC", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		$race     = $race_id ? VBR_Races::get( $race_id ) : null;
 		$filename = 'virtual-balloon-race-' . ( $race ? $race->slug . '-' : '' ) . gmdate( 'Y-m-d-His' ) . '.csv';
@@ -220,7 +221,7 @@ class VBR_Admin {
 
 		fputcsv(
 			$output,
-			array( 'ID', 'Race', 'Order ID', 'User ID', 'Owner Name', 'Owner Email', 'Balloon Name', 'Balloon Color', 'Helium Level', 'Distance (km)', 'Is Burst', 'Latitude', 'Longitude', 'Created At' )
+			array( 'ID', 'Race', 'Team', 'Order ID', 'User ID', 'Owner Name', 'Owner Email', 'Balloon Name', 'Balloon Color', 'Helium Level', 'Distance (km)', 'Is Burst', 'Latitude', 'Longitude', 'Created At' )
 		);
 
 		foreach ( (array) $rows as $row ) {
@@ -229,6 +230,7 @@ class VBR_Admin {
 				array(
 					$row['id'],
 					$row['race_name'],
+					$row['team_name'],
 					$row['order_id'],
 					$row['user_id'],
 					$row['owner_name'],
@@ -282,6 +284,7 @@ class VBR_Admin {
 			$table    = VBR_Balloons::table();
 			$balloons = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE race_id = %d ORDER BY distance_km DESC, id ASC", (int) $race->id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$status   = VBR_Races::status( $race );
+			$teams    = VBR_Teams::by_id( $race );
 
 			$export_url = wp_nonce_url(
 				self::url(
@@ -371,6 +374,9 @@ class VBR_Admin {
 							<th><?php esc_html_e( 'ID', 'virtual-balloon-race' ); ?></th>
 							<th><?php esc_html_e( 'Owner', 'virtual-balloon-race' ); ?></th>
 							<th><?php esc_html_e( 'Balloon Name', 'virtual-balloon-race' ); ?></th>
+							<?php if ( $teams ) : ?>
+								<th><?php esc_html_e( 'Team', 'virtual-balloon-race' ); ?></th>
+							<?php endif; ?>
 							<th><?php esc_html_e( 'Color', 'virtual-balloon-race' ); ?></th>
 							<th><?php esc_html_e( 'Helium', 'virtual-balloon-race' ); ?></th>
 							<th><?php esc_html_e( 'Distance (KM)', 'virtual-balloon-race' ); ?></th>
@@ -381,7 +387,7 @@ class VBR_Admin {
 					<tbody>
 						<?php if ( empty( $balloons ) ) : ?>
 							<tr>
-								<td colspan="8"><?php esc_html_e( 'No balloons in this race yet.', 'virtual-balloon-race' ); ?></td>
+								<td colspan="<?php echo esc_attr( (string) ( $teams ? 9 : 8 ) ); ?>"><?php esc_html_e( 'No balloons in this race yet.', 'virtual-balloon-race' ); ?></td>
 							</tr>
 						<?php else : ?>
 							<?php foreach ( $balloons as $balloon ) : ?>
@@ -413,6 +419,9 @@ class VBR_Admin {
 											<br /><small><?php esc_html_e( 'Custom launch point', 'virtual-balloon-race' ); ?></small>
 										<?php endif; ?>
 									</td>
+									<?php if ( $teams ) : ?>
+										<td><?php echo esc_html( isset( $teams[ (int) $balloon->team_id ] ) ? $teams[ (int) $balloon->team_id ]->name : '—' ); ?></td>
+									<?php endif; ?>
 									<td><?php echo esc_html( $balloon->balloon_color ); ?></td>
 									<td><?php echo esc_html( $balloon->helium_level ); ?></td>
 									<td><?php echo esc_html( number_format_i18n( (float) $balloon->distance_km, 2 ) ); ?></td>

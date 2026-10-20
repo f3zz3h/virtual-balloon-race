@@ -66,8 +66,16 @@ class VBR_Pages {
 	 * @return string
 	 */
 	public static function default_content() {
-		$blocks = array( '[balloon_map]', '[balloon_leaderboard]', '[balloon_races]' );
+		return self::shortcode_blocks( array( '[balloon_map]', '[balloon_teams]', '[balloon_leaderboard]', '[balloon_races]' ) );
+	}
 
+	/**
+	 * Shortcodes as shortcode blocks.
+	 *
+	 * @param string[] $blocks Shortcodes.
+	 * @return string
+	 */
+	private static function shortcode_blocks( $blocks ) {
 		return implode(
 			"\n\n",
 			array_map(
@@ -77,6 +85,18 @@ class VBR_Pages {
 				$blocks
 			)
 		);
+	}
+
+	/**
+	 * 1.4.0: add team standings to a tracking page that still has the 1.3 default content.
+	 */
+	public static function upgrade_default_content() {
+		$id   = self::tracking_page_id();
+		$page = $id ? get_post( $id ) : null;
+
+		if ( $page && trim( $page->post_content ) === self::shortcode_blocks( array( '[balloon_map]', '[balloon_leaderboard]', '[balloon_races]' ) ) ) {
+			self::regenerate();
+		}
 	}
 
 	/**
@@ -224,7 +244,7 @@ class VBR_Pages {
 								&middot; <a class="button-link" href="<?php echo esc_url( get_edit_post_link( $id ) ); ?>"><?php esc_html_e( 'Edit', 'virtual-balloon-race' ); ?></a>
 							<?php endif; ?>
 							<p class="description">
-								<?php esc_html_e( 'Shows the live map, leaderboard and a list of races. Add ?race=<slug> to the address for a particular race. Leaderboard names link here, and order emails use it for "Track your balloon" links.', 'virtual-balloon-race' ); ?>
+								<?php esc_html_e( 'Shows the live map, team standings (when teams are on), the leaderboard and a list of races. Add ?race=<slug> to the address for a particular race. Leaderboard names link here, and order emails use it for "Track your balloon" links.', 'virtual-balloon-race' ); ?>
 							</p>
 						</td>
 					</tr>
@@ -234,7 +254,7 @@ class VBR_Pages {
 					<?php if ( ! $id ) : ?>
 						<button type="submit" class="button button-primary" name="vbr_do" value="create"><?php esc_html_e( 'Create tracking page', 'virtual-balloon-race' ); ?></button>
 					<?php else : ?>
-						<button type="submit" class="button" name="vbr_do" value="regenerate" onclick="return confirm('<?php echo esc_js( __( 'Replace the tracking page content with the default map, leaderboard and race list? Your edits to that page will be lost.', 'virtual-balloon-race' ) ); ?>');"><?php esc_html_e( 'Regenerate page content', 'virtual-balloon-race' ); ?></button>
+						<button type="submit" class="button" name="vbr_do" value="regenerate" onclick="return confirm('<?php echo esc_js( __( 'Replace the tracking page content with the default map, team standings, leaderboard and race list? Your edits to that page will be lost.', 'virtual-balloon-race' ) ); ?>');"><?php esc_html_e( 'Regenerate page content', 'virtual-balloon-race' ); ?></button>
 					<?php endif; ?>
 				</p>
 			</form>

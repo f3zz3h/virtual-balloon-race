@@ -84,13 +84,17 @@ class VBR_Account {
 			return;
 		}
 
-		$hex = VBR_Map::color_hex();
+		$hex      = VBR_Map::color_hex();
+		$teams_on = VBR_Teams::enabled() && array_filter( wp_list_pluck( $balloons, 'team_id' ) );
 		?>
 		<table class="woocommerce-orders-table shop_table shop_table_responsive vbr-account-balloons">
 			<thead>
 				<tr>
 					<th><?php esc_html_e( 'Balloon', 'virtual-balloon-race' ); ?></th>
 					<th><?php esc_html_e( 'Race', 'virtual-balloon-race' ); ?></th>
+					<?php if ( $teams_on ) : ?>
+						<th><?php esc_html_e( 'Team', 'virtual-balloon-race' ); ?></th>
+					<?php endif; ?>
 					<th><?php esc_html_e( 'Position', 'virtual-balloon-race' ); ?></th>
 					<th><?php esc_html_e( 'Distance', 'virtual-balloon-race' ); ?></th>
 					<th><span class="screen-reader-text"><?php esc_html_e( 'Track', 'virtual-balloon-race' ); ?></span></th>
@@ -120,6 +124,16 @@ class VBR_Account {
 						<td data-title="<?php esc_attr_e( 'Race', 'virtual-balloon-race' ); ?>">
 							<?php echo esc_html( $race ? $race->name . ' · ' . VBR_Races::status_label( $race ) : '—' ); ?>
 						</td>
+						<?php if ( $teams_on ) : ?>
+							<td data-title="<?php esc_attr_e( 'Team', 'virtual-balloon-race' ); ?>">
+								<?php
+								$team = VBR_Teams::get( (int) $balloon->team_id );
+								if ( $team ) {
+									VBR_Frontend::team_badge( $team->name, $team->color );
+								}
+								?>
+							</td>
+						<?php endif; ?>
 						<td data-title="<?php esc_attr_e( 'Position', 'virtual-balloon-race' ); ?>"><?php echo esc_html( $position ); ?></td>
 						<td data-title="<?php esc_attr_e( 'Distance', 'virtual-balloon-race' ); ?>">
 							<?php

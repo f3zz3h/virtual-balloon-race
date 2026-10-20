@@ -694,3 +694,36 @@
 	color: var(--vbr-muted);
 	font-size: 0.9rem;
 }
+
+/* Teams */
+.vbr-team {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	font-weight: 600;
+}
+
+.vbr-team__dot {
+	flex: none;
+	width: 0.7rem;
+	height: 0.7rem;
+	border-radius: 50%;
+	box-shadow: 0 0 0 2px #ffffff, 0 0 0 3px rgba(18, 50, 74, 0.15);
+}
+
+.vbr-map__team-filter {
+	display: block;
+	margin-bottom: 0.5rem;
+}
+
+.vbr-map__team {
+	width: 100%;
+	padding: 0.45rem 0.75rem;
+	border: 1px solid var(--vbr-line);
+	border-radius: 999px;
+	background: #ffffff;
+}
+
+.vbr-map__item.has-team .vbr-map__item-btn {
+	box-shadow: inset 3px 0 0 var(--vbr-team);
+}

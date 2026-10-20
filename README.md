@@ -3,7 +3,7 @@
 A WordPress + WooCommerce plugin for running virtual balloon races as fundraisers. Supporters buy a balloon entry for a race, customise it (name, colour, helium strategy, and optional paid extras), and after launch the balloons drift across a live map using real wind data. A leaderboard ranks balloons by distance travelled.
 
 - **Requires:** WordPress 6.0+, PHP 7.4+, WooCommerce 7.0+ (for selling entries)
-- **Version:** 1.3.0 (database schema 1.3.0)
+- **Version:** 1.4.0 (database schema 1.4.0)
 - **Licence:** GPL-2.0-or-later
 
 ---
@@ -29,6 +29,7 @@ A WordPress + WooCommerce plugin for running virtual balloon races as fundraiser
 | Burst chances | Max Height burst chance per day, plus storm bursts above a wind threshold (Eco-Glide is immune) |
 | Map | Default zoom, how often the public map refreshes, trail length |
 | Shop add-ons | Turn extras on or off and set their prices |
+| Teams | Off by default. **Enable teams**, the **default scoring** (average distance, total distance or best balloon) and the **default teams** (name and colour) that new races start with |
 
 > **Timing:** WordPress only runs scheduled jobs when someone visits the site. On a quiet site, updates can arrive late, though balloons still catch up on the next run. For on-time updates, add a real server cron that runs `wp vbr tick` every few minutes.
 
@@ -56,6 +57,12 @@ A race goes through four stages on its own:
 Each race's page has **Launch now** and **Finish now** buttons for event-day control. A race can only be deleted while it has no balloons.
 
 You can schedule several races. Usually only one runs at a time, but overlapping races work too.
+
+#### Teams (optional)
+
+With **Enable teams** ticked in Settings, each race has its own teams on its race screen: new races start with the default teams, and you can rename, recolour, add or remove them (a team with balloons can't be removed). **Add default teams** fills a race that has none, and **Team scoring** can override the default for that race. A race with no teams runs without them.
+
+When a race has teams, buyers must pick one. Team standings appear on the tracking page, the leaderboard and map show each balloon's team, and the map can be filtered to one team. Scores: **average** and **total** use every balloon in the team (burst balloons count at the distance they reached); **best** is the team's furthest balloon. Switching teams off hides them everywhere but keeps them.
 
 ### 4. Set up the balloon product
 
@@ -85,7 +92,7 @@ A balloon is created when its order reaches **Processing** or **Completed**.
 
 ### 5. The race tracking page
 
-Activating the plugin creates a **Balloon Race** page (`/balloon-race/`) with the live map, the leaderboard and a list of races. It's ordinary page content (three shortcode blocks), so you can edit it, add text or rearrange it.
+Activating the plugin creates a **Balloon Race** page (`/balloon-race/`) with the live map, team standings (when teams are on), the leaderboard and a list of races. It's ordinary page content (three shortcode blocks), so you can edit it, add text or rearrange it.
 
 **Balloon Race → Settings → Pages**:
 
@@ -111,6 +118,7 @@ You can still build your own pages:
 | --- | --- |
 | `[balloon_map]` | `race` = ID, slug or `current`. Without it, the page's `?race=` is used, else the current race. `height` (default `520px`). `list="no"` hides the side list |
 | `[balloon_leaderboard]` | `race` (as above). `limit` (default 50). `map_url`: where names link (default: the tracking page) |
+| `[balloon_teams]` | Team standings: rank, team, balloons, score, leading balloon. `race` (as above), `title`. Shows nothing when teams are off or the race has none |
 | `[balloon_races]` | Links to every race on the same page. `title` (default "All races"). `min` (default 2): hidden when there are fewer races |
 
 On the map, clicking a balloon (or its name in the list or leaderboard) highlights its trail and fades the others. Click the map background to clear the highlight.
@@ -157,18 +165,22 @@ includes/
   class-wc-product-balloon-entry.php  The product class (always virtual)
   class-vbr-woocommerce.php     Balloon product fields, cart, order → balloon rows
   class-vbr-race-entries.php    Race choice, purchasability, basket guard, race_id on balloons
+  class-vbr-teams.php           Teams: per-race lists, scoring, standings, the team editor
+  class-vbr-team-entries.php    Team choice on the product page → basket → order → team_id on balloons
   class-vbr-monetization.php    Paid add-ons: strategy fee, custom launch, logo upload
   class-vbr-cli.php             wp vbr …
 assets/js/balloon.js            Balloon drawing (SVG) shared by the map and product page
 assets/js/map.js                Public Leaflet map
 assets/js/product.js            Product page launch picker + logo preview
 assets/js/admin-settings.js     Launch-point picker (Settings and race form)
+assets/js/admin-teams.js        Team list editor (Settings and race form)
 ```
 
 ### Data
 
 - `{prefix}vbr_races`: one row per race. All times are stored in **UTC**. Stages are calculated from the clock and never stored.
-- `{prefix}vbr_balloons`: one row per balloon, with `race_id`, current `latitude`/`longitude`, `start_lat`/`start_lng`, `trail_json` (the most recent `[lat, lng]` points, capped by the trail-length setting), `logo_attachment_id`, `has_custom_start`, `distance_km` and `is_burst`.
+- `{prefix}vbr_teams`: one row per team, with `race_id`, `name`, `color`, `sort`. Races have `team_scoring` ('' = the Settings default).
+- `{prefix}vbr_balloons`: one row per balloon, with `race_id`, `team_id`, current `latitude`/`longitude`, `start_lat`/`start_lng`, `trail_json` (the most recent `[lat, lng]` points, capped by the trail-length setting), `logo_attachment_id`, `has_custom_start`, `distance_km` and `is_burst`.
 - Settings: the `vbr_settings` option. Tracking page: `vbr_tracking_page_id`. Last tick per race: the `vbr_tick_summaries` option.
 - Upgrades run on `plugins_loaded` whenever `vbr_db_version` is older than `VBR_DB_VERSION`. Upgrading from 1.1 creates a first race and moves existing balloons into it. Steps that need WooCommerce or rewrite rules (product conversion, default pages, flushing rewrites) are queued in `vbr_pending_setup` and run on the next `init`.
 
@@ -188,7 +200,7 @@ Uncached grid cells are fetched in batches (up to 50 per request), and a failed 
 | Route | Returns |
 | --- | --- |
 | `GET /wp-json/vbr/v1/races` | `{ current, races: [{ id, name, slug, status, status_label, entries_open, launch_at, end_at, launch }] }` |
-| `GET /wp-json/vbr/v1/balloons?race=<id\|slug\|current>` | `{ race, launch, updated_at, next_at, balloons: [{ id, rank, name, owner, color, hex, helium, distance, burst, lat, lng, logo, logo_fit, trail }] }` |
+| `GET /wp-json/vbr/v1/balloons?race=<id\|slug\|current>` | `{ race, launch, updated_at, next_at, balloons: [{ id, rank, name, owner, color, hex, helium, distance, burst, lat, lng, logo, logo_fit, team, trail }], teams: [{ id, rank, name, color, balloons, score, leader }], scoring }`. `teams` is empty and `team` null when the race doesn't use teams |
 
 Emails and order details are never included, and owners are first name + initial. Responses are sent with no-cache headers, including LiteSpeed's.
 

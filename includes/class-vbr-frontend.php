@@ -19,6 +19,7 @@ class VBR_Frontend {
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_assets' ) );
 		add_shortcode( 'balloon_leaderboard', array( $this, 'render_leaderboard_shortcode' ) );
 		add_shortcode( 'balloon_races', array( $this, 'render_races_shortcode' ) );
+		add_shortcode( 'balloon_teams', array( $this, 'render_teams_shortcode' ) );
 	}
 
 	/**
@@ -43,7 +44,7 @@ class VBR_Frontend {
 		$needs_leaderboard = false;
 		if ( is_singular() ) {
 			$post = get_post();
-			if ( $post && ( has_shortcode( $post->post_content, 'balloon_leaderboard' ) || has_shortcode( $post->post_content, 'balloon_races' ) ) ) {
+			if ( $post && ( has_shortcode( $post->post_content, 'balloon_leaderboard' ) || has_shortcode( $post->post_content, 'balloon_races' ) || has_shortcode( $post->post_content, 'balloon_teams' ) ) ) {
 				$needs_leaderboard = true;
 			}
 		}
@@ -136,6 +137,7 @@ class VBR_Frontend {
 		}
 
 		$waiting = in_array( $stage, array( VBR_Races::UPCOMING, VBR_Races::ON_SALE ), true );
+		$teams   = VBR_Teams::by_id( $race );
 
 		ob_start();
 		?>
@@ -206,6 +208,9 @@ class VBR_Frontend {
 							<th><?php esc_html_e( 'Rank', 'virtual-balloon-race' ); ?></th>
 							<th><?php esc_html_e( 'Balloon Name', 'virtual-balloon-race' ); ?></th>
 							<th><?php esc_html_e( 'Owner', 'virtual-balloon-race' ); ?></th>
+							<?php if ( $teams ) : ?>
+								<th><?php esc_html_e( 'Team', 'virtual-balloon-race' ); ?></th>
+							<?php endif; ?>
 							<th><?php esc_html_e( 'Color', 'virtual-balloon-race' ); ?></th>
 							<th><?php esc_html_e( 'Distance (km)', 'virtual-balloon-race' ); ?></th>
 							<th><?php esc_html_e( 'Status', 'virtual-balloon-race' ); ?></th>
@@ -214,7 +219,7 @@ class VBR_Frontend {
 					<tbody>
 						<?php if ( empty( $balloons ) ) : ?>
 							<tr class="vbr-leaderboard__empty">
-								<td colspan="6">
+								<td colspan="<?php echo esc_attr( (string) ( $teams ? 7 : 6 ) ); ?>">
 									<?php
 									echo esc_html(
 										! $race ? __( 'No race scheduled yet.', 'virtual-balloon-race' )
@@ -228,7 +233,8 @@ class VBR_Frontend {
 							<?php foreach ( $balloons as $index => $balloon ) : ?>
 								<?php
 								$owner           = VBR_Balloons::public_owner_name( $balloon );
-								$search_haystack = mb_strtolower( $balloon->balloon_name . ' ' . $owner );
+								$team            = isset( $teams[ (int) $balloon->team_id ] ) ? $teams[ (int) $balloon->team_id ] : null;
+								$search_haystack = mb_strtolower( $balloon->balloon_name . ' ' . $owner . ( $team ? ' ' . $team->name : '' ) );
 								$color_slug      = sanitize_html_class( strtolower( $balloon->balloon_color ) );
 								$is_mine         = in_array( (int) $balloon->id, $mine_ids, true );
 								$classes         = array_filter( array( $is_mine ? 'is-mine' : '', $index >= $limit ? 'is-extra' : '' ) );
@@ -246,6 +252,13 @@ class VBR_Frontend {
 										<?php endif; ?>
 									</td>
 									<td data-label="<?php esc_attr_e( 'Owner', 'virtual-balloon-race' ); ?>"><?php echo esc_html( $owner ); ?></td>
+									<?php if ( $teams ) : ?>
+										<td data-label="<?php esc_attr_e( 'Team', 'virtual-balloon-race' ); ?>">
+											<?php if ( $team ) : ?>
+												<?php self::team_badge( $team->name, $team->color ); ?>
+											<?php endif; ?>
+										</td>
+									<?php endif; ?>
 									<td data-label="<?php esc_attr_e( 'Color', 'virtual-balloon-race' ); ?>">
 										<span class="vbr-color vbr-color--<?php echo esc_attr( $color_slug ); ?>">
 											<?php echo esc_html( $balloon->balloon_color ); ?>
@@ -337,6 +350,98 @@ class VBR_Frontend {
 				<?php endforeach; ?>
 			</ul>
 		</nav>
+		<?php
+		return ob_get_clean();
+	}
+
+	/**
+	 * Team name with its colour dot.
+	 *
+	 * @param string $name  Team name.
+	 * @param string $color Hex colour.
+	 */
+	public static function team_badge( $name, $color ) {
+		printf(
+			'<span class="vbr-team"><span class="vbr-team__dot" style="background:%1$s"></span>%2$s</span>',
+			esc_attr( sanitize_hex_color( $color ) ? $color : '#555555' ),
+			esc_html( $name )
+		);
+	}
+
+	/**
+	 * Render [balloon_teams]: team standings for a race (nothing when the race doesn't use teams).
+	 *
+	 * @param array|string $atts Shortcode attributes.
+	 * @return string
+	 */
+	public function render_teams_shortcode( $atts ) {
+		$ref  = VBR_Races::ref_from_shortcode( $atts );
+		$atts = shortcode_atts(
+			array(
+				'race'  => 'current',
+				'title' => __( 'Team standings', 'virtual-balloon-race' ),
+			),
+			$atts,
+			'balloon_teams'
+		);
+		$race = VBR_Races::resolve( $ref );
+
+		if ( ! VBR_Teams::race_uses_teams( $race ) ) {
+			return '';
+		}
+
+		wp_enqueue_style( 'vbr-frontend' );
+
+		$standings = VBR_Teams::standings( $race );
+		$method    = VBR_Teams::scoring( $race );
+		$labels    = VBR_Teams::scoring_labels();
+		$waiting   = in_array( VBR_Races::status( $race ), array( VBR_Races::UPCOMING, VBR_Races::ON_SALE ), true );
+
+		ob_start();
+		?>
+		<div class="vbr-leaderboard vbr-teams">
+			<div class="vbr-leaderboard__header">
+				<div>
+					<?php if ( '' !== $atts['title'] ) : ?>
+						<h2 class="vbr-leaderboard__title"><?php echo esc_html( $atts['title'] ); ?></h2>
+					<?php endif; ?>
+					<p class="vbr-leaderboard__subtitle">
+						<?php
+						echo esc_html(
+							$waiting
+								? __( 'Teams are ranked once the balloons launch.', 'virtual-balloon-race' )
+								/* translators: %s: scoring method, e.g. Average distance */
+								: sprintf( __( 'Ranked by %s', 'virtual-balloon-race' ), mb_strtolower( $labels[ $method ] ) )
+						);
+						?>
+					</p>
+				</div>
+			</div>
+			<div class="vbr-leaderboard__table-wrap">
+				<table class="vbr-leaderboard__table">
+					<thead>
+						<tr>
+							<th><?php esc_html_e( 'Rank', 'virtual-balloon-race' ); ?></th>
+							<th><?php esc_html_e( 'Team', 'virtual-balloon-race' ); ?></th>
+							<th><?php esc_html_e( 'Balloons', 'virtual-balloon-race' ); ?></th>
+							<th><?php echo esc_html( $labels[ $method ] . ' (km)' ); ?></th>
+							<th><?php esc_html_e( 'Leading balloon', 'virtual-balloon-race' ); ?></th>
+						</tr>
+					</thead>
+					<tbody>
+						<?php foreach ( $standings as $team ) : ?>
+							<tr>
+								<td data-label="<?php esc_attr_e( 'Rank', 'virtual-balloon-race' ); ?>"><?php echo esc_html( $team['rank'] && ! $waiting ? (string) $team['rank'] : '–' ); ?></td>
+								<td data-label="<?php esc_attr_e( 'Team', 'virtual-balloon-race' ); ?>"><?php self::team_badge( $team['name'], $team['color'] ); ?></td>
+								<td data-label="<?php esc_attr_e( 'Balloons', 'virtual-balloon-race' ); ?>"><?php echo esc_html( number_format_i18n( $team['balloons'] ) ); ?></td>
+								<td data-label="<?php echo esc_attr( $labels[ $method ] ); ?>"><?php echo esc_html( $waiting ? '–' : number_format_i18n( $team['score'], 1 ) ); ?></td>
+								<td data-label="<?php esc_attr_e( 'Leading balloon', 'virtual-balloon-race' ); ?>"><?php echo esc_html( $waiting ? '' : $team['leader'] ); ?></td>
+							</tr>
+						<?php endforeach; ?>
+					</tbody>
+				</table>
+			</div>
+		</div>
 		<?php
 		return ob_get_clean();
 	}

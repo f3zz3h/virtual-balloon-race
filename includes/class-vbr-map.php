@@ -125,13 +125,14 @@ class VBR_Map {
 		global $wpdb;
 
 		$table = VBR_Balloons::table();
-		$rows  = $race ? $wpdb->get_results( $wpdb->prepare( "SELECT id, owner_name, balloon_name, balloon_color, helium_level, distance_km, is_burst, latitude, longitude, start_lat, start_lng, logo_attachment_id, trail_json FROM {$table} WHERE race_id = %d ORDER BY distance_km DESC, id ASC", (int) $race->id ) ) : array(); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$rows  = $race ? $wpdb->get_results( $wpdb->prepare( "SELECT id, team_id, owner_name, balloon_name, balloon_color, helium_level, distance_km, is_burst, latitude, longitude, start_lat, start_lng, logo_attachment_id, trail_json FROM {$table} WHERE race_id = %d ORDER BY distance_km DESC, id ASC", (int) $race->id ) ) : array(); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$hex   = self::color_hex();
 		$last  = $race ? VBR_Cron::last_summary( $race->id ) : array();
 		$next  = $race && VBR_Races::FLYING === VBR_Races::status( $race ) ? VBR_Cron::next_run() : 0;
 
 		$balloons = array();
 		$rank     = 0;
+		$teams    = VBR_Teams::by_id( $race );
 
 		foreach ( (array) $rows as $row ) {
 			if ( null === $row->latitude || null === $row->longitude ) {
@@ -162,6 +163,7 @@ class VBR_Map {
 				'lng'      => (float) $row->longitude,
 				'logo'     => $logo,
 				'logo_fit' => $fit,
+				'team'     => isset( $teams[ (int) $row->team_id ] ) ? (int) $row->team_id : null,
 				'trail'    => VBR_Balloons::decode_trail( $row->trail_json ),
 			);
 		}
@@ -172,6 +174,8 @@ class VBR_Map {
 			'updated_at' => ! empty( $last['time'] ) ? gmdate( 'c', (int) $last['time'] ) : null,
 			'next_at'    => $next ? gmdate( 'c', $next ) : null,
 			'balloons'   => $balloons,
+			'teams'      => $teams ? VBR_Teams::standings( $race ) : array(),
+			'scoring'    => $teams ? VBR_Teams::scoring( $race ) : null,
 		);
 	}
 
@@ -259,6 +263,7 @@ class VBR_Map {
 				'mine'     => __( 'My balloons', 'virtual-balloon-race' ),
 				'all'      => __( 'All balloons', 'virtual-balloon-race' ),
 				'yours'    => __( 'Yours', 'virtual-balloon-race' ),
+				'team'     => __( 'Team', 'virtual-balloon-race' ),
 			),
 		);
 
@@ -275,6 +280,17 @@ class VBR_Map {
 							<button type="button" class="vbr-toggle__btn" data-vbr-show="all" aria-pressed="true"><?php echo esc_html( $config['i18n']['all'] ); ?></button>
 							<button type="button" class="vbr-toggle__btn" data-vbr-show="mine" aria-pressed="false"><?php echo esc_html( $config['i18n']['mine'] ); ?></button>
 						</div>
+					<?php endif; ?>
+					<?php if ( $config['initial']['teams'] ) : ?>
+						<label class="vbr-map__team-filter">
+							<span class="screen-reader-text"><?php esc_html_e( 'Show team', 'virtual-balloon-race' ); ?></span>
+							<select class="vbr-map__team">
+								<option value=""><?php esc_html_e( 'All teams', 'virtual-balloon-race' ); ?></option>
+								<?php foreach ( $config['initial']['teams'] as $team ) : ?>
+									<option value="<?php echo esc_attr( (string) $team['id'] ); ?>"><?php echo esc_html( $team['name'] ); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</label>
 					<?php endif; ?>
 					<input type="search" class="vbr-map__search" placeholder="<?php echo esc_attr( $config['i18n']['search'] ); ?>" aria-label="<?php echo esc_attr( $config['i18n']['search'] ); ?>" />
 					<ol class="vbr-map__list"></ol>

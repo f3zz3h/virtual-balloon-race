@@ -101,6 +101,24 @@ class VBR_Teams {
 	}
 
 	/**
+	 * A race's teams keyed by ID (empty when the race doesn't use teams).
+	 *
+	 * @param object|null $race Race.
+	 * @return object[]
+	 */
+	public static function by_id( $race ) {
+		$out = array();
+
+		if ( self::race_uses_teams( $race ) ) {
+			foreach ( self::for_race( (int) $race->id ) as $team ) {
+				$out[ (int) $team->id ] = $team;
+			}
+		}
+
+		return $out;
+	}
+
+	/**
 	 * One team.
 	 *
 	 * @param int $id Team ID.
