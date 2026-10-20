@@ -188,6 +188,10 @@ class VBR_Pages {
 				$notice = self::regenerate() ? 'regenerated' : 'failed';
 				break;
 
+			case 'create_product':
+				$notice = VBR_Product_Type::available() && ! VBR_Product_Type::all_products() && VBR_Product_Type::create_default_product() ? 'product_created' : 'product_failed';
+				break;
+
 			default:
 				$page = isset( $_POST['vbr_tracking_page'] ) ? absint( $_POST['vbr_tracking_page'] ) : 0;
 				update_option( self::OPTION, $page && 'page' === get_post_type( $page ) ? $page : 0 );
@@ -198,24 +202,70 @@ class VBR_Pages {
 	}
 
 	/**
+	 * Entry products, or a button to create the default one (WooCommerce only).
+	 */
+	private function render_products_row() {
+		if ( ! VBR_Product_Type::available() ) {
+			return;
+		}
+
+		$products = VBR_Product_Type::all_products();
+		?>
+		<table class="form-table" role="presentation">
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Entry products', 'virtual-balloon-race' ); ?></th>
+				<td>
+					<?php if ( $products ) : ?>
+						<ul class="vbr-entry-products">
+							<?php foreach ( $products as $product ) : ?>
+								<li>
+									<a href="<?php echo esc_url( get_edit_post_link( $product->get_id() ) ); ?>"><?php echo esc_html( $product->get_name() ); ?></a>
+									&middot; <?php echo wp_kses_post( '' !== $product->get_price() ? wc_price( $product->get_price() ) : __( 'no price', 'virtual-balloon-race' ) ); ?>
+									&middot; <?php echo esc_html( 'publish' === $product->get_status() ? __( 'Published', 'virtual-balloon-race' ) : __( 'Not published', 'virtual-balloon-race' ) ); ?>
+								</li>
+							<?php endforeach; ?>
+						</ul>
+					<?php else : ?>
+						<button type="submit" class="button" name="vbr_do" value="create_product"><?php esc_html_e( 'Create entry product', 'virtual-balloon-race' ); ?></button>
+					<?php endif; ?>
+					<p class="description">
+						<?php
+						echo esc_html(
+							sprintf(
+								/* translators: %s: price, e.g. £3.00 */
+								__( 'Products of type "Balloon race entry". A fresh install creates one called Balloon Race Entry at %s; change its name, price and picture like any product.', 'virtual-balloon-race' ),
+								wp_strip_all_tags( wc_price( 3 ) )
+							)
+						);
+						?>
+					</p>
+				</td>
+			</tr>
+		</table>
+		<?php
+	}
+
+	/**
 	 * Pages panel on the Settings screen.
 	 */
 	public function render_panel() {
 		$id       = self::tracking_page_id();
 		$notice   = isset( $_GET['vbr_pages'] ) ? sanitize_key( $_GET['vbr_pages'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$messages = array(
-			'saved'       => __( 'Tracking page saved.', 'virtual-balloon-race' ),
-			'created'     => __( 'Tracking page created.', 'virtual-balloon-race' ),
-			'exists'      => __( 'The tracking page already exists, so nothing was created.', 'virtual-balloon-race' ),
-			'regenerated' => __( 'Tracking page content reset to the default.', 'virtual-balloon-race' ),
-			'failed'      => __( 'The page could not be created.', 'virtual-balloon-race' ),
+			'saved'           => __( 'Tracking page saved.', 'virtual-balloon-race' ),
+			'created'         => __( 'Tracking page created.', 'virtual-balloon-race' ),
+			'exists'          => __( 'The tracking page already exists, so nothing was created.', 'virtual-balloon-race' ),
+			'regenerated'     => __( 'Tracking page content reset to the default.', 'virtual-balloon-race' ),
+			'failed'          => __( 'The page could not be created.', 'virtual-balloon-race' ),
+			'product_created' => __( 'Entry product created and published. It can be bought whenever a race is taking entries.', 'virtual-balloon-race' ),
+			'product_failed'  => __( 'The entry product could not be created.', 'virtual-balloon-race' ),
 		);
 		?>
 		<section class="vbr-admin-panel" id="vbr-pages">
-			<h2><?php esc_html_e( 'Pages', 'virtual-balloon-race' ); ?></h2>
+			<h2><?php esc_html_e( 'Pages and products', 'virtual-balloon-race' ); ?></h2>
 
 			<?php if ( isset( $messages[ $notice ] ) ) : ?>
-				<div class="notice <?php echo 'failed' === $notice ? 'notice-error' : 'notice-success'; ?> inline"><p><?php echo esc_html( $messages[ $notice ] ); ?></p></div>
+				<div class="notice <?php echo in_array( $notice, array( 'failed', 'product_failed' ), true ) ? 'notice-error' : 'notice-success'; ?> inline"><p><?php echo esc_html( $messages[ $notice ] ); ?></p></div>
 			<?php endif; ?>
 
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -249,6 +299,8 @@ class VBR_Pages {
 						</td>
 					</tr>
 				</table>
+
+				<?php $this->render_products_row(); ?>
 
 				<p>
 					<?php if ( ! $id ) : ?>

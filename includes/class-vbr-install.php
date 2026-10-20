@@ -169,6 +169,10 @@ class VBR_Install {
 
 		// Work that needs WooCommerce's post types or rewrite rules runs on the next `init`.
 		$tasks = array( 'pages', 'rewrite' );
+		if ( '0' === $previous ) {
+			// Fresh install only: never add a product to an existing shop on upgrade.
+			$tasks[] = 'entry_product';
+		}
 		if ( '0' !== $previous && version_compare( $previous, '1.3.0', '<' ) ) {
 			$tasks[] = 'products';
 		}
@@ -202,16 +206,35 @@ class VBR_Install {
 
 		delete_option( 'vbr_pending_setup' );
 
-		if ( in_array( 'products', $pending, true ) && class_exists( 'VBR_Product_Type' ) ) {
-			VBR_Product_Type::migrate_legacy_products();
+		// Product tasks wait until WooCommerce is active.
+		$retry = array();
+
+		if ( in_array( 'products', $pending, true ) ) {
+			if ( VBR_Product_Type::available() ) {
+				VBR_Product_Type::migrate_legacy_products();
+			} else {
+				$retry[] = 'products';
+			}
 		}
 
-		if ( in_array( 'pages', $pending, true ) && class_exists( 'VBR_Pages' ) ) {
+		if ( in_array( 'pages', $pending, true ) ) {
 			VBR_Pages::create_missing();
 		}
 
-		if ( in_array( 'pages_1_4', $pending, true ) && class_exists( 'VBR_Pages' ) ) {
+		if ( in_array( 'pages_1_4', $pending, true ) ) {
 			VBR_Pages::upgrade_default_content();
+		}
+
+		if ( in_array( 'entry_product', $pending, true ) ) {
+			if ( VBR_Product_Type::available() ) {
+				VBR_Product_Type::create_default_product();
+			} else {
+				$retry[] = 'entry_product';
+			}
+		}
+
+		if ( $retry ) {
+			self::add_pending( $retry );
 		}
 
 		if ( in_array( 'rewrite', $pending, true ) ) {

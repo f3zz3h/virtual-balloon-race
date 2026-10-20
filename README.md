@@ -3,7 +3,7 @@
 A WordPress + WooCommerce plugin for running virtual balloon races as fundraisers. Supporters buy a balloon entry for a race, customise it (name, colour, helium strategy, and optional paid extras), and after launch the balloons drift across a live map using real wind data. A leaderboard ranks balloons by distance travelled.
 
 - **Requires:** WordPress 6.0+, PHP 7.4+, WooCommerce 7.0+ (for selling entries)
-- **Version:** 1.4.0 (database schema 1.4.0)
+- **Version:** 1.5.0 (database schema 1.4.0)
 - **Licence:** GPL-2.0-or-later
 
 ---
@@ -66,7 +66,9 @@ When a race has teams, buyers must pick one. Team standings appear on the tracki
 
 ### 4. Set up the balloon product
 
-The quickest way: open the race (**Balloon Race → Races → Edit**) and click **Create entry product**. This makes a draft product locked to that race and opens it so you can set the price and publish.
+A fresh install creates a ready-to-sell **Balloon Race Entry** product (£3, published, any race taking entries) as soon as WooCommerce is active. It can only be bought while a race is taking entries, so it's safe to leave published. Change its name, price, description and picture like any product. Upgrades never add a product. **Settings → Pages and products** lists your entry products and offers **Create entry product** if there are none.
+
+To sell a particular race separately: open the race (**Balloon Race → Races → Edit**) and click **Create entry product**. This makes a draft product locked to that race and opens it so you can set the price and publish.
 
 Or create one by hand:
 
@@ -228,6 +230,7 @@ wp vbr status                            # schedule + last tick per race
 | `vbr_helium_option_label` | filter | Helium option text on the product page |
 | `vbr_product_fields_before` / `vbr_product_fields_after` | action | Add fields inside the balloon box |
 | `vbr_color_hex` | filter | Map colours for balloon colour names |
+| `vbr_default_entry_product` | filter | Name, price and descriptions of the product a fresh install creates (`array( name, price, short_description, description )`) |
 | `vbr_product_preview` | filter | Return false to keep the product images instead of the live balloon preview (`$show, $product`) |
 | `vbr_public_owner_name` | filter | Public owner name, after shortening to first name + initial (`$name, $balloon`) |
 | `vbr_after_tick` | action | Runs after a race moves (`$summary`) |

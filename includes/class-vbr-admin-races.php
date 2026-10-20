@@ -104,7 +104,7 @@ class VBR_Admin_Races {
 
 			case 'create_product':
 				$race   = VBR_Races::get( $id );
-				$result = $race && class_exists( 'VBR_Product_Type' ) ? VBR_Product_Type::create_for_race( $race ) : new WP_Error( 'vbr_no_woocommerce', __( 'WooCommerce is needed to sell entries.', 'virtual-balloon-race' ) );
+				$result = $race && VBR_Product_Type::available() ? VBR_Product_Type::create_for_race( $race ) : new WP_Error( 'vbr_no_woocommerce', __( 'WooCommerce is needed to sell entries.', 'virtual-balloon-race' ) );
 
 				if ( is_wp_error( $result ) ) {
 					$this->redirect( array( 'action' => 'edit', 'race' => $id ), $result->get_error_message() );
@@ -403,7 +403,7 @@ class VBR_Admin_Races {
 	 * @param object $race Race.
 	 */
 	private static function render_products( $race ) {
-		if ( ! class_exists( 'VBR_Product_Type' ) ) {
+		if ( ! VBR_Product_Type::available() ) {
 			return;
 		}
 

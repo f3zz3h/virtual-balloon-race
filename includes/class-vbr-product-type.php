@@ -33,6 +33,16 @@ class VBR_Product_Type {
 	}
 
 	/**
+	 * Whether WooCommerce is active, so products can be read and created.
+	 * (This class is always loaded; it's only hooked up when WooCommerce is.)
+	 *
+	 * @return bool
+	 */
+	public static function available() {
+		return class_exists( 'WooCommerce' ) && function_exists( 'wc_get_products' );
+	}
+
+	/**
 	 * Product type dropdown entry.
 	 *
 	 * @param array $types Types.
@@ -204,6 +214,58 @@ class VBR_Product_Type {
 		echo esc_html__( 'Virtual Balloon Race: balloon entries now use the "Balloon race entry" product type. These products were marked as entries but aren\'t simple products, so they weren\'t converted and no longer create balloons:', 'virtual-balloon-race' );
 		echo ' ' . wp_kses_post( implode( ', ', $links ) );
 		echo '</p></div>';
+	}
+
+	/**
+	 * Every balloon entry product (any status but trash).
+	 *
+	 * @return WC_Product[]
+	 */
+	public static function all_products() {
+		return wc_get_products(
+			array(
+				'type'   => self::TYPE,
+				'status' => array( 'publish', 'draft', 'pending', 'private', 'future' ),
+				'limit'  => -1,
+			)
+		);
+	}
+
+	/**
+	 * Create the ready-to-sell "Balloon Race Entry" product, unless an entry product already exists.
+	 *
+	 * Published straight away: it can only be bought while a race is taking entries.
+	 * Filter `vbr_default_entry_product` changes the name, price or descriptions.
+	 *
+	 * @return int Product ID (the existing one if there is one), or 0.
+	 */
+	public static function create_default_product() {
+		$existing = self::all_products();
+
+		if ( $existing ) {
+			return (int) $existing[0]->get_id();
+		}
+
+		$args = apply_filters(
+			'vbr_default_entry_product',
+			array(
+				'name'              => __( 'Balloon Race Entry', 'virtual-balloon-race' ),
+				'price'             => '3',
+				'short_description' => __( 'Send a virtual balloon into our race! Name it, pick its colour, then follow it on the live map as the real wind carries it.', 'virtual-balloon-race' ),
+				'description'       => __( 'Each entry is one balloon. Choose its name, colour and helium strategy, add your logo or a custom launch point if you like, and watch the leaderboard to see how far it travels. Every entry helps our fundraising.', 'virtual-balloon-race' ),
+			)
+		);
+
+		$product = new WC_Product_Balloon_Entry();
+		$product->set_name( $args['name'] );
+		$product->set_regular_price( (string) $args['price'] );
+		$product->set_short_description( $args['short_description'] );
+		$product->set_description( $args['description'] );
+		$product->set_status( 'publish' );
+		$product->set_catalog_visibility( 'visible' );
+		$product->update_meta_data( VBR_Race_Entries::PRODUCT_META, 0 );
+
+		return (int) $product->save();
 	}
 
 	/**
