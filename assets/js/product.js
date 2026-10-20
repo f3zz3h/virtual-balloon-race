@@ -1,4 +1,4 @@
-/* Virtual Balloon Race — product page add-ons: launch picker + logo preview. */
+/* Virtual Balloon Race — product page add-ons: launch picker + logo preview on a balloon. */
 (function () {
 	'use strict';
 
@@ -149,12 +149,30 @@
 
 	function initLogo(input) {
 		var preview = input.parentNode.querySelector('.vbr-addon__preview');
+		var colorSelect = document.querySelector('select[name="vbr_balloon_color"]');
 		var allowed = ['image/png', 'image/jpeg', 'image/webp'];
+		var logo = null;
+		var fit = 'cover';
+
+		// Draw the picture on a balloon in the chosen colour, as it will look on the map.
+		function render() {
+			if (!preview || !logo || !window.vbrBalloon) {
+				return;
+			}
+			var hex = (cfg.colors || {})[colorSelect ? colorSelect.value : ''] || '#2b6cb0';
+			preview.innerHTML = window.vbrBalloon.svg(hex, false, logo, fit);
+			preview.hidden = false;
+		}
+
+		if (colorSelect) {
+			colorSelect.addEventListener('change', render);
+		}
 
 		input.addEventListener('change', function () {
 			var file = input.files && input.files[0];
 
 			input.setCustomValidity('');
+			logo = null;
 			if (preview) {
 				preview.hidden = true;
 			}
@@ -175,8 +193,16 @@
 			}
 
 			if (preview && window.URL && URL.createObjectURL) {
-				preview.src = URL.createObjectURL(file);
-				preview.hidden = false;
+				var url = URL.createObjectURL(file);
+				var img = new Image();
+				// Same rule as the map: very wide or tall pictures are shown whole, others fill the balloon.
+				img.onload = function () {
+					var ratio = img.naturalHeight ? img.naturalWidth / img.naturalHeight : 1;
+					fit = ratio > 1.6 || ratio < 0.6 ? 'contain' : 'cover';
+					logo = url;
+					render();
+				};
+				img.src = url;
 			}
 		});
 	}

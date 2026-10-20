@@ -79,7 +79,7 @@ Buyers fill in:
 
 - **Balloon name**, **colour** and **helium strategy** (Balanced is free; Max Height and Eco-Glide cost the "tactical strategy" price)
 - Optional **custom launch point** (+£2 by default): search or click a map to start from their school or hometown
-- Optional **logo or picture** (+£2 by default): PNG, JPG or WebP up to 1 MB, shown as the balloon's map icon
+- Optional **logo or picture** (+£2 by default): PNG, JPG or WebP up to 1 MB. It fills the balloon on the map; very wide or tall pictures are shown whole instead of cropped. The product page previews it on a balloon in the chosen colour
 
 A balloon is created when its order reaches **Processing** or **Completed**.
 
@@ -159,6 +159,7 @@ includes/
   class-vbr-race-entries.php    Race choice, purchasability, basket guard, race_id on balloons
   class-vbr-monetization.php    Paid add-ons: strategy fee, custom launch, logo upload
   class-vbr-cli.php             wp vbr …
+assets/js/balloon.js            Balloon drawing (SVG) shared by the map and product page
 assets/js/map.js                Public Leaflet map
 assets/js/product.js            Product page launch picker + logo preview
 assets/js/admin-settings.js     Launch-point picker (Settings and race form)

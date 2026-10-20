@@ -180,8 +180,18 @@ class VBR_Map {
 	 */
 	public function register_assets() {
 		VBR_Settings::register_leaflet();
+		self::register_balloon_script();
 
-		wp_register_script( 'vbr-map', VBR_PLUGIN_URL . 'assets/js/map.js', array( 'vbr-leaflet' ), VBR_Balloons::asset_version( 'assets/js/map.js' ), true );
+		wp_register_script( 'vbr-map', VBR_PLUGIN_URL . 'assets/js/map.js', array( 'vbr-leaflet', 'vbr-balloon' ), VBR_Balloons::asset_version( 'assets/js/map.js' ), true );
+	}
+
+	/**
+	 * Register the balloon drawing script shared by the map and the product page.
+	 */
+	public static function register_balloon_script() {
+		if ( ! wp_script_is( 'vbr-balloon', 'registered' ) ) {
+			wp_register_script( 'vbr-balloon', VBR_PLUGIN_URL . 'assets/js/balloon.js', array(), VBR_Balloons::asset_version( 'assets/js/balloon.js' ), true );
+		}
 	}
 
 	/**

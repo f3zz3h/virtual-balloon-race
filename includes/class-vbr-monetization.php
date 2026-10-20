@@ -113,7 +113,9 @@ class VBR_Monetization {
 			return;
 		}
 
-		$deps = array();
+		VBR_Map::register_balloon_script();
+
+		$deps = array( 'vbr-balloon' );
 		if ( VBR_Settings::get( 'enable_launch' ) ) {
 			VBR_Settings::register_leaflet();
 			wp_enqueue_style( 'vbr-leaflet' );
@@ -130,6 +132,7 @@ class VBR_Monetization {
 			array(
 				'launch'  => array( $launch['lat'], $launch['lng'] ),
 				'maxLogo' => self::LOGO_MAX_BYTES,
+				'colors'  => VBR_Map::color_hex(),
 				'i18n'    => array(
 					'searching' => __( 'Searching…', 'virtual-balloon-race' ),
 					'noResults' => __( 'No places found.', 'virtual-balloon-race' ),
@@ -197,7 +200,7 @@ class VBR_Monetization {
 				</label>
 				<input type="file" id="vbr_logo" name="<?php echo esc_attr( self::LOGO_FIELD ); ?>" accept="image/png,image/jpeg,image/webp" />
 				<p class="vbr-addon__help"><?php esc_html_e( 'Shown on your balloon on the race map. PNG, JPG or WebP, up to 1 MB.', 'virtual-balloon-race' ); ?></p>
-				<img class="vbr-addon__preview" alt="" hidden />
+				<span class="vbr-addon__preview" role="img" aria-label="<?php esc_attr_e( 'Preview of your balloon', 'virtual-balloon-race' ); ?>" hidden></span>
 			</div>
 			<?php
 		endif;
