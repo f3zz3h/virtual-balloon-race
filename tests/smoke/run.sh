@@ -14,8 +14,9 @@ LOG="$WP_PATH/wp-content/debug.log"
 
 wp() { $WP_CLI --path="$WP_PATH" "$@"; }
 
+# Empty the database from PHP (`wp db reset` needs the mysql command-line client).
 fresh_site() {
-	wp db reset --yes --quiet
+	wp eval 'global $wpdb; foreach ( $wpdb->get_col( "SHOW TABLES" ) as $table ) { $wpdb->query( "DROP TABLE `$table`" ); }' --skip-plugins --skip-themes
 	wp core install --url=http://localhost --title="Smoke test" --admin_user=admin --admin_password=smoke-test --admin_email=admin@example.com --skip-email --quiet
 }
 

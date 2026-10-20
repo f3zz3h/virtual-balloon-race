@@ -13,6 +13,7 @@ jobs:
   smoke:
     name: Fresh install smoke test
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     services:
       mysql:
