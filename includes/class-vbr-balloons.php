@@ -306,4 +306,23 @@ class VBR_Balloons {
 	public static function ranked_distance( $balloon, $race ) {
 		return (float) $balloon->{VBR_Races::ranking_column( $race )};
 	}
+
+	/**
+	 * 1.6.0: balloons that have already flown get their flight time (launch to now, or to the race end).
+	 */
+	public static function backfill_flight_hours() {
+		global $wpdb;
+
+		$table = self::table();
+
+		foreach ( VBR_Races::all() as $race ) {
+			$launch = VBR_Races::ts( $race->launch_at );
+			$end    = $race->end_at ? min( time(), VBR_Races::ts( $race->end_at ) ) : time();
+			$hours  = $launch && $end > $launch ? ( $end - $launch ) / HOUR_IN_SECONDS : 0;
+
+			if ( $hours > 0 ) {
+				$wpdb->query( $wpdb->prepare( "UPDATE {$table} SET flight_hours = %f WHERE race_id = %d AND distance_km > 0", $hours, (int) $race->id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			}
+		}
+	}
 }

@@ -108,6 +108,7 @@ class VBR_Install {
 			helium_level varchar(50) NOT NULL DEFAULT '',
 			distance_km decimal(10,2) NOT NULL DEFAULT 0.00,
 			from_start_km decimal(10,2) NOT NULL DEFAULT 0.00,
+			flight_hours decimal(10,3) NOT NULL DEFAULT 0.000,
 			is_burst tinyint(1) NOT NULL DEFAULT 0,
 			latitude decimal(10,7) DEFAULT NULL,
 			longitude decimal(10,7) DEFAULT NULL,
@@ -146,6 +147,7 @@ class VBR_Install {
 			last_tick_at datetime DEFAULT NULL,
 			team_scoring varchar(20) NOT NULL DEFAULT '',
 			ranking varchar(20) NOT NULL DEFAULT '',
+			flight_mode varchar(20) NOT NULL DEFAULT '',
 			created_at datetime NOT NULL,
 			PRIMARY KEY  (id),
 			KEY slug (slug),
@@ -172,6 +174,10 @@ class VBR_Install {
 
 		if ( version_compare( $previous, '1.5.0', '<' ) ) {
 			VBR_Balloons::backfill_from_start();
+		}
+
+		if ( version_compare( $previous, '1.6.0', '<' ) ) {
+			VBR_Balloons::backfill_flight_hours();
 		}
 
 		// Work that needs WooCommerce's post types or rewrite rules runs on the next `init`.

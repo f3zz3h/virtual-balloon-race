@@ -442,6 +442,10 @@ class VBR_Races {
 			'end_at'        => $end ? gmdate( 'Y-m-d H:i:s', $end ) : null,
 		);
 
+		if ( isset( $data['flight_mode'] ) ) {
+			$row['flight_mode'] = array_key_exists( $data['flight_mode'], VBR_Flight_Modes::all() ) ? $data['flight_mode'] : '';
+		}
+
 		if ( isset( $data['ranking'] ) ) {
 			$row['ranking'] = self::TRAVELLED === $data['ranking'] ? self::TRAVELLED : self::FROM_START;
 		}
