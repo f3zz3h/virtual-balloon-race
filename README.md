@@ -273,5 +273,5 @@ See [`race_settings_and_map_9db2297a.plan.md`](race_settings_and_map_9db2297a.pl
 - No uninstall cleanup, no translation template (`.pot`), no automated test suite
 - Logo upload needs the standard product form (themes using AJAX add-to-cart on single products won't send the file)
 - Balloons can drift over sea; there's no land awareness
-- The leaderboard renders every balloon in the race (rows past `limit` start hidden), so very large races make a long page
+- The public leaderboard still sends every balloon in the race to the browser (so search can find any of them) and pages them there; very large races (thousands of entries) make a heavy page
 - Matching balloons by email trusts the account and billing emails, which WooCommerce doesn't verify. Someone who sets their email to another person's sees that person's balloons marked as theirs (balloon name and short owner name only)
