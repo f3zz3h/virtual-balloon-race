@@ -1,6 +1,6 @@
 <?php
 /**
- * WP-CLI commands: `wp vbr tick`, `wp vbr status`.
+ * WP-CLI commands: `wp vbr tick`, `wp vbr races`, `wp vbr status`, `wp vbr demo`.
  *
  * @package Virtual_Balloon_Race
  */
@@ -109,5 +109,40 @@ class VBR_CLI {
 		foreach ( VBR_Races::all() as $race ) {
 			WP_CLI::line( sprintf( 'Race %d (%s, %s): last tick %s', $race->id, $race->name, VBR_Races::status_label( $race ), wp_json_encode( VBR_Cron::last_summary( $race->id ) ) ) );
 		}
+	}
+
+	/**
+	 * Create a demo race with made-up balloons (flown on the wind for three days), or remove demo races.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--balloons=<count>]
+	 * : How many balloons. Default 30.
+	 *
+	 * [--remove]
+	 * : Remove all demo races and their balloons instead.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp vbr demo
+	 *     wp vbr demo --balloons=60
+	 *     wp vbr demo --remove
+	 *
+	 * @param array $args       Positional arguments.
+	 * @param array $assoc_args Options.
+	 */
+	public function demo( $args, $assoc_args ) {
+		if ( isset( $assoc_args['remove'] ) ) {
+			WP_CLI::success( sprintf( 'Removed %d demo race(s).', VBR_Demo::remove() ) );
+			return;
+		}
+
+		$race_id = VBR_Demo::create( max( 1, (int) ( isset( $assoc_args['balloons'] ) ? $assoc_args['balloons'] : 30 ) ) );
+
+		if ( is_wp_error( $race_id ) ) {
+			WP_CLI::error( $race_id->get_error_message() );
+		}
+
+		WP_CLI::success( sprintf( 'Demo race %d created: %s', $race_id, VBR_Pages::tracking_url( VBR_Races::get( $race_id ) ) ) );
 	}
 }
