@@ -155,6 +155,7 @@ class VBR_Install {
 			flight_mode varchar(20) NOT NULL DEFAULT '',
 			launch_email_sent_at datetime DEFAULT NULL,
 			results_email_sent_at datetime DEFAULT NULL,
+			entry_limit int(10) unsigned NOT NULL DEFAULT 0,
 			created_at datetime NOT NULL,
 			PRIMARY KEY  (id),
 			KEY slug (slug),

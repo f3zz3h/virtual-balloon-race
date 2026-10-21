@@ -374,6 +374,8 @@ class VBR_Balloons {
 		$table = self::table();
 		$in    = implode( ',', $ids );
 
+		VBR_Race_Entries::flush_counts();
+
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $in is a list of integers.
 		return (int) $wpdb->query( $wpdb->prepare( "UPDATE {$table} SET withdrawn_at = %s, withdrawn_reason = %s WHERE id IN ({$in}) AND withdrawn_at IS NULL", current_time( 'mysql', true ), sanitize_key( $reason ) ) );
 	}
@@ -395,6 +397,8 @@ class VBR_Balloons {
 
 		$table = self::table();
 		$in    = implode( ',', $ids );
+
+		VBR_Race_Entries::flush_counts();
 
 		return (int) $wpdb->query( "UPDATE {$table} SET withdrawn_at = NULL, withdrawn_reason = '' WHERE id IN ({$in}) AND withdrawn_at IS NOT NULL" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 	}

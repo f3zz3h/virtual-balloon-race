@@ -442,6 +442,10 @@ class VBR_Races {
 			'end_at'        => $end ? gmdate( 'Y-m-d H:i:s', $end ) : null,
 		);
 
+		if ( isset( $data['entry_limit'] ) ) {
+			$row['entry_limit'] = max( 0, (int) $data['entry_limit'] );
+		}
+
 		if ( isset( $data['flight_mode'] ) ) {
 			$row['flight_mode'] = array_key_exists( $data['flight_mode'], VBR_Flight_Modes::all() ) ? $data['flight_mode'] : '';
 		}
@@ -583,6 +587,8 @@ class VBR_Races {
 			'launch_at'    => $iso( $race->launch_at ),
 			'end_at'       => $iso( $race->end_at ),
 			'launch'       => self::launch_point( $race ),
+			'entry_limit'  => (int) $race->entry_limit ? (int) $race->entry_limit : null,
+			'places_left'  => VBR_Race_Entries::places_left( $race ),
 		);
 	}
 }

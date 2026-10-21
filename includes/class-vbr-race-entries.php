@@ -15,6 +15,18 @@ class VBR_Race_Entries {
 	const PRODUCT_META = '_vbr_race_id';
 
 	/**
+	 * Show "only N places left" at or below this many.
+	 */
+	const FEW_PLACES = 10;
+
+	/**
+	 * Entries taken per race, cached for the request (the shop asks many times per page).
+	 *
+	 * @var int[]
+	 */
+	private static $taken = array();
+
+	/**
 	 * Register hooks.
 	 */
 	public function __construct() {
@@ -37,6 +49,10 @@ class VBR_Race_Entries {
 
 		// New balloon rows start at their race's launch point (custom launch runs later).
 		add_filter( 'vbr_new_balloon_row', array( $this, 'apply_race' ), 5, 2 );
+
+		// Places taken change when orders do.
+		add_action( 'woocommerce_order_status_changed', array( __CLASS__, 'flush_counts' ) );
+		add_action( 'woocommerce_new_order', array( __CLASS__, 'flush_counts' ) );
 	}
 
 	/**
@@ -56,13 +72,117 @@ class VBR_Race_Entries {
 	}
 
 	/**
-	 * Races a product can be bought for right now.
+	 * Races a product can be bought for right now (taking entries and not sold out).
 	 *
 	 * @param int $product_id Product ID.
 	 * @return object[]
 	 */
 	public static function open_races_for( $product_id ) {
-		return VBR_Races::open_for_entries( self::product_race( $product_id ) );
+		return array_values(
+			array_filter(
+				VBR_Races::open_for_entries( self::product_race( $product_id ) ),
+				static function ( $race ) {
+					return 0 !== self::places_left( $race );
+				}
+			)
+		);
+	}
+
+	/**
+	 * Entries a race has taken: balloons still in the race, plus entries in orders awaiting payment
+	 * (on hold, e.g. bank transfer, and pending payment from the last day), so a race can't be oversold
+	 * while payments are pending.
+	 *
+	 * @param object $race Race.
+	 * @return int
+	 */
+	public static function entries_taken( $race ) {
+		global $wpdb;
+
+		$id = (int) $race->id;
+
+		if ( isset( self::$taken[ $id ] ) ) {
+			return self::$taken[ $id ];
+		}
+
+		$table = VBR_Balloons::table();
+		$taken = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE race_id = %d AND withdrawn_at IS NULL", $id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		if ( function_exists( 'wc_get_orders' ) ) {
+			// This visitor's own order awaiting payment is already their basket: don't count it twice.
+			/** @var WC_Session|null $session Not set outside the shop front end (e.g. admin, WP-CLI). */
+			$session = function_exists( 'WC' ) ? WC()->session : null;
+			$own     = $session ? (int) $session->get( 'order_awaiting_payment' ) : 0;
+			$unpaid  = array_merge(
+				wc_get_orders(
+					array(
+						'status' => array( 'on-hold' ),
+						'limit'  => -1,
+					)
+				),
+				wc_get_orders(
+					array(
+						'status'       => array( 'pending' ),
+						'limit'        => -1,
+						'date_created' => '>' . ( time() - DAY_IN_SECONDS ),
+					)
+				)
+			);
+
+			foreach ( $unpaid as $order ) {
+				if ( ! $order instanceof WC_Order || $order->get_id() === $own ) {
+					continue;
+				}
+				foreach ( $order->get_items() as $item ) {
+					if ( $item instanceof WC_Order_Item_Product && (int) $item->get_meta( '_vbr_race_id', true ) === $id ) {
+						$taken += max( 1, (int) $item->get_quantity() );
+					}
+				}
+			}
+		}
+
+		self::$taken[ $id ] = $taken;
+
+		return $taken;
+	}
+
+	/**
+	 * Forget cached entry counts (an order or balloon changed during this request).
+	 */
+	public static function flush_counts() {
+		self::$taken = array();
+	}
+
+	/**
+	 * Places left in a race, or null when it has no entry limit.
+	 *
+	 * @param object $race Race.
+	 * @return int|null
+	 */
+	public static function places_left( $race ) {
+		$limit = isset( $race->entry_limit ) ? (int) $race->entry_limit : 0;
+
+		return $limit > 0 ? max( 0, $limit - self::entries_taken( $race ) ) : null;
+	}
+
+	/**
+	 * Entries for a race already in this visitor's basket.
+	 *
+	 * @param int $race_id Race ID.
+	 * @return int
+	 */
+	private static function in_cart( $race_id ) {
+		/** @var WC_Cart|null $cart Not set outside the shop front end. */
+		$cart  = WC()->cart;
+		$count = 0;
+
+		foreach ( $cart ? $cart->get_cart() : array() as $item ) {
+			if ( ! empty( $item['vbr_race_id'] ) && (int) $item['vbr_race_id'] === (int) $race_id ) {
+				$count += (int) $item['quantity'];
+			}
+		}
+
+		return $count;
 	}
 
 	/**
@@ -140,11 +260,17 @@ class VBR_Race_Entries {
 			return;
 		}
 
-		$locked = self::product_race( $product->get_id() );
-		$next   = VBR_Races::next_upcoming( $locked );
-		$race   = $locked ? VBR_Races::get( $locked ) : null;
+		$locked   = self::product_race( $product->get_id() );
+		$next     = VBR_Races::next_upcoming( $locked );
+		$race     = $locked ? VBR_Races::get( $locked ) : null;
+		$sold_out = VBR_Races::open_for_entries( $locked );
 
-		if ( $next && VBR_Races::ts( $next->sales_open_at ) ) {
+		if ( $sold_out ) {
+			$message = 1 === count( $sold_out )
+				/* translators: %s: race name */
+				? sprintf( __( 'Sorry, %s is sold out.', 'virtual-balloon-race' ), $sold_out[0]->name )
+				: __( 'Sorry, all the races taking entries are sold out.', 'virtual-balloon-race' );
+		} elseif ( $next && VBR_Races::ts( $next->sales_open_at ) ) {
 			$message = sprintf(
 				/* translators: 1: race name, 2: date */
 				__( 'Entries for %1$s open on %2$s.', 'virtual-balloon-race' ),
@@ -181,6 +307,35 @@ class VBR_Race_Entries {
 	}
 
 	/**
+	 * "Only 3 places left!" under the race, when a race with a limit is nearly full.
+	 *
+	 * @param object $race Race.
+	 */
+	public static function places_left_notice( $race ) {
+		$left = self::places_left( $race );
+
+		if ( null === $left || $left > self::FEW_PLACES ) {
+			return;
+		}
+
+		/* translators: %s: places left */
+		echo '<p class="vbr-places-left">' . esc_html( sprintf( _n( 'Only %s place left!', 'Only %s places left!', $left, 'virtual-balloon-race' ), number_format_i18n( $left ) ) ) . '</p>';
+	}
+
+	/**
+	 * " (3 places left)" after a race in the race picker, when nearly full.
+	 *
+	 * @param object $race Race.
+	 * @return string
+	 */
+	private static function places_left_suffix( $race ) {
+		$left = self::places_left( $race );
+
+		/* translators: %s: places left */
+		return null === $left || $left > self::FEW_PLACES ? '' : ' (' . sprintf( _n( '%s place left', '%s places left', $left, 'virtual-balloon-race' ), number_format_i18n( $left ) ) . ')';
+	}
+
+	/**
 	 * Race picker at the top of the balloon box.
 	 *
 	 * @param WC_Product $product Product.
@@ -209,6 +364,7 @@ class VBR_Race_Entries {
 				?>
 				<input type="hidden" name="vbr_race_id" value="<?php echo esc_attr( (string) $race->id ); ?>" />
 			</p>
+			<?php self::places_left_notice( $race ); ?>
 			<?php
 			return;
 		}
@@ -229,7 +385,7 @@ class VBR_Race_Entries {
 								__( '%1$s — launches %2$s', 'virtual-balloon-race' ),
 								$race->name,
 								VBR_Races::format_date( $race->launch_at )
-							)
+							) . self::places_left_suffix( $race )
 						);
 						?>
 					</option>
@@ -269,8 +425,25 @@ class VBR_Race_Entries {
 			return $passed;
 		}
 
-		if ( ! self::posted_race( $product_id ) ) {
+		$race = self::posted_race( $product_id );
+
+		if ( ! $race ) {
 			wc_add_notice( __( 'Please choose a race that is taking entries.', 'virtual-balloon-race' ), 'error' );
+			return false;
+		}
+
+		$left = self::places_left( $race );
+
+		if ( null !== $left && self::in_cart( (int) $race->id ) + 1 > $left ) {
+			wc_add_notice(
+				sprintf(
+					/* translators: 1: race name, 2: places left */
+					_n( 'Sorry, %1$s has only %2$s place left, and it’s already in your basket.', 'Sorry, %1$s has only %2$s places left, and they’re all in your basket.', $left, 'virtual-balloon-race' ),
+					$race->name,
+					number_format_i18n( $left )
+				),
+				'error'
+			);
 			return false;
 		}
 
@@ -327,6 +500,37 @@ class VBR_Race_Entries {
 
 		if ( ! $cart ) {
 			return;
+		}
+
+		// Entries beyond a race's places left (others bought the last places first): keep the earliest ones.
+		$kept = array();
+		foreach ( $cart->get_cart() as $key => $item ) {
+			$race = empty( $item['vbr_race_id'] ) ? null : VBR_Races::get( (int) $item['vbr_race_id'] );
+
+			if ( ! $race || ! VBR_Races::is_open( $race ) ) {
+				continue;
+			}
+
+			$left = self::places_left( $race );
+			$id   = (int) $race->id;
+
+			$kept[ $id ] = isset( $kept[ $id ] ) ? $kept[ $id ] : 0;
+
+			if ( null === $left || $kept[ $id ] < $left ) {
+				++$kept[ $id ];
+				continue;
+			}
+
+			$cart->remove_cart_item( $key );
+			wc_add_notice(
+				sprintf(
+					/* translators: 1: balloon name, 2: race name */
+					__( '“%1$s” was removed from your basket because %2$s has sold out.', 'virtual-balloon-race' ),
+					isset( $item['vbr_balloon_name'] ) ? $item['vbr_balloon_name'] : __( 'Balloon', 'virtual-balloon-race' ),
+					$race->name
+				),
+				'error'
+			);
 		}
 
 		foreach ( $cart->get_cart() as $key => $item ) {
