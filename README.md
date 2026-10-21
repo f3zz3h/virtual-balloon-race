@@ -28,7 +28,7 @@ A WordPress + WooCommerce plugin for running virtual balloon races as fundraiser
 | Live wind / per-balloon wind / wind influence | Real wind from Open-Meteo (free, no key). Per-balloon wind makes paths split apart as balloons spread |
 | Default heading | Direction balloons travel if wind data isn't available |
 | Burst chances | Max Height burst chance per day, plus storm bursts above a wind threshold (Eco-Glide is immune) |
-| Map | Default zoom, how often the public map refreshes, trail length |
+| Map and leaderboard | Default zoom, how often the public map refreshes, trail length, and **leaderboard entries per page** (10 by default; visitors can change it) |
 | Shop add-ons | Turn extras on or off and set their prices |
 | Teams | Off by default. **Enable teams**, the **default scoring** (average distance, total distance or best balloon) and the **default teams** (name and colour) that new races start with |
 
@@ -126,7 +126,7 @@ You can still build your own pages:
 | Shortcode | Attributes |
 | --- | --- |
 | `[balloon_map]` | `race` = ID, slug or `current`. Without it, the page's `?race=` is used, else the current race. `height` (default `520px`). `list="no"` hides the side list |
-| `[balloon_leaderboard]` | `race` (as above). `limit` (default 50). `map_url`: where names link (default: the tracking page) |
+| `[balloon_leaderboard]` | `race` (as above). `per_page`: entries per page (default from Settings, 10; `all` for everything; `limit` is the older name). `map_url`: where names link (default: the tracking page) |
 | `[balloon_teams]` | Team standings: rank, team, balloons, score, leading balloon. `race` (as above), `title`. Shows nothing when teams are off or the race has none |
 | `[balloon_races]` | Links to every race on the same page. `title` (default "All races"). `min` (default 2): hidden when there are fewer races |
 
@@ -136,7 +136,8 @@ On the map, clicking a balloon (or its name in the list or leaderboard) highligh
 
 - **Their own balloon.** Logged-in entrants see their balloons marked **Yours**. The map opens on their best-placed balloon, the leaderboard pins **Your balloons** with each one's position, and both have an **All balloons / My balloons** toggle. A balloon counts as theirs if they bought it while logged in, or if the order's email matches their account email or billing email (so guest orders count once they register).
 - **Guests** get **Track your balloon** links on the order confirmation page and in their order emails.
-- **Search.** The map list and the leaderboard both search by balloon name or owner. Leaderboard search covers every balloon in the race, not just the top `limit` rows.
+- **Search.** The map list and the leaderboard both search by balloon name, owner or team. Leaderboard search covers every balloon in the race, not just the page being shown.
+- **Paging.** The leaderboard shows 10 balloons per page by default, with page links and a **Show … per page** dropdown (10, 25, 50, 100 or All). A visitor's choice is remembered on their device. Search and **My balloons** page their results too. The admin leaderboard pages the same way, with its own dropdown.
 - **Owner names** are shown publicly as first name and last initial ("Luke H."), on the map, the leaderboard and the REST API. Search only matches that short form. Admin screens and the CSV keep full names.
 
 ### 6. During the race
@@ -273,5 +274,5 @@ See [`race_settings_and_map_9db2297a.plan.md`](race_settings_and_map_9db2297a.pl
 - No uninstall cleanup, no translation template (`.pot`), no automated test suite
 - Logo upload needs the standard product form (themes using AJAX add-to-cart on single products won't send the file)
 - Balloons can drift over sea; there's no land awareness
-- The leaderboard renders every balloon in the race (rows past `limit` start hidden), so very large races make a long page
+- The public leaderboard still sends every balloon in the race to the browser (so search can find any of them) and pages them there; very large races (thousands of entries) make a heavy page
 - Matching balloons by email trusts the account and billing emails, which WooCommerce doesn't verify. Someone who sets their email to another person's sees that person's balloons marked as theirs (balloon name and short owner name only)

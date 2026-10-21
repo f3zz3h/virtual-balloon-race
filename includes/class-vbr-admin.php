@@ -282,9 +282,16 @@ class VBR_Admin {
 				return;
 			endif;
 
+			// Paging: ?per_page= (0 = all, default from Settings) and ?paged=.
+			$per_page = VBR_Frontend::per_page( isset( $_GET['per_page'] ) ? sanitize_key( wp_unslash( $_GET['per_page'] ) ) : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$total    = VBR_Races::balloon_count( (int) $race->id );
+			$pages    = $per_page ? max( 1, (int) ceil( $total / $per_page ) ) : 1;
+			$paged    = min( $pages, max( 1, isset( $_GET['paged'] ) ? absint( $_GET['paged'] ) : 1 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$limit    = $per_page ? $wpdb->prepare( ' LIMIT %d OFFSET %d', $per_page, ( $paged - 1 ) * $per_page ) : '';
+
 			$table    = VBR_Balloons::table();
 			$order    = VBR_Races::ranking_column( $race );
-			$balloons = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE race_id = %d ORDER BY {$order} DESC, id ASC", (int) $race->id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$balloons = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE race_id = %d ORDER BY {$order} DESC, id ASC", (int) $race->id ) . $limit ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- $limit is prepared above.
 			$status   = VBR_Races::status( $race );
 			$teams    = VBR_Teams::by_id( $race );
 
@@ -367,9 +374,10 @@ class VBR_Admin {
 				<h2>
 					<?php
 					/* translators: %d: number of balloons */
-					echo esc_html( sprintf( _n( 'Leaderboard (%d balloon)', 'Leaderboard (%d balloons)', count( $balloons ), 'virtual-balloon-race' ), count( $balloons ) ) );
+					echo esc_html( sprintf( _n( 'Leaderboard (%d balloon)', 'Leaderboard (%d balloons)', $total, 'virtual-balloon-race' ), $total ) );
 					?>
 				</h2>
+				<?php $this->render_tablenav( $race, $total, $per_page, $paged, $pages, 'top' ); ?>
 				<table class="widefat striped vbr-admin-table">
 					<thead>
 						<tr>
@@ -446,6 +454,7 @@ class VBR_Admin {
 						<?php endif; ?>
 					</tbody>
 				</table>
+				<?php $this->render_tablenav( $race, $total, $per_page, $paged, $pages, 'bottom' ); ?>
 			</section>
 		</div>
 		<?php
@@ -522,5 +531,64 @@ class VBR_Admin {
 		if ( isset( $messages[ $notice ] ) ) {
 			printf( '<div class="notice notice-%1$s is-dismissible"><p>%2$s</p></div>', esc_attr( $messages[ $notice ][0] ), esc_html( $messages[ $notice ][1] ) );
 		}
+	}
+
+	/**
+	 * Entries-per-page picker and page links above and below the admin leaderboard.
+	 *
+	 * @param object $race     Race.
+	 * @param int    $total    Balloons in the race.
+	 * @param int    $per_page Entries per page (0 = all).
+	 * @param int    $paged    Current page.
+	 * @param int    $pages    Number of pages.
+	 * @param string $which    'top' or 'bottom'.
+	 */
+	private function render_tablenav( $race, $total, $per_page, $paged, $pages, $which ) {
+		$links = paginate_links(
+			array(
+				'base'      => self::url(
+					array(
+						'race'     => (int) $race->id,
+						'per_page' => (string) $per_page,
+						'paged'    => '%#%',
+					)
+				),
+				'format'    => '',
+				'current'   => $paged,
+				'total'     => $pages,
+				'prev_text' => '&lsaquo;',
+				'next_text' => '&rsaquo;',
+			)
+		);
+		?>
+		<div class="tablenav <?php echo esc_attr( $which ); ?>">
+			<?php if ( 'top' === $which ) : ?>
+				<form method="get" class="alignleft actions">
+					<input type="hidden" name="page" value="<?php echo esc_attr( self::PAGE ); ?>" />
+					<input type="hidden" name="race" value="<?php echo esc_attr( (string) $race->id ); ?>" />
+					<label for="vbr-per-page"><?php esc_html_e( 'Show', 'virtual-balloon-race' ); ?></label>
+					<select id="vbr-per-page" name="per_page" onchange="this.form.submit()">
+						<?php foreach ( VBR_Frontend::per_page_options() as $option ) : ?>
+							<option value="<?php echo esc_attr( (string) $option ); ?>" <?php selected( $per_page, $option ); ?>><?php echo esc_html( $option ? number_format_i18n( $option ) : __( 'All', 'virtual-balloon-race' ) ); ?></option>
+						<?php endforeach; ?>
+					</select>
+					<?php esc_html_e( 'per page', 'virtual-balloon-race' ); ?>
+					<noscript><?php submit_button( __( 'Apply', 'virtual-balloon-race' ), 'secondary', '', false ); ?></noscript>
+				</form>
+			<?php endif; ?>
+			<div class="tablenav-pages">
+				<span class="displaying-num">
+					<?php
+					/* translators: %s: number of balloons */
+					echo esc_html( sprintf( _n( '%s balloon', '%s balloons', $total, 'virtual-balloon-race' ), number_format_i18n( $total ) ) );
+					?>
+				</span>
+				<?php if ( $links ) : ?>
+					<span class="pagination-links"><?php echo wp_kses_post( $links ); ?></span>
+				<?php endif; ?>
+			</div>
+			<br class="clear" />
+		</div>
+		<?php
 	}
 }
