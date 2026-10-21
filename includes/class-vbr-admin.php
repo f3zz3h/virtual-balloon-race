@@ -114,6 +114,11 @@ class VBR_Admin {
 			check_admin_referer( 'vbr_toggle_burst_' . intval( $_GET['balloon_id'] ) );
 			$this->toggle_burst( intval( $_GET['balloon_id'] ) );
 		}
+
+		if ( 'toggle_withdrawn' === $action && isset( $_GET['balloon_id'] ) ) {
+			check_admin_referer( 'vbr_toggle_withdrawn_' . intval( $_GET['balloon_id'] ) );
+			$this->toggle_withdrawn( intval( $_GET['balloon_id'] ) );
+		}
 	}
 
 	/**
@@ -197,6 +202,41 @@ class VBR_Admin {
 	}
 
 	/**
+	 * Withdraw a balloon by hand (e.g. a duplicate or unsuitable name), or reinstate a withdrawn one.
+	 *
+	 * Balloons withdrawn by hand stay withdrawn when their order changes; reinstating
+	 * a refunded order's balloon lasts until the order next changes.
+	 *
+	 * @param int $balloon_id Balloon ID.
+	 */
+	private function toggle_withdrawn( $balloon_id ) {
+		global $wpdb;
+
+		$table = VBR_Balloons::table();
+		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT withdrawn_at, race_id FROM {$table} WHERE id = %d", $balloon_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		if ( ! $row ) {
+			return;
+		}
+
+		if ( null === $row->withdrawn_at ) {
+			VBR_Balloons::withdraw( array( $balloon_id ), 'admin' );
+		} else {
+			VBR_Balloons::restore( array( $balloon_id ) );
+		}
+
+		wp_safe_redirect(
+			self::url(
+				array(
+					'race'       => (int) $row->race_id,
+					'vbr_notice' => 'toggled',
+				)
+			)
+		);
+		exit;
+	}
+
+	/**
 	 * Stream a CSV export of balloon and donor rows (one race, or all when 0).
 	 *
 	 * @param int $race_id Race ID.
@@ -221,7 +261,7 @@ class VBR_Admin {
 
 		fputcsv(
 			$output,
-			array( 'ID', 'Race', 'Team', 'Order ID', 'User ID', 'Owner Name', 'Owner Email', 'Balloon Name', 'Balloon Color', 'Helium Level', 'From Start (km)', 'Travelled (km)', 'Is Burst', 'Latitude', 'Longitude', 'Created At' )
+			array( 'ID', 'Race', 'Team', 'Order ID', 'User ID', 'Owner Name', 'Owner Email', 'Balloon Name', 'Balloon Color', 'Helium Level', 'From Start (km)', 'Travelled (km)', 'Is Burst', 'Withdrawn', 'Latitude', 'Longitude', 'Created At' )
 		);
 
 		foreach ( (array) $rows as $row ) {
@@ -241,6 +281,7 @@ class VBR_Admin {
 					$row['from_start_km'],
 					$row['distance_km'],
 					$row['is_burst'] ? 'Yes' : 'No',
+					$row['withdrawn_at'] ? VBR_Balloons::withdrawn_label( $row['withdrawn_reason'] ) : '',
 					$row['latitude'],
 					$row['longitude'],
 					$row['created_at'],
@@ -291,7 +332,8 @@ class VBR_Admin {
 
 			$table    = VBR_Balloons::table();
 			$order    = VBR_Races::ranking_column( $race );
-			$balloons = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE race_id = %d ORDER BY {$order} DESC, id ASC", (int) $race->id ) . $limit ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- $limit is prepared above.
+			// Withdrawn balloons are listed last.
+			$balloons = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE race_id = %d ORDER BY withdrawn_at IS NOT NULL, {$order} DESC, id ASC", (int) $race->id ) . $limit ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- $limit is prepared above.
 			$status   = VBR_Races::status( $race );
 			$teams    = VBR_Teams::by_id( $race );
 
@@ -412,8 +454,18 @@ class VBR_Admin {
 									),
 									'vbr_toggle_burst_' . (int) $balloon->id
 								);
+								$withdraw_url = wp_nonce_url(
+									self::url(
+										array(
+											'vbr_action' => 'toggle_withdrawn',
+											'balloon_id' => (int) $balloon->id,
+										)
+									),
+									'vbr_toggle_withdrawn_' . (int) $balloon->id
+								);
+								$withdrawn    = null !== $balloon->withdrawn_at;
 								?>
-								<tr>
+								<tr<?php echo $withdrawn ? ' class="vbr-withdrawn"' : ''; ?>>
 									<td><?php echo esc_html( (string) $balloon->id ); ?></td>
 									<td>
 										<?php echo esc_html( $balloon->owner_name ); ?>
@@ -438,15 +490,22 @@ class VBR_Admin {
 									<td<?php echo 'from_start_km' === $order ? ' class="vbr-ranked"' : ''; ?>><?php echo esc_html( number_format_i18n( (float) $balloon->from_start_km, 2 ) ); ?></td>
 									<td<?php echo 'distance_km' === $order ? ' class="vbr-ranked"' : ''; ?>><?php echo esc_html( number_format_i18n( (float) $balloon->distance_km, 2 ) ); ?></td>
 									<td>
-										<?php
-										echo $balloon->is_burst
-											? '<span class="vbr-status vbr-status--burst">' . esc_html__( 'Burst', 'virtual-balloon-race' ) . '</span>'
-											: '<span class="vbr-status vbr-status--active">' . esc_html__( 'Active', 'virtual-balloon-race' ) . '</span>';
-										?>
+										<?php if ( $withdrawn ) : ?>
+											<span class="vbr-status vbr-status--withdrawn"><?php echo esc_html( VBR_Balloons::withdrawn_label( $balloon->withdrawn_reason ) ); ?></span>
+										<?php elseif ( $balloon->is_burst ) : ?>
+											<span class="vbr-status vbr-status--burst"><?php esc_html_e( 'Burst', 'virtual-balloon-race' ); ?></span>
+										<?php else : ?>
+											<span class="vbr-status vbr-status--active"><?php esc_html_e( 'Active', 'virtual-balloon-race' ); ?></span>
+										<?php endif; ?>
 									</td>
-									<td>
-										<a class="button button-small" href="<?php echo esc_url( $toggle_url ); ?>">
-											<?php echo $balloon->is_burst ? esc_html__( 'Restore', 'virtual-balloon-race' ) : esc_html__( 'Mark burst', 'virtual-balloon-race' ); ?>
+									<td class="vbr-row-actions">
+										<?php if ( ! $withdrawn ) : ?>
+											<a class="button button-small" href="<?php echo esc_url( $toggle_url ); ?>">
+												<?php echo $balloon->is_burst ? esc_html__( 'Undo burst', 'virtual-balloon-race' ) : esc_html__( 'Mark burst', 'virtual-balloon-race' ); ?>
+											</a>
+										<?php endif; ?>
+										<a class="button button-small" href="<?php echo esc_url( $withdraw_url ); ?>"<?php echo $withdrawn ? '' : ' onclick="return confirm(\'' . esc_js( __( 'Withdraw this balloon? It disappears from the map, leaderboard and team scores, and stops moving. You can reinstate it later.', 'virtual-balloon-race' ) ) . '\');"'; ?>>
+											<?php echo $withdrawn ? esc_html__( 'Reinstate', 'virtual-balloon-race' ) : esc_html__( 'Withdraw', 'virtual-balloon-race' ); ?>
 										</a>
 									</td>
 								</tr>

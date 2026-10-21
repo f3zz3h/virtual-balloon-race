@@ -249,7 +249,7 @@ class VBR_Cron {
 			$s        = VBR_Settings::all();
 			$table    = VBR_Balloons::table();
 			$launch   = VBR_Races::launch_point( $race );
-			$balloons = $wpdb->get_results( $wpdb->prepare( "SELECT id, helium_level, latitude, longitude, start_lat, start_lng, trail_json, flight_hours FROM {$table} WHERE is_burst = 0 AND race_id = %d", (int) $race->id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$balloons = $wpdb->get_results( $wpdb->prepare( "SELECT id, helium_level, latitude, longitude, start_lat, start_lng, trail_json, flight_hours FROM {$table} WHERE is_burst = 0 AND withdrawn_at IS NULL AND race_id = %d", (int) $race->id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 			$use_weather = ! empty( $s['weather_enabled'] );
 			$per_balloon = $use_weather && ! empty( $s['per_balloon_wind'] );

@@ -174,11 +174,12 @@ class VBR_Balloons {
 	/**
 	 * A user's balloons, newest race first.
 	 *
-	 * @param int $user_id User ID.
-	 * @param int $race_id Only this race (0 = all races).
+	 * @param int  $user_id           User ID.
+	 * @param int  $race_id           Only this race (0 = all races).
+	 * @param bool $include_withdrawn Include withdrawn balloons (My Account lists them; the map and leaderboard don't).
 	 * @return object[]
 	 */
-	public static function owned_by( $user_id, $race_id = 0 ) {
+	public static function owned_by( $user_id, $race_id = 0, $include_withdrawn = false ) {
 		global $wpdb;
 
 		$where = self::owner_where( $user_id );
@@ -190,13 +191,14 @@ class VBR_Balloons {
 		$table = self::table();
 		$races = VBR_Races::table();
 		$race  = $race_id ? $wpdb->prepare( ' AND b.race_id = %d', $race_id ) : '';
+		$race .= $include_withdrawn ? '' : ' AND ' . self::active_sql( 'b' );
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- parts prepared above.
 		return (array) $wpdb->get_results( "SELECT b.* FROM {$table} b LEFT JOIN {$races} r ON r.id = b.race_id WHERE {$where}{$race} ORDER BY r.launch_at DESC, b.id ASC" );
 	}
 
 	/**
-	 * Leaderboard position of a balloon in its race (null when burst).
+	 * Leaderboard position of a balloon in its race (null when burst or withdrawn).
 	 *
 	 * @param object $balloon Balloon row.
 	 * @return int|null
@@ -204,7 +206,7 @@ class VBR_Balloons {
 	public static function rank( $balloon ) {
 		global $wpdb;
 
-		if ( (int) $balloon->is_burst ) {
+		if ( (int) $balloon->is_burst || null !== $balloon->withdrawn_at ) {
 			return null;
 		}
 
@@ -215,7 +217,7 @@ class VBR_Balloons {
 
 		return 1 + (int) $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT COUNT(*) FROM {$table} WHERE race_id = %d AND is_burst = 0 AND ( {$column} > %f OR ( {$column} = %f AND id < %d ) )", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				"SELECT COUNT(*) FROM {$table} WHERE race_id = %d AND is_burst = 0 AND withdrawn_at IS NULL AND ( {$column} > %f OR ( {$column} = %f AND id < %d ) )", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				(int) $balloon->race_id,
 				$value,
 				$value,
@@ -324,5 +326,93 @@ class VBR_Balloons {
 				$wpdb->query( $wpdb->prepare( "UPDATE {$table} SET flight_hours = %f WHERE race_id = %d AND distance_km > 0", $hours, (int) $race->id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			}
 		}
+	}
+
+	/**
+	 * SQL condition for balloons still in the race (not withdrawn). A fixed string, safe to put in SQL.
+	 *
+	 * @param string $alias Table alias, if the query uses one.
+	 * @return string
+	 */
+	public static function active_sql( $alias = '' ) {
+		return ( $alias ? $alias . '.' : '' ) . 'withdrawn_at IS NULL';
+	}
+
+	/**
+	 * Why a balloon was withdrawn, for people.
+	 *
+	 * @param string $reason Reason key.
+	 * @return string
+	 */
+	public static function withdrawn_label( $reason ) {
+		$labels = array(
+			'refunded'  => __( 'Withdrawn (refunded)', 'virtual-balloon-race' ),
+			'cancelled' => __( 'Withdrawn (order cancelled)', 'virtual-balloon-race' ),
+			'failed'    => __( 'Withdrawn (payment failed)', 'virtual-balloon-race' ),
+			'admin'     => __( 'Withdrawn by an organiser', 'virtual-balloon-race' ),
+		);
+
+		return isset( $labels[ $reason ] ) ? $labels[ $reason ] : __( 'Withdrawn', 'virtual-balloon-race' );
+	}
+
+	/**
+	 * Take balloons out of their race (kept for records; hidden from the public and no longer moving).
+	 *
+	 * @param int[]  $ids    Balloon IDs.
+	 * @param string $reason refunded, cancelled, failed or admin.
+	 * @return int Balloons withdrawn.
+	 */
+	public static function withdraw( $ids, $reason ) {
+		global $wpdb;
+
+		$ids = array_filter( array_map( 'intval', (array) $ids ) );
+
+		if ( ! $ids ) {
+			return 0;
+		}
+
+		$table = self::table();
+		$in    = implode( ',', $ids );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $in is a list of integers.
+		return (int) $wpdb->query( $wpdb->prepare( "UPDATE {$table} SET withdrawn_at = %s, withdrawn_reason = %s WHERE id IN ({$in}) AND withdrawn_at IS NULL", current_time( 'mysql', true ), sanitize_key( $reason ) ) );
+	}
+
+	/**
+	 * Put withdrawn balloons back in their race, where they were.
+	 *
+	 * @param int[] $ids Balloon IDs.
+	 * @return int Balloons restored.
+	 */
+	public static function restore( $ids ) {
+		global $wpdb;
+
+		$ids = array_filter( array_map( 'intval', (array) $ids ) );
+
+		if ( ! $ids ) {
+			return 0;
+		}
+
+		$table = self::table();
+		$in    = implode( ',', $ids );
+
+		return (int) $wpdb->query( "UPDATE {$table} SET withdrawn_at = NULL, withdrawn_reason = '' WHERE id IN ({$in}) AND withdrawn_at IS NOT NULL" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	}
+
+	/**
+	 * 1.7.0: link existing balloons to the order line they came from (WooCommerce stores the balloon ID on the line).
+	 */
+	public static function backfill_order_items() {
+		global $wpdb;
+
+		$table    = self::table();
+		$itemmeta = $wpdb->prefix . 'woocommerce_order_itemmeta';
+
+		if ( $itemmeta !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $itemmeta ) ) ) {
+			return;
+		}
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names only.
+		$wpdb->query( "UPDATE {$table} b INNER JOIN {$itemmeta} m ON m.meta_key = '_vbr_balloon_id' AND m.meta_value = b.id SET b.order_item_id = m.order_item_id WHERE b.order_item_id = 0" );
 	}
 }

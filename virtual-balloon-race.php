@@ -3,7 +3,7 @@
  * Plugin Name:       Virtual Balloon Race
  * Plugin URI:        https://example.com/virtual-balloon-race
  * Description:       Sell virtual balloon race entries via WooCommerce, capture balloon customizations, and display a live fundraising leaderboard.
- * Version:           1.6.0
+ * Version:           1.7.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Virtual Balloon Race
@@ -18,8 +18,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'VBR_VERSION', '1.6.0' );
-define( 'VBR_DB_VERSION', '1.6.0' );
+define( 'VBR_VERSION', '1.7.0' );
+define( 'VBR_DB_VERSION', '1.7.0' );
 define( 'VBR_PLUGIN_FILE', __FILE__ );
 define( 'VBR_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'VBR_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -43,6 +43,7 @@ require_once VBR_PLUGIN_DIR . 'includes/class-vbr-woocommerce.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-monetization.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-race-entries.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-team-entries.php';
+require_once VBR_PLUGIN_DIR . 'includes/class-vbr-order-sync.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-product-preview.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-product-type.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-account.php';
@@ -104,6 +105,7 @@ final class Virtual_Balloon_Race {
 			new VBR_Monetization();
 			new VBR_Race_Entries();
 			new VBR_Team_Entries();
+			new VBR_Order_Sync();
 			new VBR_Product_Preview();
 			new VBR_Account();
 		}

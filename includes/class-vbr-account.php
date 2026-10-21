@@ -77,7 +77,7 @@ class VBR_Account {
 	public function render() {
 		wp_enqueue_style( 'vbr-frontend' );
 
-		$balloons = VBR_Balloons::owned_by( get_current_user_id() );
+		$balloons = VBR_Balloons::owned_by( get_current_user_id(), 0, true );
 
 		if ( ! $balloons ) {
 			echo '<p>' . esc_html__( 'You haven\'t entered a balloon yet.', 'virtual-balloon-race' ) . '</p>';
@@ -108,7 +108,10 @@ class VBR_Account {
 					$url   = VBR_Pages::tracking_url( $race, (int) $balloon->id );
 					$color = isset( $hex[ $balloon->balloon_color ] ) ? $hex[ $balloon->balloon_color ] : '#555555';
 
-					if ( (int) $balloon->is_burst ) {
+					if ( null !== $balloon->withdrawn_at ) {
+						$position = VBR_Balloons::withdrawn_label( $balloon->withdrawn_reason );
+						$url      = '';
+					} elseif ( (int) $balloon->is_burst ) {
 						$position = __( 'Burst', 'virtual-balloon-race' );
 					} elseif ( $race && in_array( VBR_Races::status( $race ), array( VBR_Races::UPCOMING, VBR_Races::ON_SALE ), true ) ) {
 						$position = __( 'Waiting for launch', 'virtual-balloon-race' );
@@ -167,6 +170,9 @@ class VBR_Account {
 		$links = array();
 
 		foreach ( VBR_Balloons::for_order( $order->get_id() ) as $balloon ) {
+			if ( null !== $balloon->withdrawn_at ) {
+				continue;
+			}
 			$links[] = array( $balloon->balloon_name, VBR_Pages::tracking_url( VBR_Races::get( (int) $balloon->race_id ), (int) $balloon->id ) );
 		}
 

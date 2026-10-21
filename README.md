@@ -3,7 +3,7 @@
 A WordPress + WooCommerce plugin for running virtual balloon races as fundraisers. Supporters buy a balloon entry for a race, customise it (name, colour, helium strategy, and optional paid extras), and after launch the balloons drift across a live map using real wind data. A leaderboard ranks balloons by how far they get from the launch point (or, per race, by distance travelled).
 
 - **Requires:** WordPress 6.0+, PHP 7.4+, WooCommerce 7.0+ (for selling entries)
-- **Version:** 1.6.0 (database schema 1.6.0)
+- **Version:** 1.7.0 (database schema 1.7.0)
 - **Licence:** GPL-2.0-or-later
 
 ---
@@ -140,14 +140,25 @@ On the map, clicking a balloon (or its name in the list or leaderboard) highligh
 - **Paging.** The leaderboard shows 10 balloons per page by default, with page links and a **Show … per page** dropdown (10, 25, 50, 100 or All). A visitor's choice is remembered on their device. Search and **My balloons** page their results too. The admin leaderboard pages the same way, with its own dropdown.
 - **Owner names** are shown publicly as first name and last initial ("Luke H."), on the map, the leaderboard and the REST API. Search only matches that short form. Admin screens and the CSV keep full names.
 
+#### Refunds and cancellations
+
+Balloons follow their orders:
+
+- **Cancelled, refunded or failed order:** all of its balloons are **withdrawn**. They disappear from the map, leaderboard, team scores and API, and stop moving, but stay in the admin leaderboard and CSV marked *Withdrawn (refunded)*, *(order cancelled)* or *(payment failed)*.
+- **One line refunded** (in WooCommerce's refund screen, with that line's quantity or total): just that balloon is withdrawn. A refund of an amount with no lines selected (e.g. a goodwill partial refund) leaves balloons alone.
+- **Order back to Processing or Completed, or a refund deleted:** the balloons come back where they were.
+- **By hand:** **Withdraw** / **Reinstate** on the admin leaderboard, e.g. for a duplicate or an unsuitable name. A balloon withdrawn by hand stays out even if its order changes.
+
+Customers see withdrawn balloons in **My Account → My balloons** with the reason, and get no tracking link for them.
+
 ### 6. During the race
 
 **Balloon Race → Leaderboard** (pick the race at the top):
 
 - See every balloon, its owner's email, distance and status
 - **Advance now** moves the race by a chosen number of hours, or by a fixed km range
-- **Mark burst / Restore** for individual balloons
-- **Export CSV** of the race's balloons and donors
+- **Mark burst / Undo burst** and **Withdraw / Reinstate** for individual balloons
+- **Export CSV** of the race's balloons and donors (with a Withdrawn column)
 
 ---
 
@@ -177,6 +188,7 @@ includes/
   class-vbr-race-entries.php    Race choice, purchasability, basket guard, race_id on balloons
   class-vbr-teams.php           Teams: per-race lists, scoring, standings, the team editor
   class-vbr-flight-modes.php    Flight modes (Drift, Soar, Jetstream): lift decay, landing, Settings cards
+  class-vbr-order-sync.php      Withdraws / reinstates balloons when orders are refunded, cancelled or fail
   class-vbr-team-entries.php    Team choice on the product page → basket → order → team_id on balloons
   class-vbr-monetization.php    Paid add-ons: strategy fee, custom launch, logo upload
   class-vbr-product-preview.php Live balloon preview in place of the product images
@@ -248,7 +260,7 @@ Every pull request and push to `main` runs:
 
 - **PHP syntax** on PHP 7.4, 8.0 and 8.3, and **WordPress Coding Standards** (`.github/workflows/php_check.yml`). Coding-standard errors fail the check; warnings are reported only.
 - **PHPStan** static analysis at level 5 with WordPress and WooCommerce stubs (`phpstan.neon.dist`). Run it locally with `composer install` then `composer phpstan`. `composer.json` holds development tools only; the plugin itself has no Composer dependencies, and `vendor/` isn't committed. `phpstan-baseline.neon` is empty; if the level is raised, record existing findings there so only new ones fail.
-- **Fresh install smoke test** (`.github/workflows/smoke_test.yml`): installs the latest WordPress and WooCommerce, then `tests/smoke/run.sh` checks both activation orders (plugin before and after WooCommerce), the default page and product, a race end to end (purchasability, order → balloon, a tick, REST, teams) and that the plugin logs no PHP errors. To run it by hand: set `WP_PATH` to a throwaway WordPress with WooCommerce and this plugin (as `plugins/virtual-balloon-race`) copied in, then `bash tests/smoke/run.sh`. It empties that site's database.
+- **Fresh install smoke test** (`.github/workflows/smoke_test.yml`): installs the latest WordPress and WooCommerce, then `tests/smoke/run.sh` checks both activation orders (plugin before and after WooCommerce), the default page and product, a race end to end (purchasability, order → balloon, a tick, REST, teams), refunds and cancellations (line refund, refund deleted, goodwill refund, cancel and reopen, hand withdrawal, failed payment) and that the plugin logs no PHP errors. To run it by hand: set `WP_PATH` to a throwaway WordPress with WooCommerce and this plugin (as `plugins/virtual-balloon-race`) copied in, then `bash tests/smoke/run.sh`. It empties that site's database.
 
 ### Testing on the dev site
 
@@ -267,7 +279,6 @@ Deploy with `rsync` into the existing plugin folder (`scp -r` into an existing f
 
 See [`race_settings_and_map_9db2297a.plan.md`](race_settings_and_map_9db2297a.plan.md) for the full plan and status. In short, not built yet:
 
-- Refunded or cancelled orders don't remove their balloons
 - Abandoned logo uploads are tagged (`_vbr_logo_upload`) but not cleaned up
 - Movement settings (speed, interval, bursts) apply to all races, not per race
 - No entry limits per race, and no emails to entrants (launch, results)

@@ -254,3 +254,17 @@
 	text-transform: uppercase;
 	letter-spacing: 0.03em;
 }
+
+/* Withdrawn balloons (refunded, cancelled, or by hand) */
+.vbr-admin-table tr.vbr-withdrawn td {
+	color: #8c8f94;
+}
+
+.vbr-status--withdrawn {
+	background: #f0f0f1;
+	color: #50575e;
+}
+
+.vbr-row-actions .button + .button {
+	margin-left: 0.25rem;
+}
