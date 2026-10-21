@@ -1,6 +1,6 @@
 === Virtual Balloon Race ===
 Contributors: f3zz3h
-Donate link:
+Donate link: https://buymeacoffee.com/lumaha
 Tags: fundraising, balloon race, charity, woocommerce, school
 Requires at least: 6.0
 Tested up to: 7.1

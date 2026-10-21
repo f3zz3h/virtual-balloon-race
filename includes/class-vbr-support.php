@@ -13,10 +13,10 @@ defined( 'ABSPATH' ) || exit;
 class VBR_Support {
 
 	/**
-	 * Where donations go (Buy Me a Coffee, Ko-fi, Patreon, GitHub Sponsors…). Empty = no donate links anywhere.
+	 * Where donations go. Empty = no donate links anywhere.
 	 * Keep in step with "Donate link:" in readme.txt and .github/FUNDING.yml.
 	 */
-	const DONATE_URL = '';
+	const DONATE_URL = 'https://buymeacoffee.com/lumaha';
 
 	/**
 	 * Register hooks.
