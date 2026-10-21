@@ -45,6 +45,7 @@ require_once VBR_PLUGIN_DIR . 'includes/class-vbr-race-entries.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-team-entries.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-order-sync.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-race-emails.php';
+require_once VBR_PLUGIN_DIR . 'includes/class-vbr-housekeeping.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-product-preview.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-product-type.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-account.php';
@@ -81,6 +82,7 @@ final class Virtual_Balloon_Race {
 		register_activation_hook( VBR_PLUGIN_FILE, array( 'VBR_Install', 'activate' ) );
 		register_deactivation_hook( VBR_PLUGIN_FILE, array( 'VBR_Cron', 'unschedule' ) );
 		register_deactivation_hook( VBR_PLUGIN_FILE, array( 'VBR_Race_Emails', 'unschedule' ) );
+		register_deactivation_hook( VBR_PLUGIN_FILE, array( 'VBR_Housekeeping', 'unschedule' ) );
 		VBR_Install::init();
 
 		add_action( 'plugins_loaded', array( $this, 'init' ) );
@@ -100,6 +102,7 @@ final class Virtual_Balloon_Race {
 		new VBR_Frontend();
 		new VBR_Map();
 		new VBR_Pages();
+		new VBR_Housekeeping();
 
 		if ( $this->is_woocommerce_active() ) {
 			new VBR_Product_Type();

@@ -18,6 +18,10 @@ A WordPress + WooCommerce plugin for running virtual balloon races as fundraiser
 
 **Updating:** upload the newer zip the same way. WordPress notices the plugin is already installed and offers **Replace current with uploaded**. Races, balloons and settings are kept, and any database upgrade runs on the next page load. If the site uses LiteSpeed Cache, run **LiteSpeed Cache → Purge All** afterwards.
 
+**Deleting the plugin** keeps all race data unless **Settings → Data → Delete all race data when the plugin is deleted** is ticked. Its scheduled jobs always stop.
+
+**Translations:** `languages/virtual-balloon-race.pot` is the translation template (refreshed in every release zip). Translate it with Poedit or Loco Translate, or put `virtual-balloon-race-<locale>.mo` in `wp-content/languages/plugins/`.
+
 **Moving from a hand-copied folder** (e.g. `wp-content/plugins/VirtualBaloonRace/`): the zip installs to `wp-content/plugins/virtual-balloon-race/`, which WordPress treats as a different plugin, so don't run both. Deactivate the old one, delete it (the plugin has no uninstall routine, so this removes only its files; races, balloons, settings and pages stay in the database), then upload and activate the zip.
 
 ### 2. Check the settings
@@ -35,6 +39,7 @@ A WordPress + WooCommerce plugin for running virtual balloon races as fundraiser
 | Burst chances | Max Height burst chance per day, plus storm bursts above a wind threshold (Eco-Glide is immune) |
 | Map and leaderboard | Default zoom, how often the public map refreshes, trail length, and **leaderboard entries per page** (10 by default; visitors can change it) |
 | Shop add-ons | Turn extras on or off and set their prices |
+| Data | **Delete all race data when the plugin is deleted** (off by default). Deleting the plugin from Plugins then removes its races, balloons, teams and settings; pages, products, orders and uploaded logos are kept either way. Deactivating never deletes anything |
 | Teams | Off by default. **Enable teams**, the **default scoring** (average distance, total distance or best balloon) and the **default teams** (name and colour) that new races start with |
 
 > **Timing:** WordPress only runs scheduled jobs when someone visits the site. On a quiet site, updates can arrive late, though balloons still catch up on the next run. For on-time updates, add a real server cron that runs `wp vbr tick` every few minutes.
@@ -202,6 +207,7 @@ includes/
   class-vbr-race-entries.php    Race choice, purchasability, basket guard, race_id on balloons
   class-vbr-teams.php           Teams: per-race lists, scoring, standings, the team editor
   class-vbr-flight-modes.php    Flight modes (Drift, Soar, Jetstream): lift decay, landing, Settings cards
+  class-vbr-housekeeping.php    Daily clean-up of abandoned logo uploads; basket check for removed logos
   class-vbr-race-emails.php     Launch and results emails: when to send, who to, background queue
   emails/                       The two WooCommerce email classes (templates in templates/emails/)
   class-vbr-order-sync.php      Withdraws / reinstates balloons when orders are refunded, cancelled or fail
@@ -276,7 +282,7 @@ Every pull request and push to `main` runs:
 
 - **PHP syntax** on PHP 7.4, 8.0 and 8.3, and **WordPress Coding Standards** (`.github/workflows/php_check.yml`). Coding-standard errors fail the check; warnings are reported only.
 - **PHPStan** static analysis at level 5 with WordPress and WooCommerce stubs (`phpstan.neon.dist`). Run it locally with `composer install` then `composer phpstan`. `composer.json` holds development tools only; the plugin itself has no Composer dependencies, and `vendor/` isn't committed. `phpstan-baseline.neon` is empty; if the level is raised, record existing findings there so only new ones fail.
-- **Fresh install smoke test** (`.github/workflows/smoke_test.yml`): installs the latest WordPress and WooCommerce, then `tests/smoke/run.sh` checks both activation orders (plugin before and after WooCommerce), the default page and product, a race end to end (purchasability, order → balloon, a tick, REST, teams), refunds and cancellations (line refund, refund deleted, goodwill refund, cancel and reopen, hand withdrawal, failed payment), the launch and results emails (one per person, withdrawn balloons left out, sent once, switched off in WooCommerce) and that the plugin logs no PHP errors. To run it by hand: set `WP_PATH` to a throwaway WordPress with WooCommerce and this plugin (as `plugins/virtual-balloon-race`) copied in, then `bash tests/smoke/run.sh`. It empties that site's database.
+- **Fresh install smoke test** (`.github/workflows/smoke_test.yml`): installs the latest WordPress and WooCommerce, then `tests/smoke/run.sh` checks both activation orders (plugin before and after WooCommerce), the default page and product, a race end to end (purchasability, order → balloon, a tick, REST, teams), refunds and cancellations (line refund, refund deleted, goodwill refund, cancel and reopen, hand withdrawal, failed payment), the launch and results emails (one per person, withdrawn balloons left out, sent once, switched off in WooCommerce), housekeeping (abandoned logos, the basket check), deleting the plugin with "Delete all race data" off and on and that the plugin logs no PHP errors. To run it by hand: set `WP_PATH` to a throwaway WordPress with WooCommerce and this plugin (as `plugins/virtual-balloon-race`) copied in, then `bash tests/smoke/run.sh`. It empties that site's database.
 
 ### Releasing a version
 
@@ -303,10 +309,8 @@ Deploy with `rsync --exclude-from=.distignore` into the existing plugin folder (
 
 See [`race_settings_and_map_9db2297a.plan.md`](race_settings_and_map_9db2297a.plan.md) for the full plan and status. In short, not built yet:
 
-- Abandoned logo uploads are tagged (`_vbr_logo_upload`) but not cleaned up
 - Movement settings (speed, interval, bursts) apply to all races, not per race
 - No entry limits per race
-- No uninstall cleanup, no translation template (`.pot`), no automated test suite
 - Logo upload needs the standard product form (themes using AJAX add-to-cart on single products won't send the file)
 - Balloons can drift over sea; there's no land awareness
 - The public leaderboard still sends every balloon in the race to the browser (so search can find any of them) and pages them there; very large races (thousands of entries) make a heavy page

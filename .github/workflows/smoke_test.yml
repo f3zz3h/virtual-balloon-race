@@ -55,13 +55,15 @@ jobs:
           wp plugin install woocommerce --path=wp --quiet
           # Install the same zip a release would publish.
           bash plugin/.github/scripts/build-zip.sh
-          unzip -q plugin/dist/virtual-balloon-race-*.zip -d wp/wp-content/plugins/
+          cp plugin/dist/virtual-balloon-race-*.zip plugin/dist/virtual-balloon-race.zip
+          unzip -q plugin/dist/virtual-balloon-race.zip -d wp/wp-content/plugins/
           echo "WordPress $(wp core version --path=wp), WooCommerce $(wp plugin get woocommerce --field=version --path=wp)"
 
       - name: Run smoke test
         run: bash plugin/tests/smoke/run.sh
         env:
           WP_PATH: wp
+          PLUGIN_ZIP: ${{ github.workspace }}/plugin/dist/virtual-balloon-race.zip
 
       - name: Show debug log
         if: always()
