@@ -43,8 +43,17 @@ $settings = static function ( $changes ) {
 
 wp_set_current_user( 1 );
 
-// Order status changes send WooCommerce emails; the test server has no mail program.
-add_filter( 'pre_wp_mail', '__return_false' );
+// Capture mail instead of sending it (the test server has no mail program).
+$GLOBALS['vbr_smoke_mail'] = array();
+add_filter(
+	'pre_wp_mail',
+	static function ( $short, $atts ) {
+		$GLOBALS['vbr_smoke_mail'][] = $atts;
+		return true;
+	},
+	10,
+	2
+);
 
 switch ( $stage ) {
 	// Plugin activated on a fresh site before WooCommerce.
@@ -315,6 +324,143 @@ switch ( $stage ) {
 		// Failed payment.
 		$order->update_status( 'failed' );
 		$check( ! $active( 'Refund Me' ) && 'failed' === $balloon( 'Refund Me' )->withdrawn_reason, 'a failed payment withdraws the balloon (failed)' );
+		break;
+
+	// Launch and results emails to entrants.
+	case 'emails':
+		global $wpdb;
+
+		// Run queued background actions now (Action Scheduler), as WP-Cron would.
+		$run_queue = static function () {
+			$ids = as_get_scheduled_actions(
+				array(
+					'hook'     => VBR_Race_Emails::SEND_HOOK,
+					'status'   => ActionScheduler_Store::STATUS_PENDING,
+					'per_page' => -1,
+				),
+				'ids'
+			);
+			foreach ( $ids as $id ) {
+				ActionScheduler::runner()->process_action( $id );
+			}
+			return count( $ids );
+		};
+
+		// Earlier stages' races may have emails queued; send those first so only this race's emails are counted.
+		VBR_Race_Emails::check();
+		$run_queue();
+
+		$race = VBR_Races::save(
+			array(
+				'name'       => 'Smoke Email Race',
+				'launch_lat' => 51.4885,
+				'launch_lng' => -2.58,
+				'launch_at'  => gmdate( 'Y-m-d H:i:s', time() + DAY_IN_SECONDS ),
+			)
+		);
+		$add  = static function ( $name, $email, $owner ) use ( $wpdb, $race ) {
+			$wpdb->insert(
+				VBR_Balloons::table(),
+				array(
+					'race_id'       => $race,
+					'owner_name'    => $owner,
+					'owner_email'   => $email,
+					'balloon_name'  => $name,
+					'balloon_color' => 'Green',
+					'helium_level'  => 'Balanced',
+					'latitude'      => 51.4885,
+					'longitude'     => -2.58,
+					'start_lat'     => 51.4885,
+					'start_lng'     => -2.58,
+					'trail_json'    => '[[51.4885,-2.58]]',
+					'created_at'    => current_time( 'mysql' ),
+				)
+			);
+			return (int) $wpdb->insert_id;
+		};
+		$add( 'Alpha', 'ann.entrant@example.com', 'Ann Entrant' );
+		$add( 'Bravo', 'Ann.Entrant@example.com', 'Ann Entrant' );
+		$add( 'Charlie', 'bob.entrant@example.com', 'Bob Entrant' );
+		$gone = $add( 'Withdrawn One', 'cat.entrant@example.com', 'Cat Entrant' );
+		VBR_Balloons::withdraw( array( $gone ), 'refunded' );
+
+		$mine = static function () {
+			return array_values(
+				array_filter(
+					$GLOBALS['vbr_smoke_mail'],
+					static function ( $mail ) {
+						return false !== strpos( $mail['subject'], 'Smoke Email Race' );
+					}
+				)
+			);
+		};
+		$to   = static function ( $mails ) {
+			$list = array();
+			foreach ( $mails as $mail ) {
+				$list[] = strtolower( implode( ',', (array) $mail['to'] ) );
+			}
+			sort( $list );
+			return $list;
+		};
+
+		VBR_Race_Emails::check();
+		$run_queue();
+		$check( array() === $mine(), 'no emails before launch' );
+
+		// Launch.
+		$wpdb->update( VBR_Races::table(), array( 'launch_at' => gmdate( 'Y-m-d H:i:s', time() - 60 ) ), array( 'id' => $race ) );
+		VBR_Races::flush();
+		VBR_Race_Emails::check();
+		$queued = $run_queue();
+		$mails  = $mine();
+		$check( 2 === $queued, 'launch emails queued in the background, one per person (' . $queued . ')' );
+		$check( array( 'ann.entrant@example.com', 'bob.entrant@example.com' ) === $to( $mails ), 'launch email to each entrant once; none for the withdrawn balloon' );
+		$ann = array(
+			'message' => '',
+			'subject' => '',
+		);
+		foreach ( $mails as $mail ) {
+			if ( false !== stripos( implode( ',', (array) $mail['to'] ), 'ann.' ) ) {
+				$ann = $mail;
+			}
+		}
+		$check( 'Your balloon has launched in Smoke Email Race!' === $ann['subject'], 'launch subject' );
+		$check( false !== strpos( $ann['message'], 'Alpha' ) && false !== strpos( $ann['message'], 'Bravo' ) && false !== strpos( $ann['message'], 'Hi Ann' ), 'one email lists both of Ann\'s balloons and greets her' );
+		$check( false !== strpos( $ann['message'], 'balloon=' ), 'launch email links to each balloon on the map' );
+		$check( false === strpos( implode( ' ', wp_list_pluck( $mails, 'message' ) ), 'Withdrawn One' ), 'withdrawn balloon not mentioned' );
+
+		VBR_Race_Emails::check();
+		$check( 0 === $run_queue() && 2 === count( $mine() ), 'launch emails are sent only once' );
+
+		// Finish.
+		VBR_Cron::tick( 3, array( 'race_id' => $race, 'source' => 'cli' ) );
+		VBR_Races::set_time( $race, 'end_at', time() - 30 );
+		VBR_Race_Emails::check();
+		$run_queue();
+		$results = array_slice( $mine(), 2 );
+		$check( 2 === count( $results ) && false !== strpos( $results[0]['subject'], 'Final results: Smoke Email Race' ), 'results email to each entrant when the race finishes' );
+		$check( (bool) preg_match( '/#\d+ of 3/', implode( ' ', wp_list_pluck( $results, 'message' ) ) ), 'results show each balloon\'s position out of 3' );
+		$check( false !== strpos( implode( ' ', wp_list_pluck( $results, 'message' ) ), 'km from launch' ), 'results show distance from launch' );
+
+		// Switched off in WooCommerce → Settings → Emails.
+		update_option( 'woocommerce_vbr_balloon_launched_settings', array( 'enabled' => 'no' ) );
+		$off = VBR_Races::save(
+			array(
+				'name'       => 'Smoke Email Race Off',
+				'launch_lat' => 51.4885,
+				'launch_lng' => -2.58,
+				'launch_at'  => gmdate( 'Y-m-d H:i:s', time() - 60 ),
+			)
+		);
+		$wpdb->update( VBR_Balloons::table(), array( 'race_id' => $off ), array( 'balloon_name' => 'Charlie' ) );
+		$before = count( $GLOBALS['vbr_smoke_mail'] );
+		WC()->mailer()->init(); // Reload email settings, as on a new request.
+		VBR_Race_Emails::check();
+		$run_queue();
+		$check( count( $GLOBALS['vbr_smoke_mail'] ) === $before, 'no launch email when it is switched off in WooCommerce' );
+
+		$screen = $render_race_screen( VBR_Races::get( $race ) );
+		$check( false !== strpos( $screen, 'Results email: sent to 2 people' ), 'race screen shows the email status' );
 		break;
 
 	default:

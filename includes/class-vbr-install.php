@@ -153,6 +153,8 @@ class VBR_Install {
 			team_scoring varchar(20) NOT NULL DEFAULT '',
 			ranking varchar(20) NOT NULL DEFAULT '',
 			flight_mode varchar(20) NOT NULL DEFAULT '',
+			launch_email_sent_at datetime DEFAULT NULL,
+			results_email_sent_at datetime DEFAULT NULL,
 			created_at datetime NOT NULL,
 			PRIMARY KEY  (id),
 			KEY slug (slug),
@@ -187,6 +189,10 @@ class VBR_Install {
 
 		if ( version_compare( $previous, '1.7.0', '<' ) ) {
 			VBR_Balloons::backfill_order_items();
+		}
+
+		if ( '0' !== $previous && version_compare( $previous, '1.8.0', '<' ) ) {
+			VBR_Race_Emails::mark_past_races_sent();
 		}
 
 		// Work that needs WooCommerce's post types or rewrite rules runs on the next `init`.

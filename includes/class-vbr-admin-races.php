@@ -98,6 +98,7 @@ class VBR_Admin_Races {
 				$race = VBR_Races::get( $id );
 				if ( $race && VBR_Races::FLYING === VBR_Races::status( $race ) ) {
 					VBR_Races::set_time( $id, 'end_at', time() );
+					do_action( 'vbr_race_stage_changed', $id );
 				}
 				$this->redirect( array( 'action' => 'edit', 'race' => $id ), 'finished' );
 				break;
@@ -197,6 +198,13 @@ class VBR_Admin_Races {
 
 			$wpdb->update( VBR_Races::table(), $row, array( 'id' => $id ) );
 			VBR_Races::flush();
+
+			/**
+			 * A race's stage changed by hand (Launch now / Finish now), e.g. to send its emails straight away.
+			 *
+			 * @param int $race_id Race ID.
+			 */
+			do_action( 'vbr_race_stage_changed', $id );
 		}
 
 		$this->redirect( array( 'action' => 'edit', 'race' => $id ), 'launched' );
@@ -331,6 +339,13 @@ class VBR_Admin_Races {
 				<li><strong><?php esc_html_e( 'Ends:', 'virtual-balloon-race' ); ?></strong> <?php echo esc_html( $race->end_at ? VBR_Races::format_date( $race->end_at ) : __( 'When finished by hand', 'virtual-balloon-race' ) ); ?></li>
 				<li><strong><?php esc_html_e( 'Launch point:', 'virtual-balloon-race' ); ?></strong> <?php echo esc_html( ( $launch['label'] ? $launch['label'] . ' ' : '' ) . sprintf( '(%.4f, %.4f)', $launch['lat'], $launch['lng'] ) ); ?></li>
 				<li><strong><?php esc_html_e( 'Shortcodes:', 'virtual-balloon-race' ); ?></strong> <code>[balloon_map race="<?php echo esc_html( $race->slug ); ?>"]</code> <code>[balloon_leaderboard race="<?php echo esc_html( $race->slug ); ?>"]</code></li>
+				<?php if ( VBR_Product_Type::available() ) : ?>
+					<li>
+						<strong><?php esc_html_e( 'Emails to entrants:', 'virtual-balloon-race' ); ?></strong>
+						<?php echo esc_html( implode( ' · ', VBR_Race_Emails::status_lines( $race ) ) ); ?>
+						&middot; <a href="<?php echo esc_url( admin_url( 'admin.php?page=wc-settings&tab=email' ) ); ?>"><?php esc_html_e( 'Edit or switch off in WooCommerce → Settings → Emails', 'virtual-balloon-race' ); ?></a>
+					</li>
+				<?php endif; ?>
 			</ul>
 			<p class="vbr-race-actions">
 				<?php if ( in_array( $status, array( VBR_Races::UPCOMING, VBR_Races::ON_SALE ), true ) ) : ?>

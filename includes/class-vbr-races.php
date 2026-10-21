@@ -529,7 +529,7 @@ class VBR_Races {
 	public static function set_time( $id, $column, $ts ) {
 		global $wpdb;
 
-		if ( ! in_array( $column, array( 'launch_at', 'end_at', 'last_tick_at' ), true ) ) {
+		if ( ! in_array( $column, array( 'launch_at', 'end_at', 'last_tick_at', 'launch_email_sent_at', 'results_email_sent_at' ), true ) ) {
 			return;
 		}
 
