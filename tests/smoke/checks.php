@@ -506,7 +506,8 @@ switch ( $stage ) {
 	case 'uninstalled-kept':
 		global $wpdb;
 		$check( $wpdb->prefix . 'vbr_races' === $wpdb->get_var( "SHOW TABLES LIKE '{$wpdb->prefix}vbr_races'" ), 'race tables kept' );
-		$check( false !== get_option( 'vbr_settings' ) && false !== get_option( 'vbr_db_version' ), 'settings kept' );
+		// A fresh install stores these; vbr_settings only exists once Settings has been saved.
+		$check( false !== get_option( 'vbr_db_version' ) && false !== get_option( 'vbr_tracking_page_id' ), 'plugin options kept' );
 		$check( ! wp_next_scheduled( 'vbr_check_race_emails' ) && ! wp_next_scheduled( 'vbr_daily_cleanup' ), 'scheduled jobs stopped' );
 		break;
 
