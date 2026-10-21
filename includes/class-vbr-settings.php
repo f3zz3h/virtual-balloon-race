@@ -292,33 +292,11 @@ class VBR_Settings {
 			return;
 		}
 
-		wp_register_style( 'vbr-leaflet', 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css', array(), '1.9.4' );
-		wp_register_script( 'vbr-leaflet', 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js', array(), '1.9.4', true );
-
-		// Subresource integrity for the CDN files (WordPress doesn't print these itself).
-		$sri = array(
-			'css' => 'sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H',
-			'js'  => 'sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH',
-		);
-
-		add_filter(
-			'style_loader_tag',
-			static function ( $tag, $handle ) use ( $sri ) {
-				return 'vbr-leaflet' === $handle ? str_replace( ' href=', ' integrity="' . $sri['css'] . '" crossorigin="anonymous" href=', $tag ) : $tag;
-			},
-			10,
-			2
-		);
-
-		add_filter(
-			'script_loader_tag',
-			static function ( $tag, $handle ) use ( $sri ) {
-				return 'vbr-leaflet' === $handle ? str_replace( ' src=', ' integrity="' . $sri['js'] . '" crossorigin="anonymous" src=', $tag ) : $tag;
-			},
-			10,
-			2
-		);
+		// Leaflet 1.9.4 ships with the plugin (assets/vendor/leaflet, BSD-2-Clause): no third-party CDN.
+		wp_register_style( 'vbr-leaflet', VBR_PLUGIN_URL . 'assets/vendor/leaflet/leaflet.css', array(), '1.9.4' );
+		wp_register_script( 'vbr-leaflet', VBR_PLUGIN_URL . 'assets/vendor/leaflet/leaflet.js', array(), '1.9.4', true );
 	}
+
 
 	/**
 	 * Enqueue settings page assets.

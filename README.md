@@ -216,6 +216,7 @@ includes/
   class-vbr-monetization.php    Paid add-ons: strategy fee, custom launch, logo upload
   class-vbr-product-preview.php Live balloon preview in place of the product images
   class-vbr-cli.php             wp vbr …
+assets/vendor/leaflet/          Leaflet 1.9.4 (BSD-2-Clause), bundled: no third-party CDN
 assets/js/balloon.js            Balloon drawing (SVG) shared by the map and product page
 assets/js/map.js                Public Leaflet map
 assets/js/product.js            Product page launch picker + logo preview
@@ -284,6 +285,12 @@ Every pull request and push to `main` runs:
 - **PHP syntax** on PHP 7.4, 8.0 and 8.3, and **WordPress Coding Standards** (`.github/workflows/php_check.yml`). Coding-standard errors fail the check; warnings are reported only.
 - **PHPStan** static analysis at level 5 with WordPress and WooCommerce stubs (`phpstan.neon.dist`). Run it locally with `composer install` then `composer phpstan`. `composer.json` holds development tools only; the plugin itself has no Composer dependencies, and `vendor/` isn't committed. `phpstan-baseline.neon` is empty; if the level is raised, record existing findings there so only new ones fail.
 - **Fresh install smoke test** (`.github/workflows/smoke_test.yml`): installs the latest WordPress and WooCommerce, then `tests/smoke/run.sh` checks both activation orders (plugin before and after WooCommerce), the default page and product, a race end to end (purchasability, order → balloon, a tick, REST, teams), refunds and cancellations (line refund, refund deleted, goodwill refund, cancel and reopen, hand withdrawal, failed payment), the launch and results emails (one per person, withdrawn balloons left out, sent once, switched off in WooCommerce), housekeeping (abandoned logos, the basket check), entry limits (paid and unpaid places, sold out, basket limits, places freed), deleting the plugin with "Delete all race data" off and on and that the plugin logs no PHP errors. To run it by hand: set `WP_PATH` to a throwaway WordPress with WooCommerce and this plugin (as `plugins/virtual-balloon-race`) copied in, then `bash tests/smoke/run.sh`. It empties that site's database.
+
+### WordPress.org readme and donations
+
+`readme.txt` is the plugin's WordPress.org listing (description, FAQ, **External services**, changelog). Keep `Stable tag` and the changelog in step with the version when releasing.
+
+Donate links (a **Donate** link on the Plugins screen and a short "Support this plugin" note at the foot of Settings) appear only when `VBR_Support::DONATE_URL` in `includes/class-vbr-support.php` is set (or via the `vbr_donate_url` filter). Use the same URL for `Donate link:` in `readme.txt`.
 
 ### Releasing a version
 

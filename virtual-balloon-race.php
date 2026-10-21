@@ -1,8 +1,7 @@
 <?php
 /**
  * Plugin Name:       Virtual Balloon Race
- * Plugin URI:        https://example.com/virtual-balloon-race
- * Description:       Sell virtual balloon race entries via WooCommerce, capture balloon customizations, and display a live fundraising leaderboard.
+ * Description:       Run a virtual balloon race fundraiser: sell entries through WooCommerce and watch the balloons drift across a live map on real winds.
  * Version:           1.10.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
@@ -46,6 +45,7 @@ require_once VBR_PLUGIN_DIR . 'includes/class-vbr-team-entries.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-order-sync.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-race-emails.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-housekeeping.php';
+require_once VBR_PLUGIN_DIR . 'includes/class-vbr-support.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-product-preview.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-product-type.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-account.php';
@@ -103,6 +103,7 @@ final class Virtual_Balloon_Race {
 		new VBR_Map();
 		new VBR_Pages();
 		new VBR_Housekeeping();
+		new VBR_Support();
 
 		if ( $this->is_woocommerce_active() ) {
 			new VBR_Product_Type();
