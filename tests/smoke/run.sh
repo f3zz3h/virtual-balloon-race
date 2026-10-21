@@ -52,12 +52,29 @@ wp eval-file "$CHECKS" refunds
 stage "Scenario A: launch and results emails"
 wp eval-file "$CHECKS" emails
 
+stage "Scenario A: housekeeping"
+wp eval-file "$CHECKS" housekeeping
+
 stage "Scenario B: WooCommerce first, then the plugin"
 fresh_site
 wp plugin activate woocommerce
 wp plugin activate "$PLUGIN"
 next_request
 wp eval-file "$CHECKS" fresh-product
+
+# Deleting the plugin (needs the zip to reinstall it in between). Runs last: it removes the plugin.
+if [ -n "${PLUGIN_ZIP:-}" ]; then
+	stage "Deleting the plugin with \"Delete all race data\" off"
+	wp plugin uninstall "$PLUGIN" --deactivate
+	wp eval-file "$CHECKS" uninstalled-kept
+
+	stage "Deleting the plugin with \"Delete all race data\" on"
+	wp plugin install "$PLUGIN_ZIP" --activate
+	next_request
+	wp eval '$s = get_option( "vbr_settings", array() ); $s["delete_data_on_uninstall"] = 1; update_option( "vbr_settings", $s );'
+	wp plugin uninstall "$PLUGIN" --deactivate
+	wp eval-file "$CHECKS" uninstalled-removed
+fi
 
 stage "PHP errors from the plugin"
 if [ -f "$LOG" ] && grep -E "PHP (Fatal error|Parse error|Warning|Notice|Deprecated).*plugins/$PLUGIN/" "$LOG"; then

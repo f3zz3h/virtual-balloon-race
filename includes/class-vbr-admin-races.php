@@ -400,7 +400,7 @@ class VBR_Admin_Races {
 						<select id="vbr_race_team_scoring" name="vbr_race[team_scoring]">
 							<option value="">
 								<?php
-								/* translators: %s: default scoring method */
+								/* translators: %s: the default choice from Settings */
 								echo esc_html( sprintf( __( 'Default (%s)', 'virtual-balloon-race' ), $labels[ VBR_Teams::scoring( null ) ] ) );
 								?>
 							</option>
@@ -553,7 +553,7 @@ class VBR_Admin_Races {
 								<option value="">
 									<?php
 									$modes = VBR_Flight_Modes::all();
-									/* translators: %s: default flight mode */
+									/* translators: %s: the default choice from Settings */
 									echo esc_html( sprintf( __( 'Default (%s)', 'virtual-balloon-race' ), $modes[ VBR_Flight_Modes::for_race( null ) ]['label'] ) );
 									?>
 								</option>

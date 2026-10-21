@@ -19,6 +19,14 @@ jobs:
       - name: Check out repository code
         uses: actions/checkout@v6
 
+      # WP-CLI refreshes the translation template inside the zip.
+      - name: Set up PHP and WP-CLI
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          tools: wp-cli
+
       - name: Build zip
         id: build
         # On a tag, the plugin version must match it: v1.7.0 → 1.7.0.
@@ -47,6 +55,14 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v6
+
+      # WP-CLI refreshes the translation template inside the zip.
+      - name: Set up PHP and WP-CLI
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          tools: wp-cli
 
       - name: Build zip
         id: build

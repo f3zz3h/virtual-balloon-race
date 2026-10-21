@@ -117,6 +117,9 @@ class VBR_Settings {
 			'teams_enabled'     => array( 'section' => 'teams', 'type' => 'checkbox', 'default' => 0, 'label' => __( 'Enable teams', 'virtual-balloon-race' ), 'help' => __( 'Buyers pick a team for each balloon, and a team leaderboard ranks the teams. When off, teams are hidden everywhere but kept.', 'virtual-balloon-race' ) ),
 			'team_scoring'      => array( 'section' => 'teams', 'type' => 'select', 'default' => 'average', 'label' => __( 'Default team scoring', 'virtual-balloon-race' ), 'options' => VBR_Teams::scoring_labels(), 'help' => __( 'Average is fairest between big and small teams. Each race can choose its own.', 'virtual-balloon-race' ) ),
 			'default_teams'     => array( 'section' => 'teams', 'type' => 'teams', 'default' => array(), 'label' => __( 'Default teams', 'virtual-balloon-race' ), 'help' => __( 'New races start with these teams. Change a race’s own teams on its race screen.', 'virtual-balloon-race' ) ),
+
+			// Data.
+			'delete_data_on_uninstall' => array( 'section' => 'data', 'type' => 'checkbox', 'default' => 0, 'label' => __( 'Delete all race data when the plugin is deleted', 'virtual-balloon-race' ), 'help' => __( 'Off by default, so deleting and reinstalling the plugin (or replacing a hand-copied folder) keeps everything. When ticked, deleting the plugin from Plugins removes its races, balloons, teams and settings. Pages, products, orders and uploaded logos are kept either way. Deactivating never deletes anything.', 'virtual-balloon-race' ) ),
 		);
 	}
 
@@ -133,6 +136,7 @@ class VBR_Settings {
 			'map'    => __( 'Map and leaderboard', 'virtual-balloon-race' ),
 			'shop'   => __( 'Shop add-ons', 'virtual-balloon-race' ),
 			'teams'  => __( 'Teams', 'virtual-balloon-race' ),
+			'data'   => __( 'Data', 'virtual-balloon-race' ),
 		);
 	}
 

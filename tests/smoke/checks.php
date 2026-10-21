@@ -463,6 +463,66 @@ switch ( $stage ) {
 		$check( false !== strpos( $screen, 'Results email: sent to 2 people' ), 'race screen shows the email status' );
 		break;
 
+	// Abandoned logo uploads and the basket check.
+	case 'housekeeping':
+		$logo = static function ( $tag, $days_old ) {
+			$id = wp_insert_attachment(
+				array(
+					'post_title'     => "Smoke logo {$tag} {$days_old}d",
+					'post_mime_type' => 'image/png',
+					'post_status'    => 'inherit',
+					'post_date_gmt'  => gmdate( 'Y-m-d H:i:s', time() - $days_old * DAY_IN_SECONDS ),
+					'post_date'      => get_date_from_gmt( gmdate( 'Y-m-d H:i:s', time() - $days_old * DAY_IN_SECONDS ) ),
+				)
+			);
+			update_post_meta( $id, '_vbr_logo_upload', $tag );
+			return (int) $id;
+		};
+		$old_cart     = $logo( 'cart', 8 );
+		$new_cart     = $logo( 'cart', 2 );
+		$old_ordered  = $logo( 'ordered', 30 );
+		$deleted      = VBR_Housekeeping::delete_abandoned_logos();
+		$check( 1 === $deleted && ! get_post( $old_cart ), 'a week-old logo from an abandoned basket is deleted' );
+		$check( (bool) get_post( $new_cart ), 'a recent basket logo is kept' );
+		$check( (bool) get_post( $old_ordered ), 'an ordered logo is kept, however old' );
+		$check( (bool) wp_next_scheduled( VBR_Housekeeping::HOOK ), 'the daily clean-up is scheduled' );
+
+		// A basket entry whose logo has gone is removed, with a notice.
+		wc_load_cart();
+		WC()->cart->empty_cart();
+		$product = VBR_Product_Type::all_products()[0];
+		WC()->cart->add_to_cart( $product->get_id(), 1, 0, array(), array( 'vbr_balloon_name' => 'Logo Gone', 'vbr_logo_id' => $old_cart, 'vbr_unique_key' => 'a' ) );
+		WC()->cart->add_to_cart( $product->get_id(), 1, 0, array(), array( 'vbr_balloon_name' => 'No Logo', 'vbr_unique_key' => 'b' ) );
+		$check( 2 === count( WC()->cart->get_cart() ), 'two balloons in the basket' );
+		do_action( 'woocommerce_check_cart_items' );
+		$left = wp_list_pluck( WC()->cart->get_cart(), 'vbr_balloon_name' );
+		$check( array( 'No Logo' ) === array_values( $left ), 'the balloon whose logo was cleaned up is taken out of the basket' );
+		$check( false !== strpos( wp_json_encode( wc_get_notices( 'error' ) ), 'Logo Gone' ), 'the buyer is told to add it again' );
+		wc_clear_notices();
+		WC()->cart->empty_cart();
+		break;
+
+	// After deleting the plugin with "Delete all race data" off: everything stays.
+	case 'uninstalled-kept':
+		global $wpdb;
+		$check( $wpdb->prefix . 'vbr_races' === $wpdb->get_var( "SHOW TABLES LIKE '{$wpdb->prefix}vbr_races'" ), 'race tables kept' );
+		// A fresh install stores these; vbr_settings only exists once Settings has been saved.
+		$check( false !== get_option( 'vbr_db_version' ) && false !== get_option( 'vbr_tracking_page_id' ), 'plugin options kept' );
+		$check( ! wp_next_scheduled( 'vbr_check_race_emails' ) && ! wp_next_scheduled( 'vbr_daily_cleanup' ), 'scheduled jobs stopped' );
+		break;
+
+	// After deleting the plugin with "Delete all race data" on.
+	case 'uninstalled-removed':
+		global $wpdb;
+		foreach ( array( 'vbr_races', 'vbr_balloons', 'vbr_teams' ) as $table ) {
+			$check( null === $wpdb->get_var( "SHOW TABLES LIKE '{$wpdb->prefix}{$table}'" ), "{$table} table removed" );
+		}
+		$left = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name LIKE 'vbr\\_%' OR option_name LIKE 'woocommerce\\_vbr\\_%'" );
+		$check( 0 === $left, 'plugin options removed (' . $left . ' left)' );
+		$check( 1 === count( get_posts( array( 'post_type' => 'page', 'name' => 'balloon-race', 'post_status' => 'any' ) ) ), 'the tracking page (site content) is kept' );
+		$check( 0 < count( get_posts( array( 'post_type' => 'product', 'post_status' => 'any', 'fields' => 'ids' ) ) ), 'products (site content) are kept' );
+		break;
+
 	default:
 		WP_CLI::error( "Unknown stage: {$stage}" );
 }

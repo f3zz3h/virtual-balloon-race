@@ -31,6 +31,13 @@ ZIP="$DIST/$SLUG-$header_version.zip"
 rm -rf "$STAGE" "$ZIP"
 mkdir -p "$STAGE/$SLUG"
 rsync -a --exclude-from="$ROOT/.distignore" --exclude dist "$ROOT/" "$STAGE/$SLUG/"
+
+# Refresh the translation template from the code being shipped (needs WP-CLI; otherwise the committed one is used).
+if command -v wp > /dev/null; then
+	wp i18n make-pot "$STAGE/$SLUG" "$STAGE/$SLUG/languages/$SLUG.pot" --slug="$SLUG" --domain="$SLUG" \
+		--headers='{"Report-Msgid-Bugs-To":"https://github.com/f3zz3h/VirtualBalloonRace/issues"}' --quiet
+	echo "Translation template refreshed ($(grep -c '^msgid "' "$STAGE/$SLUG/languages/$SLUG.pot") strings)"
+fi
 if command -v zip > /dev/null; then
 	(cd "$STAGE" && zip -qr -X "$ZIP" "$SLUG")
 else
