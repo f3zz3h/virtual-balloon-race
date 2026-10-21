@@ -49,6 +49,9 @@ wp eval-file "$CHECKS" race-flow
 stage "Scenario A: refunds and cancellations"
 wp eval-file "$CHECKS" refunds
 
+stage "Scenario A: launch and results emails"
+wp eval-file "$CHECKS" emails
+
 stage "Scenario B: WooCommerce first, then the plugin"
 fresh_site
 wp plugin activate woocommerce

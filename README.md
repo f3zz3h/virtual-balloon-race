@@ -3,7 +3,7 @@
 A WordPress + WooCommerce plugin for running virtual balloon races as fundraisers. Supporters buy a balloon entry for a race, customise it (name, colour, helium strategy, and optional paid extras), and after launch the balloons drift across a live map using real wind data. A leaderboard ranks balloons by how far they get from the launch point (or, per race, by distance travelled).
 
 - **Requires:** WordPress 6.0+, PHP 7.4+, WooCommerce 7.0+ (for selling entries)
-- **Version:** 1.7.0 (database schema 1.7.0)
+- **Version:** 1.8.0 (database schema 1.8.0)
 - **Licence:** GPL-2.0-or-later
 
 ---
@@ -156,6 +156,15 @@ Balloons follow their orders:
 
 Customers see withdrawn balloons in **My Account → My balloons** with the reason, and get no tracking link for them.
 
+#### Emails to entrants
+
+Two WooCommerce emails go to everyone with a balloon in a race (one email per person, listing all their balloons; withdrawn balloons are left out):
+
+- **Balloon race: launched**, when the race launches (at its launch time, or **Launch now**): each balloon with a **Track it** link, and when the race ends.
+- **Balloon race: final results**, when the race finishes (at its end time, or **Finish now**): each balloon's position, distance from launch (or travelled) and its team's finishing position, with a link to the final leaderboard.
+
+Switch either off, or change its subject, heading and closing text, in **WooCommerce → Settings → Emails**. They use the shop's email header, footer and colours. Each race's screen shows whether its emails have gone out and to how many people. Emails are queued with WooCommerce's Action Scheduler and sent in the background, so large races don't slow the site. The plugin checks for launches and finishes hourly, after every movement update, and straight away on **Launch now** / **Finish now**. Upgrading to 1.8.0 marks races that have already launched or finished as emailed, so nothing old is sent. Theme overrides: copy `templates/emails/vbr-balloon-launched.php` (or `vbr-balloon-results.php`, and the `plain/` versions) to `yourtheme/woocommerce/emails/`.
+
 ### 6. During the race
 
 **Balloon Race → Leaderboard** (pick the race at the top):
@@ -193,6 +202,8 @@ includes/
   class-vbr-race-entries.php    Race choice, purchasability, basket guard, race_id on balloons
   class-vbr-teams.php           Teams: per-race lists, scoring, standings, the team editor
   class-vbr-flight-modes.php    Flight modes (Drift, Soar, Jetstream): lift decay, landing, Settings cards
+  class-vbr-race-emails.php     Launch and results emails: when to send, who to, background queue
+  emails/                       The two WooCommerce email classes (templates in templates/emails/)
   class-vbr-order-sync.php      Withdraws / reinstates balloons when orders are refunded, cancelled or fail
   class-vbr-team-entries.php    Team choice on the product page → basket → order → team_id on balloons
   class-vbr-monetization.php    Paid add-ons: strategy fee, custom launch, logo upload
@@ -265,7 +276,7 @@ Every pull request and push to `main` runs:
 
 - **PHP syntax** on PHP 7.4, 8.0 and 8.3, and **WordPress Coding Standards** (`.github/workflows/php_check.yml`). Coding-standard errors fail the check; warnings are reported only.
 - **PHPStan** static analysis at level 5 with WordPress and WooCommerce stubs (`phpstan.neon.dist`). Run it locally with `composer install` then `composer phpstan`. `composer.json` holds development tools only; the plugin itself has no Composer dependencies, and `vendor/` isn't committed. `phpstan-baseline.neon` is empty; if the level is raised, record existing findings there so only new ones fail.
-- **Fresh install smoke test** (`.github/workflows/smoke_test.yml`): installs the latest WordPress and WooCommerce, then `tests/smoke/run.sh` checks both activation orders (plugin before and after WooCommerce), the default page and product, a race end to end (purchasability, order → balloon, a tick, REST, teams), refunds and cancellations (line refund, refund deleted, goodwill refund, cancel and reopen, hand withdrawal, failed payment) and that the plugin logs no PHP errors. To run it by hand: set `WP_PATH` to a throwaway WordPress with WooCommerce and this plugin (as `plugins/virtual-balloon-race`) copied in, then `bash tests/smoke/run.sh`. It empties that site's database.
+- **Fresh install smoke test** (`.github/workflows/smoke_test.yml`): installs the latest WordPress and WooCommerce, then `tests/smoke/run.sh` checks both activation orders (plugin before and after WooCommerce), the default page and product, a race end to end (purchasability, order → balloon, a tick, REST, teams), refunds and cancellations (line refund, refund deleted, goodwill refund, cancel and reopen, hand withdrawal, failed payment), the launch and results emails (one per person, withdrawn balloons left out, sent once, switched off in WooCommerce) and that the plugin logs no PHP errors. To run it by hand: set `WP_PATH` to a throwaway WordPress with WooCommerce and this plugin (as `plugins/virtual-balloon-race`) copied in, then `bash tests/smoke/run.sh`. It empties that site's database.
 
 ### Releasing a version
 
@@ -294,7 +305,7 @@ See [`race_settings_and_map_9db2297a.plan.md`](race_settings_and_map_9db2297a.pl
 
 - Abandoned logo uploads are tagged (`_vbr_logo_upload`) but not cleaned up
 - Movement settings (speed, interval, bursts) apply to all races, not per race
-- No entry limits per race, and no emails to entrants (launch, results)
+- No entry limits per race
 - No uninstall cleanup, no translation template (`.pot`), no automated test suite
 - Logo upload needs the standard product form (themes using AJAX add-to-cart on single products won't send the file)
 - Balloons can drift over sea; there's no land awareness
