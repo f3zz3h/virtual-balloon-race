@@ -1,0 +1,17 @@
+# Files and folders left out of the installable plugin zip (and the smoke test's copy).
+# One pattern per line, as for rsync --exclude-from.
+.git
+.github
+.gitignore
+.gitattributes
+.distignore
+.vscode
+tests
+vendor
+node_modules
+composer.json
+composer.lock
+phpstan.neon.dist
+phpstan-baseline.neon
+TODO.md
+*.plan.md
