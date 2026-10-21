@@ -100,6 +100,7 @@ class VBR_Settings {
 			// Map.
 			'map_zoom'          => array( 'section' => 'map', 'type' => 'number', 'default' => 7, 'min' => 1, 'max' => 18, 'step' => 1, 'label' => __( 'Default map zoom', 'virtual-balloon-race' ) ),
 			'map_refresh'       => array( 'section' => 'map', 'type' => 'number', 'default' => 60, 'min' => 15, 'max' => 3600, 'step' => 1, 'label' => __( 'Map refresh (seconds)', 'virtual-balloon-race' ) ),
+			'leaderboard_per_page' => array( 'section' => 'map', 'type' => 'select', 'default' => '10', 'label' => __( 'Leaderboard entries per page', 'virtual-balloon-race' ), 'options' => array( '10' => '10', '25' => '25', '50' => '50', '100' => '100' ), 'help' => __( 'How many balloons each leaderboard page shows at first. Visitors can change it with the dropdown under the leaderboard; the admin leaderboard uses it too.', 'virtual-balloon-race' ) ),
 			'trail_cap'         => array( 'section' => 'map', 'type' => 'number', 'default' => 80, 'min' => 2, 'max' => 500, 'step' => 1, 'label' => __( 'Trail length (points)', 'virtual-balloon-race' ) ),
 
 			// Shop add-ons.
@@ -129,7 +130,7 @@ class VBR_Settings {
 			'race'   => __( 'Race movement', 'virtual-balloon-race' ),
 			'launch' => __( 'Default launch point and wind', 'virtual-balloon-race' ),
 			'burst'  => __( 'Bursts', 'virtual-balloon-race' ),
-			'map'    => __( 'Map', 'virtual-balloon-race' ),
+			'map'    => __( 'Map and leaderboard', 'virtual-balloon-race' ),
 			'shop'   => __( 'Shop add-ons', 'virtual-balloon-race' ),
 			'teams'  => __( 'Teams', 'virtual-balloon-race' ),
 		);

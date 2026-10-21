@@ -40,6 +40,21 @@ class VBR_Frontend {
 			VBR_Balloons::asset_version( 'assets/js/frontend.js' ),
 			true
 		);
+		wp_localize_script(
+			'vbr-frontend',
+			'vbrLeaderboard',
+			array(
+				'i18n' => array(
+					/* translators: 1: first row, 2: last row, 3: total */
+					'showing'  => __( 'Showing %1$s–%2$s of %3$s', 'virtual-balloon-race' ),
+					'none'     => __( 'No balloons to show', 'virtual-balloon-race' ),
+					'previous' => __( 'Previous', 'virtual-balloon-race' ),
+					'next'     => __( 'Next', 'virtual-balloon-race' ),
+					/* translators: %s: page number */
+					'page'     => __( 'Page %s', 'virtual-balloon-race' ),
+				),
+			)
+		);
 
 		$needs_leaderboard = false;
 		if ( is_singular() ) {
@@ -60,6 +75,35 @@ class VBR_Frontend {
 	}
 
 	/**
+	 * Entries-per-page choices for leaderboards (0 = all).
+	 *
+	 * @return int[]
+	 */
+	public static function per_page_options() {
+		return array( 10, 25, 50, 100, 0 );
+	}
+
+	/**
+	 * Default entries per page (Settings), or a valid override.
+	 *
+	 * @param mixed $requested Requested value ('' = use the default; 0 or 'all' = all).
+	 * @return int 0 for all.
+	 */
+	public static function per_page( $requested = '' ) {
+		if ( 'all' === $requested ) {
+			return 0;
+		}
+
+		$value = '' === $requested || null === $requested ? (int) VBR_Settings::get( 'leaderboard_per_page' ) : (int) $requested;
+
+		if ( $value > 0 ) {
+			return $value;
+		}
+
+		return '0' === (string) $requested ? 0 : 10;
+	}
+
+	/**
 	 * Render [balloon_leaderboard].
 	 *
 	 * @param array|string $atts Shortcode attributes.
@@ -72,16 +116,18 @@ class VBR_Frontend {
 		$ref  = VBR_Races::ref_from_shortcode( $atts );
 		$atts = shortcode_atts(
 			array(
-				'limit'   => 50,
-				'map_url' => '',
-				'race'    => 'current',
+				'per_page' => '',
+				'limit'    => '',
+				'map_url'  => '',
+				'race'     => 'current',
 			),
 			$atts,
 			'balloon_leaderboard'
 		);
 
 		$atts['race'] = $ref;
-		$limit        = max( 1, intval( $atts['limit'] ) );
+		// `limit` is the older name for `per_page`.
+		$per_page     = self::per_page( '' !== $atts['per_page'] ? $atts['per_page'] : $atts['limit'] );
 		$race         = VBR_Races::resolve( $atts['race'] );
 		$map_url      = '' !== $atts['map_url'] ? esc_url( $atts['map_url'] ) : VBR_Pages::tracking_url( $race );
 
@@ -98,7 +144,7 @@ class VBR_Frontend {
 		$by_start = VBR_Races::FROM_START === VBR_Races::ranking( $race );
 
 		if ( $race ) {
-			// Every flying balloon is rendered so search covers the whole race; rows past `limit` start hidden.
+			// Every flying balloon is rendered so search covers the whole race; the script pages them (rows past the first page start hidden).
 			$balloons = $wpdb->get_results(
 				$wpdb->prepare(
 					"SELECT * FROM {$table} WHERE is_burst = 0 AND race_id = %d ORDER BY {$order} DESC, id ASC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -153,7 +199,7 @@ class VBR_Frontend {
 
 		ob_start();
 		?>
-		<div class="vbr-leaderboard" data-vbr-leaderboard data-vbr-limit="<?php echo esc_attr( (string) $limit ); ?>">
+		<div class="vbr-leaderboard" data-vbr-leaderboard data-vbr-per-page="<?php echo esc_attr( (string) $per_page ); ?>">
 			<div class="vbr-leaderboard__header">
 				<div>
 					<h2 class="vbr-leaderboard__title"><?php echo esc_html( $race ? $race->name : __( 'Balloon Race Leaderboard', 'virtual-balloon-race' ) ); ?></h2>
@@ -254,9 +300,9 @@ class VBR_Frontend {
 								$search_haystack = mb_strtolower( $balloon->balloon_name . ' ' . $owner . ( $team ? ' ' . $team->name : '' ) );
 								$color_slug      = sanitize_html_class( strtolower( $balloon->balloon_color ) );
 								$is_mine         = in_array( (int) $balloon->id, $mine_ids, true );
-								$classes         = array_filter( array( $is_mine ? 'is-mine' : '', $index >= $limit ? 'is-extra' : '' ) );
+								$beyond          = $per_page && $index >= $per_page;
 								?>
-								<tr data-vbr-search="<?php echo esc_attr( $search_haystack ); ?>" data-vbr-balloon="<?php echo esc_attr( (string) $balloon->id ); ?>"<?php echo $classes ? ' class="' . esc_attr( implode( ' ', $classes ) ) . '"' : ''; ?><?php echo $is_mine ? ' data-vbr-mine' : ''; ?><?php echo $index >= $limit ? ' hidden' : ''; ?>>
+								<tr data-vbr-search="<?php echo esc_attr( $search_haystack ); ?>" data-vbr-balloon="<?php echo esc_attr( (string) $balloon->id ); ?>"<?php echo $is_mine ? ' class="is-mine" data-vbr-mine' : ''; ?><?php echo $beyond ? ' hidden' : ''; ?>>
 									<td data-label="<?php esc_attr_e( 'Rank', 'virtual-balloon-race' ); ?>"><?php echo esc_html( (string) ( $index + 1 ) ); ?></td>
 									<td data-label="<?php esc_attr_e( 'Balloon Name', 'virtual-balloon-race' ); ?>">
 										<?php if ( $map_url ) : ?>
@@ -293,24 +339,53 @@ class VBR_Frontend {
 					</tbody>
 				</table>
 			</div>
-			<?php if ( count( $balloons ) > $limit ) : ?>
-				<p class="vbr-leaderboard__more">
-					<?php
-					echo esc_html(
-						sprintf(
-							/* translators: 1: rows shown, 2: total balloons */
-							__( 'Showing the top %1$s of %2$s balloons. Search to find any balloon.', 'virtual-balloon-race' ),
-							number_format_i18n( $limit ),
-							number_format_i18n( count( $balloons ) )
-						)
-					);
-					?>
-				</p>
+			<?php if ( $balloons ) : ?>
+				<?php self::render_pager( $per_page, count( $balloons ) ); ?>
 			<?php endif; ?>
 			<p class="vbr-leaderboard__empty-search" hidden><?php esc_html_e( 'No balloons match that search.', 'virtual-balloon-race' ); ?></p>
 		</div>
 		<?php
 		return ob_get_clean();
+	}
+
+	/**
+	 * Paging controls under a leaderboard: entries per page, a summary and page links (filled in by frontend.js).
+	 *
+	 * @param int $per_page Entries per page (0 = all).
+	 * @param int $total    Number of rows.
+	 */
+	private static function render_pager( $per_page, $total ) {
+		?>
+		<div class="vbr-pager" data-vbr-pager>
+			<label class="vbr-pager__size">
+				<?php esc_html_e( 'Show', 'virtual-balloon-race' ); ?>
+				<select class="vbr-pager__select">
+					<?php foreach ( self::per_page_options() as $option ) : ?>
+						<option value="<?php echo esc_attr( (string) $option ); ?>" <?php selected( $per_page, $option ); ?>><?php echo esc_html( $option ? number_format_i18n( $option ) : __( 'All', 'virtual-balloon-race' ) ); ?></option>
+					<?php endforeach; ?>
+					<?php if ( ! in_array( $per_page, self::per_page_options(), true ) ) : ?>
+						<option value="<?php echo esc_attr( (string) $per_page ); ?>" selected><?php echo esc_html( number_format_i18n( $per_page ) ); ?></option>
+					<?php endif; ?>
+				</select>
+				<?php esc_html_e( 'per page', 'virtual-balloon-race' ); ?>
+			</label>
+			<p class="vbr-pager__summary" aria-live="polite">
+				<?php
+				$shown = $per_page ? min( $per_page, $total ) : $total;
+				echo esc_html(
+					sprintf(
+						/* translators: 1: first row, 2: last row, 3: total */
+						__( 'Showing %1$s–%2$s of %3$s', 'virtual-balloon-race' ),
+						number_format_i18n( $total ? 1 : 0 ),
+						number_format_i18n( $shown ),
+						number_format_i18n( $total )
+					)
+				);
+				?>
+			</p>
+			<nav class="vbr-pager__pages" aria-label="<?php esc_attr_e( 'Leaderboard pages', 'virtual-balloon-race' ); ?>"></nav>
+		</div>
+		<?php
 	}
 
 	/**
