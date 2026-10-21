@@ -1,0 +1,151 @@
+=== Virtual Balloon Race ===
+Contributors: f3zz3h
+Donate link:
+Tags: fundraising, balloon race, charity, woocommerce, school
+Requires at least: 6.0
+Tested up to: 7.1
+Requires PHP: 7.4
+Stable tag: 1.10.0
+License: GPLv2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
+
+Run a virtual balloon race fundraiser: sell entries through WooCommerce and watch the balloons drift across a live map on real winds.
+
+== Description ==
+
+A balloon race without the balloons: no litter, no harm to wildlife, and supporters can follow their balloon live. Virtual Balloon Race is made for schools, PTAs, clubs and charities.
+
+Supporters buy an entry in your WooCommerce shop, name their balloon, choose its colour and helium strategy, and can add their own logo or launch point. When the race launches, every balloon drifts across a live map on real wind data, and a leaderboard ranks them by how far they get from the launch point.
+
+= For supporters =
+
+* A live preview of their balloon on the product page as they choose its colour, name, team and logo
+* A live map with each balloon's trail; tap a balloon to follow it
+* A leaderboard with search and paging, team standings, and "My balloons" for logged-in entrants
+* Emails when the race launches and when it finishes, with each balloon's final position
+* My Account → My balloons, and "Track your balloon" links on order pages and emails
+
+= For organisers =
+
+* Schedule races: entries open, launch, end; or press Launch now / Finish now on the day
+* A tracking page and a ready-to-sell "Balloon Race Entry" product are created for you
+* Paid extras: tactical helium strategy, custom launch point, logo upload
+* Optional teams (e.g. houses or classes), scored by average, total or best distance
+* Optional entry limits, with "Only N places left!" and "Sold out" in the shop
+* Three flight modes: Drift (true to life), Soar (the default) and Jetstream (maximum distance)
+* Refunded, cancelled or failed orders take their balloons out of the race automatically
+* Withdraw or reinstate balloons by hand, mark bursts, advance the race, export a CSV
+* Public names are shown as first name and last initial
+
+The map uses [Leaflet](https://leafletjs.com/) (bundled with the plugin) and OpenStreetMap. Wind comes from [Open-Meteo](https://open-meteo.com/). No API keys are needed. See **External services** below.
+
+== Installation ==
+
+1. Install and activate WooCommerce (needed to sell entries; the map and leaderboard work without it).
+2. In **Plugins → Add New Plugin**, upload the plugin zip, then activate **Virtual Balloon Race**.
+3. The plugin creates a **Balloon Race** page (map, team standings, leaderboard, race list) and a **Balloon Race Entry** product (£3). Change the product's name, price and picture like any product.
+4. Go to **Balloon Race → Races → Add race**: set when entries open, the launch time, an optional end time and the launch point.
+5. Check **Balloon Race → Settings**: flight mode, how often balloons move, add-on prices, teams, and more.
+
+For on-time updates on a quiet site, add a real server cron that runs `wp vbr tick` every few minutes (WordPress only runs scheduled jobs when someone visits).
+
+== Frequently Asked Questions ==
+
+= Does it need WooCommerce? =
+
+To sell entries, yes. Without WooCommerce, the map and leaderboard still work for balloons you add.
+
+= Where does the wind come from? =
+
+From Open-Meteo's free weather API, for the area each balloon is in, so balloons that spread apart follow different winds. If the wind can't be fetched, balloons follow a default heading.
+
+= How far do the balloons go? =
+
+It depends on the wind and the flight mode. In Soar (the default), a week-long race typically sees the leader several hundred to about a thousand kilometres from the launch point. Settings shows an estimate for each mode.
+
+= Who wins? =
+
+By default, the balloon furthest from its launch point in a straight line, as in real balloon races. Each race can instead rank by the whole distance travelled.
+
+= What happens if an order is refunded or cancelled? =
+
+Its balloons are withdrawn: they leave the map, leaderboard and team scores, but stay in the admin screens and the CSV for your records. Reopening the order brings them back.
+
+= Can I turn the emails off? =
+
+Yes. They're WooCommerce emails: switch each off, or change its wording, in **WooCommerce → Settings → Emails**.
+
+= What is kept if I delete the plugin? =
+
+Everything, unless you tick **Settings → Data → Delete all race data when the plugin is deleted**. Pages, products, orders and uploaded logos are always kept.
+
+== External services ==
+
+This plugin connects to these third-party services. No API keys or accounts are used.
+
+= Open-Meteo (weather) =
+
+Used to move balloons with the real wind. When a race is flying, your server requests the current wind speed and direction for the areas the balloons are in (rounded latitude and longitude) each time balloons move. No personal data is sent; requests identify the plugin and your site's address.
+Service: [open-meteo.com](https://open-meteo.com/). [Terms of use](https://open-meteo.com/en/terms). The free API is for non-commercial use; check the terms if your use is commercial.
+
+= OpenStreetMap map tiles =
+
+Used to draw the map. Visitors' browsers load map images from tile.openstreetmap.org whenever a map is shown (public race map, Settings, race screen, and the launch point picker on the product page), which shares their IP address and browser details with the OpenStreetMap Foundation.
+[Tile usage policy](https://operations.osmfoundation.org/policies/tiles/). [Privacy policy](https://osmfoundation.org/wiki/Privacy_Policy).
+
+= Nominatim (place search) =
+
+Used by the "search for a place" box when choosing a launch point (in Settings, on the race screen, and for buyers choosing a custom launch point). The text typed is sent from the visitor's browser to nominatim.openstreetmap.org when they search.
+[Usage policy](https://operations.osmfoundation.org/policies/nominatim/). [Privacy policy](https://osmfoundation.org/wiki/Privacy_Policy).
+
+== Screenshots ==
+
+1. The live race map with balloon trails, team filter and the balloon list.
+2. Team standings and the leaderboard, with paging and search.
+3. The product page: a live preview of the balloon as the buyer chooses its colour, logo and team.
+4. Settings → Flight mode, with distance estimates for each mode.
+5. A race's admin screen: dates, launch point, entry limit, teams and email status.
+
+== Changelog ==
+
+= 1.10.0 =
+* New: optional entry limit per race, with "Only N places left!" and "Sold out" in the shop. Unpaid orders hold their places.
+* New: Leaflet is bundled with the plugin instead of loaded from a CDN.
+* New: Settings link on the Plugins screen.
+* New: readme.txt for WordPress.org.
+
+= 1.9.0 =
+* New: abandoned logo uploads are deleted after 7 days.
+* New: optional "Delete all race data when the plugin is deleted" (Settings → Data).
+* New: translation template.
+
+= 1.8.0 =
+* New: emails to entrants when a race launches and when it finishes.
+
+= 1.7.0 =
+* New: refunded, cancelled and failed orders withdraw their balloons; Withdraw / Reinstate by hand.
+
+= 1.6.0 =
+* New: flight modes (Drift, Soar, Jetstream).
+* New: leaderboard paging, 10 per page by default.
+
+= 1.5.0 =
+* New: balloons are ranked by distance from the launch point by default; each race can rank by distance travelled.
+* New: a Balloon Race Entry product is created on a fresh install.
+* Fix: the race screen no longer fails when WooCommerce is inactive.
+
+= 1.4.0 =
+* New: optional teams with team standings.
+* New: live balloon preview on the product page; one balloon per basket line.
+* New: balloon-shaped map markers, with logos filling the balloon.
+
+= 1.3.0 =
+* New: "Balloon race entry" product type, tracking page, My Account → My balloons, "My balloons" on the map and leaderboard.
+
+= 1.2.0 =
+* New: race schedules (entries open, launch, end) and per-race sales.
+
+== Upgrade Notice ==
+
+= 1.10.0 =
+Adds optional entry limits per race. The map library is now bundled with the plugin.

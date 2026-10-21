@@ -6,9 +6,9 @@
 .gitattributes
 .distignore
 .vscode
-tests
-vendor
-node_modules
+/tests
+/vendor
+/node_modules
 composer.json
 composer.lock
 phpstan.neon.dist
