@@ -15,11 +15,61 @@ class VBR_Demo {
 	const OPTION = 'vbr_demo_race_ids';
 
 	/**
+	 * 'yes' (the default) or 'no': start a fresh demo race when the current one is about to end.
+	 */
+	const RENEW_OPTION = 'vbr_demo_renew';
+
+	/**
 	 * Register hooks.
 	 */
 	public function __construct() {
 		add_action( 'vbr_settings_page_end', array( $this, 'render_panel' ), 20 );
 		add_action( 'admin_post_vbr_demo', array( $this, 'handle_post' ) );
+		add_action( VBR_Housekeeping::HOOK, array( __CLASS__, 'renew_if_due' ) );
+	}
+
+	/**
+	 * Whether demo races renew themselves.
+	 *
+	 * @return bool
+	 */
+	public static function renews() {
+		return 'no' !== get_option( self::RENEW_OPTION, 'yes' );
+	}
+
+	/**
+	 * Keep a demo running: once the newest demo race has less than a day left (or has ended),
+	 * create a fresh one with as many balloons, then remove the old ones. Runs daily.
+	 *
+	 * If the new race can't be created, the old ones are kept.
+	 *
+	 * @param int|null $now Timestamp (for tests).
+	 * @return int New race ID, or 0 if nothing was due.
+	 */
+	public static function renew_if_due( $now = null ) {
+		$now = null === $now ? time() : (int) $now;
+		$ids = self::race_ids();
+
+		if ( ! $ids || ! self::renews() ) {
+			return 0;
+		}
+
+		$newest = VBR_Races::get( max( $ids ) );
+		$end    = $newest ? VBR_Races::ts( $newest->end_at ) : 0;
+
+		if ( $end && $end - $now > DAY_IN_SECONDS ) {
+			return 0;
+		}
+
+		$race_id = self::create( max( 1, VBR_Races::balloon_count( max( $ids ) ) ) );
+
+		if ( is_wp_error( $race_id ) ) {
+			return 0;
+		}
+
+		self::remove( array( $race_id ) );
+
+		return $race_id;
 	}
 
 	/**
@@ -120,21 +170,27 @@ class VBR_Demo {
 	}
 
 	/**
-	 * Remove every demo race and its balloons and teams.
+	 * Remove demo races and their balloons and teams.
 	 *
+	 * @param int[] $keep Demo races to keep (e.g. the one that just replaced them).
 	 * @return int Races removed.
 	 */
-	public static function remove() {
+	public static function remove( $keep = array() ) {
 		global $wpdb;
 
-		$ids = self::race_ids();
+		$keep = array_map( 'intval', $keep );
+		$ids  = array_diff( self::race_ids(), $keep );
 
 		foreach ( $ids as $id ) {
 			$wpdb->delete( VBR_Balloons::table(), array( 'race_id' => $id ), array( '%d' ) );
 			VBR_Races::delete( $id ); // Also removes its teams.
 		}
 
-		delete_option( self::OPTION );
+		if ( $keep ) {
+			update_option( self::OPTION, array_values( array_intersect( self::race_ids(), $keep ) ), false );
+		} else {
+			delete_option( self::OPTION );
+		}
 
 		return count( $ids );
 	}
@@ -152,7 +208,11 @@ class VBR_Demo {
 		$do     = isset( $_POST['vbr_do'] ) ? sanitize_key( wp_unslash( $_POST['vbr_do'] ) ) : '';
 		$notice = 'created';
 
-		if ( 'remove' === $do ) {
+		update_option( self::RENEW_OPTION, empty( $_POST['vbr_demo_renew'] ) ? 'no' : 'yes', false );
+
+		if ( 'save' === $do ) {
+			$notice = 'saved';
+		} elseif ( 'remove' === $do ) {
 			self::remove();
 			$notice = 'removed';
 		} elseif ( is_wp_error( self::create() ) ) {
@@ -173,6 +233,7 @@ class VBR_Demo {
 			'created' => __( 'Demo race created. See it on the tracking page.', 'virtual-balloon-race' ),
 			'removed' => __( 'Demo races removed.', 'virtual-balloon-race' ),
 			'failed'  => __( 'The demo race could not be created.', 'virtual-balloon-race' ),
+			'saved'   => __( 'Demo race setting saved.', 'virtual-balloon-race' ),
 		);
 		?>
 		<section class="vbr-admin-panel" id="vbr-demo">
@@ -187,6 +248,10 @@ class VBR_Demo {
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 				<input type="hidden" name="action" value="vbr_demo" />
 				<?php wp_nonce_field( 'vbr_demo' ); ?>
+				<p>
+					<label><input type="checkbox" name="vbr_demo_renew" value="1" <?php checked( self::renews() ); ?> /> <?php esc_html_e( 'Keep it running: when a demo race is about to end, replace it with a fresh one', 'virtual-balloon-race' ); ?></label>
+					<button type="submit" class="button-link" name="vbr_do" value="save"><?php esc_html_e( 'Save', 'virtual-balloon-race' ); ?></button>
+				</p>
 				<button type="submit" class="button" name="vbr_do" value="create"><?php esc_html_e( 'Create a demo race', 'virtual-balloon-race' ); ?></button>
 				<?php if ( $ids ) : ?>
 					<button type="submit" class="button-link button-link-delete" name="vbr_do" value="remove" onclick="return confirm('<?php echo esc_js( __( 'Remove all demo races and their balloons?', 'virtual-balloon-race' ) ); ?>');"><?php esc_html_e( 'Remove demo races', 'virtual-balloon-race' ); ?></button>

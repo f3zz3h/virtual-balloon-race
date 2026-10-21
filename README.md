@@ -39,7 +39,7 @@ A WordPress + WooCommerce plugin for running virtual balloon races as fundraiser
 | Burst chances | Max Height burst chance per day, plus storm bursts above a wind threshold (Eco-Glide is immune) |
 | Map and leaderboard | Default zoom, how often the public map refreshes, trail length, and **leaderboard entries per page** (10 by default; visitors can change it) |
 | Shop add-ons | Turn extras on or off and set their prices |
-| Demo race | **Create a demo race**: 30 made-up balloons, launched three days ago and flown on real wind, ending in four days, so the map and leaderboard have something to show. Demo entrants have no email addresses or orders, so nobody is emailed. **Remove demo races** deletes them. Also `wp vbr demo [--balloons=30]` and `wp vbr demo --remove` |
+| Demo race | **Create a demo race**: 30 made-up balloons, launched three days ago and flown on real wind, ending in four days, so the map and leaderboard have something to show. Demo entrants have no email addresses or orders, so nobody is emailed. **Keep it running** (on by default): once a day, a demo race with less than a day left is replaced by a fresh one with as many balloons. **Remove demo races** deletes them. Also `wp vbr demo [--balloons=30]` and `wp vbr demo --remove` |
 | Data | **Delete all race data when the plugin is deleted** (off by default). Deleting the plugin from Plugins then removes its races, balloons, teams and settings; pages, products, orders and uploaded logos are kept either way. Deactivating never deletes anything |
 | Teams | Off by default. **Enable teams**, the **default scoring** (average distance, total distance or best balloon) and the **default teams** (name and colour) that new races start with |
 

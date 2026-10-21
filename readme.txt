@@ -61,7 +61,7 @@ From Open-Meteo's free weather API, for the area each balloon is in, so balloons
 
 = Can I try it before selling entries? =
 
-Yes: **Balloon Race → Settings → Demo race → Create a demo race** makes a race with 30 made-up balloons that have already flown for three days. Remove it from the same place.
+Yes: **Balloon Race → Settings → Demo race → Create a demo race** makes a race with 30 made-up balloons that have already flown for three days. It renews itself: when it's about to end, a fresh one replaces it (untick **Keep it running** to stop that). Remove it from the same place.
 
 = How far do the balloons go? =
 
@@ -117,7 +117,7 @@ Used by the "search for a place" box when choosing a launch point (in Settings, 
 * New: Leaflet is bundled with the plugin instead of loaded from a CDN.
 * New: Settings link on the Plugins screen.
 * New: readme.txt for WordPress.org.
-* New: Settings → Demo race creates a ready-made race with made-up balloons (also `wp vbr demo`).
+* New: Settings → Demo race creates a ready-made race with made-up balloons (also `wp vbr demo`), and replaces it with a fresh one when it's about to end.
 
 = 1.9.0 =
 * New: abandoned logo uploads are deleted after 7 days.

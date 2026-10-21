@@ -625,8 +625,21 @@ switch ( $stage ) {
 		$check( array() === VBR_Race_Emails::recipients( $race_id ), 'nobody would be emailed about the demo race' );
 		$check( array( $race_id ) === VBR_Demo::race_ids(), 'demo race is remembered for removal' );
 		$check( false !== strpos( $render( array( new VBR_Demo(), 'render_panel' ) ), 'Remove demo races' ), 'Settings shows the demo race panel' );
-		$check( 1 === VBR_Demo::remove() && ! VBR_Races::get( $race_id ), 'demo race removed' );
-		$check( 0 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . VBR_Balloons::table() . ' WHERE race_id = %d', $race_id ) ), 'demo balloons removed' ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+
+		// Renewal: nothing while days are left; a fresh race (same size) replaces it near the end.
+		$check( VBR_Demo::renews() && 0 === VBR_Demo::renew_if_due(), 'demo race with days left is not renewed' );
+		VBR_Races::set_time( $race_id, 'end_at', time() + HOUR_IN_SECONDS );
+		$renewed = VBR_Demo::renew_if_due();
+		$check( $renewed && $renewed !== $race_id && ! VBR_Races::get( $race_id ), 'demo race near its end is replaced' );
+		$check( array( $renewed ) === VBR_Demo::race_ids() && 12 === VBR_Races::balloon_count( $renewed ), 'the fresh demo race has as many balloons' );
+		$check( VBR_Races::FLYING === VBR_Races::status( VBR_Races::get( $renewed ) ), 'the fresh demo race is flying' );
+		update_option( VBR_Demo::RENEW_OPTION, 'no' );
+		VBR_Races::set_time( $renewed, 'end_at', time() - HOUR_IN_SECONDS );
+		$check( 0 === VBR_Demo::renew_if_due() && array( $renewed ) === VBR_Demo::race_ids(), 'no renewal when switched off' );
+		delete_option( VBR_Demo::RENEW_OPTION );
+
+		$check( 1 === VBR_Demo::remove() && ! VBR_Races::get( $renewed ), 'demo race removed' );
+		$check( 0 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . VBR_Balloons::table() . ' WHERE race_id = %d', $renewed ) ), 'demo balloons removed' ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		break;
 
 	// After deleting the plugin with "Delete all race data" off: everything stays.
