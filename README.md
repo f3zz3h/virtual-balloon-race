@@ -294,7 +294,7 @@ Every pull request and push to `main` runs:
 
 `readme.txt` is the plugin's WordPress.org listing (description, FAQ, **External services**, changelog). Keep `Stable tag` and the changelog in step with the version when releasing.
 
-Donate links (a **Donate** link on the Plugins screen and a short "Support this plugin" note at the foot of Settings) appear only when `VBR_Support::DONATE_URL` in `includes/class-vbr-support.php` is set (or via the `vbr_donate_url` filter). Use the same URL for `Donate link:` in `readme.txt`.
+Donations go to https://buymeacoffee.com/lukemhartl: a **Donate** link on the Plugins screen and a short "Support this plugin" note at the foot of Settings (`VBR_Support::DONATE_URL` in `includes/class-vbr-support.php`, or the `vbr_donate_url` filter; empty hides both), `Donate link:` in `readme.txt`, and GitHub's Sponsor button (`.github/FUNDING.yml`).
 
 ### Releasing a version
 
