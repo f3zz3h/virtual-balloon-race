@@ -323,7 +323,7 @@ class VBR_WooCommerce {
 		$table = VBR_Balloons::table();
 
 		foreach ( $order->get_items() as $item_id => $item ) {
-			$product = $item->get_product();
+			$product = $item instanceof WC_Order_Item_Product ? $item->get_product() : null;
 
 			if ( ! $product || ! self::is_balloon_product( $product ) ) {
 				continue;

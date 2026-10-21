@@ -122,7 +122,8 @@ class VBR_Pages {
 			)
 		);
 
-		if ( $id && ! is_wp_error( $id ) ) {
+		// Without $wp_error, wp_insert_post() returns 0 on failure.
+		if ( $id ) {
 			update_option( self::OPTION, (int) $id );
 			return (int) $id;
 		}
@@ -220,7 +221,7 @@ class VBR_Pages {
 							<?php foreach ( $products as $product ) : ?>
 								<li>
 									<a href="<?php echo esc_url( get_edit_post_link( $product->get_id() ) ); ?>"><?php echo esc_html( $product->get_name() ); ?></a>
-									&middot; <?php echo wp_kses_post( '' !== $product->get_price() ? wc_price( $product->get_price() ) : __( 'no price', 'virtual-balloon-race' ) ); ?>
+									&middot; <?php echo wp_kses_post( '' !== $product->get_price() ? wc_price( (float) $product->get_price() ) : __( 'no price', 'virtual-balloon-race' ) ); ?>
 									&middot; <?php echo esc_html( 'publish' === $product->get_status() ? __( 'Published', 'virtual-balloon-race' ) : __( 'Not published', 'virtual-balloon-race' ) ); ?>
 								</li>
 							<?php endforeach; ?>
@@ -283,7 +284,7 @@ class VBR_Pages {
 									'id'                => 'vbr_tracking_page',
 									'selected'          => absint( $id ),
 									'show_option_none'  => esc_html__( '— None —', 'virtual-balloon-race' ),
-									'option_none_value' => 0,
+									'option_none_value' => '0',
 									'post_status'       => array( 'publish', 'private', 'draft' ),
 								)
 							);

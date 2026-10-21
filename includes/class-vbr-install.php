@@ -63,7 +63,7 @@ class VBR_Install {
 			return;
 		}
 
-		switch_to_blog( $site->blog_id );
+		switch_to_blog( (int) $site->blog_id );
 		self::install();
 		restore_current_blog();
 	}

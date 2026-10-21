@@ -246,6 +246,7 @@ wp vbr status                            # schedule + last tick per race
 Every pull request and push to `main` runs:
 
 - **PHP syntax** on PHP 7.4, 8.0 and 8.3, and **WordPress Coding Standards** (`.github/workflows/php_check.yml`). Coding-standard errors fail the check; warnings are reported only.
+- **PHPStan** static analysis at level 5 with WordPress and WooCommerce stubs (`phpstan.neon.dist`). Run it locally with `composer install` then `composer phpstan`. `composer.json` holds development tools only; the plugin itself has no Composer dependencies, and `vendor/` isn't committed. `phpstan-baseline.neon` is empty; if the level is raised, record existing findings there so only new ones fail.
 - **Fresh install smoke test** (`.github/workflows/smoke_test.yml`): installs the latest WordPress and WooCommerce, then `tests/smoke/run.sh` checks both activation orders (plugin before and after WooCommerce), the default page and product, a race end to end (purchasability, order → balloon, a tick, REST, teams) and that the plugin logs no PHP errors. To run it by hand: set `WP_PATH` to a throwaway WordPress with WooCommerce and this plugin (as `plugins/virtual-balloon-race`) copied in, then `bash tests/smoke/run.sh`. It empties that site's database.
 
 ### Testing on the dev site

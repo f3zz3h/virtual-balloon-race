@@ -24,7 +24,7 @@ class VBR_Cron {
 	 */
 	public function __construct() {
 		add_filter( 'cron_schedules', array( __CLASS__, 'add_schedules' ) ); // phpcs:ignore WordPress.WP.CronInterval.CronSchedulesInterval
-		add_action( self::HOOK, array( __CLASS__, 'run_scheduled' ) );
+		add_action( self::HOOK, array( __CLASS__, 'on_scheduled_hook' ) );
 		add_action( 'update_option_' . VBR_Settings::OPTION, array( __CLASS__, 'reschedule' ), 20 );
 		add_action( 'add_option_' . VBR_Settings::OPTION, array( __CLASS__, 'reschedule' ), 20 );
 		add_action( 'admin_init', array( __CLASS__, 'ensure_scheduled' ) );
@@ -130,6 +130,13 @@ class VBR_Cron {
 		}
 
 		return (int) wp_next_scheduled( self::HOOK );
+	}
+
+	/**
+	 * The scheduled hook's callback (actions don't return values; WP-CLI calls run_scheduled() for the summaries).
+	 */
+	public static function on_scheduled_hook() {
+		self::run_scheduled();
 	}
 
 	/**

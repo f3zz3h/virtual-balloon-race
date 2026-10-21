@@ -156,7 +156,7 @@ class VBR_Account {
 	/**
 	 * Track links for an order's balloons.
 	 *
-	 * @param WC_Order $order Order.
+	 * @param WC_Order|mixed $order Order (hooks can pass anything).
 	 * @return array[] Each `[ name, url ]`; empty when the order has no balloon entries or there's no tracking page.
 	 */
 	private static function order_balloon_links( $order ) {
@@ -181,7 +181,7 @@ class VBR_Account {
 	 */
 	private static function has_entries( $order ) {
 		foreach ( $order->get_items() as $item ) {
-			if ( VBR_WooCommerce::is_balloon_product( $item->get_product() ) ) {
+			if ( $item instanceof WC_Order_Item_Product && VBR_WooCommerce::is_balloon_product( $item->get_product() ) ) {
 				return true;
 			}
 		}
@@ -191,7 +191,7 @@ class VBR_Account {
 	/**
 	 * Order received / view order: Track your balloon.
 	 *
-	 * @param WC_Order $order Order.
+	 * @param WC_Order|mixed $order Order (hooks can pass anything).
 	 */
 	public function order_links( $order ) {
 		if ( ! $order instanceof WC_Order || ! VBR_Pages::tracking_page_id() || ! self::has_entries( $order ) ) {

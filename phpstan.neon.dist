@@ -1,0 +1,25 @@
+# PHPStan static analysis: run with `composer phpstan`.
+# WordPress rules come from szepeviktor/phpstan-wordpress (loaded by the extension installer).
+includes:
+	- phpstan-baseline.neon
+
+parameters:
+	level: 5
+	paths:
+		- virtual-balloon-race.php
+		- includes
+	scanFiles:
+		- vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
+		- vendor/php-stubs/wp-cli-stubs/wp-cli-stubs.php
+	bootstrapFiles:
+		- tests/phpstan/bootstrap.php
+	ignoreErrors:
+		# Action Scheduler ships with WooCommerce; calls are guarded by VBR_Cron::use_action_scheduler().
+		- '#^Function as_[a-z_]+ not found\.$#'
+	# Defined at runtime with real values; don't let PHPStan treat the bootstrap's placeholders as fixed.
+	dynamicConstantNames:
+		- VBR_VERSION
+		- VBR_DB_VERSION
+		- VBR_PLUGIN_FILE
+		- VBR_PLUGIN_DIR
+		- VBR_PLUGIN_URL
