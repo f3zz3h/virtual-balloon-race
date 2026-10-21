@@ -43,6 +43,9 @@ $settings = static function ( $changes ) {
 
 wp_set_current_user( 1 );
 
+// Order status changes send WooCommerce emails; the test server has no mail program.
+add_filter( 'pre_wp_mail', '__return_false' );
+
 switch ( $stage ) {
 	// Plugin activated on a fresh site before WooCommerce.
 	case 'woo-inactive':
