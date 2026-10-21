@@ -322,6 +322,7 @@ class VBR_Race_Entries {
 	 * Drop entries for races that have stopped taking entries (runs on cart and at checkout).
 	 */
 	public function check_cart_items() {
+		/** @var WC_Cart|null $cart Not set outside the shop front end (e.g. admin, REST, WP-CLI). */
 		$cart = WC()->cart;
 
 		if ( ! $cart ) {
@@ -360,7 +361,7 @@ class VBR_Race_Entries {
 
 		if ( $race ) {
 			$item->add_meta_data( __( 'Balloon Race', 'virtual-balloon-race' ), $race->name, true );
-			$item->add_meta_data( '_vbr_race_id', (int) $race->id, true );
+			$item->add_meta_data( '_vbr_race_id', (string) (int) $race->id, true );
 		}
 	}
 

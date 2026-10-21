@@ -263,7 +263,7 @@ class VBR_Product_Type {
 		$product->set_description( $args['description'] );
 		$product->set_status( 'publish' );
 		$product->set_catalog_visibility( 'visible' );
-		$product->update_meta_data( VBR_Race_Entries::PRODUCT_META, 0 );
+		$product->update_meta_data( VBR_Race_Entries::PRODUCT_META, '0' );
 
 		return (int) $product->save();
 	}
@@ -280,7 +280,7 @@ class VBR_Product_Type {
 		$product->set_name( sprintf( __( '%s balloon entry', 'virtual-balloon-race' ), $race->name ) );
 		$product->set_status( 'draft' );
 		$product->set_catalog_visibility( 'visible' );
-		$product->update_meta_data( VBR_Race_Entries::PRODUCT_META, (int) $race->id );
+		$product->update_meta_data( VBR_Race_Entries::PRODUCT_META, (string) (int) $race->id );
 
 		$id = $product->save();
 

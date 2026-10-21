@@ -243,7 +243,7 @@ class VBR_Teams {
 	/**
 	 * Team standings for a race, best first, scored on the race's ranking distance. Teams without balloons come last.
 	 *
-	 * @param object $race Race.
+	 * @param object|null $race Race.
 	 * @return array[] Each: id, rank, name, color, balloons, score, leader (balloon name).
 	 */
 	public static function standings( $race ) {

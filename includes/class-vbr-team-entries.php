@@ -153,7 +153,7 @@ class VBR_Team_Entries {
 
 		if ( $team ) {
 			$item->add_meta_data( __( 'Team', 'virtual-balloon-race' ), $team->name, true );
-			$item->add_meta_data( '_vbr_team_id', (int) $team->id, true );
+			$item->add_meta_data( '_vbr_team_id', (string) (int) $team->id, true );
 		}
 	}
 

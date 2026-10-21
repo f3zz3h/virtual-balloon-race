@@ -443,13 +443,13 @@ class VBR_Monetization {
 	public function save_order_item_meta( $item, $cart_item_key, $values ) {
 		if ( ! empty( $values['vbr_launch'] ) ) {
 			$item->add_meta_data( __( 'Launch Point', 'virtual-balloon-race' ), self::launch_text( $values['vbr_launch'] ), true );
-			$item->add_meta_data( '_vbr_launch_lat', (float) $values['vbr_launch']['lat'], true );
-			$item->add_meta_data( '_vbr_launch_lng', (float) $values['vbr_launch']['lng'], true );
+			$item->add_meta_data( '_vbr_launch_lat', (string) (float) $values['vbr_launch']['lat'], true );
+			$item->add_meta_data( '_vbr_launch_lng', (string) (float) $values['vbr_launch']['lng'], true );
 		}
 
 		if ( ! empty( $values['vbr_logo_id'] ) ) {
 			$logo_id = (int) $values['vbr_logo_id'];
-			$item->add_meta_data( '_vbr_logo_id', $logo_id, true );
+			$item->add_meta_data( '_vbr_logo_id', (string) $logo_id, true );
 			$item->add_meta_data( __( 'Balloon Logo', 'virtual-balloon-race' ), (string) wp_get_attachment_url( $logo_id ), true );
 			update_post_meta( $logo_id, '_vbr_logo_upload', 'ordered' );
 		}

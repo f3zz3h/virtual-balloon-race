@@ -420,7 +420,7 @@ class VBR_Admin_Races {
 					<?php foreach ( array_merge( $locked, $any ) as $product ) : ?>
 						<li>
 							<a href="<?php echo esc_url( get_edit_post_link( $product->get_id() ) ); ?>"><?php echo esc_html( $product->get_name() ); ?></a>
-							&middot; <?php echo wp_kses_post( $product->get_price() !== '' ? wc_price( $product->get_price() ) : __( 'no price', 'virtual-balloon-race' ) ); ?>
+							&middot; <?php echo wp_kses_post( $product->get_price() !== '' ? wc_price( (float) $product->get_price() ) : __( 'no price', 'virtual-balloon-race' ) ); ?>
 							&middot; <?php echo esc_html( 'publish' === $product->get_status() ? __( 'Published', 'virtual-balloon-race' ) : __( 'Not published', 'virtual-balloon-race' ) ); ?>
 							<?php if ( in_array( $product, $any, true ) ) : ?>
 								&middot; <em><?php esc_html_e( 'any race taking entries', 'virtual-balloon-race' ); ?></em>
