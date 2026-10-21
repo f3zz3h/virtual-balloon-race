@@ -53,7 +53,9 @@ jobs:
           wp config set --path=wp WP_DEBUG_DISPLAY false --raw --quiet
           wp core install --path=wp --url=http://localhost --title="Smoke test" --admin_user=admin --admin_password=smoke-test --admin_email=admin@example.com --skip-email --quiet
           wp plugin install woocommerce --path=wp --quiet
-          rsync -a --exclude .git --exclude .github --exclude tests plugin/ wp/wp-content/plugins/virtual-balloon-race/
+          # Install the same zip a release would publish.
+          bash plugin/.github/scripts/build-zip.sh
+          unzip -q plugin/dist/virtual-balloon-race-*.zip -d wp/wp-content/plugins/
           echo "WordPress $(wp core version --path=wp), WooCommerce $(wp plugin get woocommerce --field=version --path=wp)"
 
       - name: Run smoke test

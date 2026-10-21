@@ -12,8 +12,13 @@ A WordPress + WooCommerce plugin for running virtual balloon races as fundraiser
 
 ### 1. Install
 
-1. Copy the plugin folder to `wp-content/plugins/` and activate **Virtual Balloon Race**.
-2. Make sure WooCommerce is active. Without it the leaderboard and map still work, but entries can't be sold.
+1. Download `virtual-balloon-race-<version>.zip` from the repository's **Releases** page on GitHub.
+2. In WordPress, go to **Plugins → Add New Plugin → Upload Plugin**, choose the zip, then **Install Now** and **Activate**.
+3. Make sure WooCommerce is active. Without it the leaderboard and map still work, but entries can't be sold.
+
+**Updating:** upload the newer zip the same way. WordPress notices the plugin is already installed and offers **Replace current with uploaded**. Races, balloons and settings are kept, and any database upgrade runs on the next page load. If the site uses LiteSpeed Cache, run **LiteSpeed Cache → Purge All** afterwards.
+
+**Moving from a hand-copied folder** (e.g. `wp-content/plugins/VirtualBaloonRace/`): the zip installs to `wp-content/plugins/virtual-balloon-race/`, which WordPress treats as a different plugin, so don't run both. Deactivate the old one, delete it (the plugin has no uninstall routine, so this removes only its files; races, balloons, settings and pages stay in the database), then upload and activate the zip.
 
 ### 2. Check the settings
 
@@ -262,6 +267,14 @@ Every pull request and push to `main` runs:
 - **PHPStan** static analysis at level 5 with WordPress and WooCommerce stubs (`phpstan.neon.dist`). Run it locally with `composer install` then `composer phpstan`. `composer.json` holds development tools only; the plugin itself has no Composer dependencies, and `vendor/` isn't committed. `phpstan-baseline.neon` is empty; if the level is raised, record existing findings there so only new ones fail.
 - **Fresh install smoke test** (`.github/workflows/smoke_test.yml`): installs the latest WordPress and WooCommerce, then `tests/smoke/run.sh` checks both activation orders (plugin before and after WooCommerce), the default page and product, a race end to end (purchasability, order → balloon, a tick, REST, teams), refunds and cancellations (line refund, refund deleted, goodwill refund, cancel and reopen, hand withdrawal, failed payment) and that the plugin logs no PHP errors. To run it by hand: set `WP_PATH` to a throwaway WordPress with WooCommerce and this plugin (as `plugins/virtual-balloon-race`) copied in, then `bash tests/smoke/run.sh`. It empties that site's database.
 
+### Releasing a version
+
+1. On a branch, bump the version in the plugin header (`Version:`) and `VBR_VERSION` in `virtual-balloon-race.php` (and `VBR_DB_VERSION` if the schema changed). Merge it.
+2. Tag `main` and push the tag: `git tag v1.7.0 && git push origin v1.7.0`.
+3. The **Release** workflow (`.github/workflows/release.yml`) checks the tag matches the plugin version, builds the zip with `.github/scripts/build-zip.sh` and publishes a GitHub release with the zip attached and notes listing the merged pull requests.
+
+`.distignore` lists the files left out of the zip (tests, CI, Composer and PHPStan files, TODO, the plan). Every pull request also builds the zip and offers it as a download (**Checks → Release → Artifacts**, kept 7 days), and the fresh-install smoke test installs from that same zip. Build one locally with `bash .github/scripts/build-zip.sh` (output in `dist/`).
+
 ### Testing on the dev site
 
 Commands run inside the WordPress Docker container:
@@ -271,7 +284,7 @@ docker exec -u www-data -w /var/www/html wordpress wp vbr status
 docker exec -i wordpress php -l < includes/class-vbr-races.php
 ```
 
-Deploy with `rsync` into the existing plugin folder (`scp -r` into an existing folder creates a nested copy).
+Deploy with `rsync --exclude-from=.distignore` into the existing plugin folder (`scp -r` into an existing folder creates a nested copy).
 
 ---
 
