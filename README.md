@@ -39,6 +39,7 @@ A WordPress + WooCommerce plugin for running virtual balloon races as fundraiser
 | Burst chances | Max Height burst chance per day, plus storm bursts above a wind threshold (Eco-Glide is immune) |
 | Map and leaderboard | Default zoom, how often the public map refreshes, trail length, and **leaderboard entries per page** (10 by default; visitors can change it) |
 | Shop add-ons | Turn extras on or off and set their prices |
+| Demo race | **Create a demo race**: 30 made-up balloons, launched three days ago and flown on real wind, ending in four days, so the map and leaderboard have something to show. Demo entrants have no email addresses or orders, so nobody is emailed. **Remove demo races** deletes them. Also `wp vbr demo [--balloons=30]` and `wp vbr demo --remove` |
 | Data | **Delete all race data when the plugin is deleted** (off by default). Deleting the plugin from Plugins then removes its races, balloons, teams and settings; pages, products, orders and uploaded logos are kept either way. Deactivating never deletes anything |
 | Teams | Off by default. **Enable teams**, the **default scoring** (average distance, total distance or best balloon) and the **default teams** (name and colour) that new races start with |
 
@@ -208,6 +209,7 @@ includes/
   class-vbr-race-entries.php    Race choice, purchasability, basket guard, race_id on balloons
   class-vbr-teams.php           Teams: per-race lists, scoring, standings, the team editor
   class-vbr-flight-modes.php    Flight modes (Drift, Soar, Jetstream): lift decay, landing, Settings cards
+  class-vbr-demo.php            Demo races (Settings → Demo race, wp vbr demo)
   class-vbr-housekeeping.php    Daily clean-up of abandoned logo uploads; basket check for removed logos
   class-vbr-race-emails.php     Launch and results emails: when to send, who to, background queue
   emails/                       The two WooCommerce email classes (templates in templates/emails/)
@@ -261,6 +263,8 @@ wp vbr tick                              # run due updates for every flying race
 wp vbr tick --race=<id|slug> --hours=6   # simulate hours for one race
 wp vbr races                             # list races, stages and balloon counts
 wp vbr status                            # schedule + last tick per race
+wp vbr demo [--balloons=30]              # create a demo race with made-up balloons
+wp vbr demo --remove                     # remove demo races
 ```
 
 ### Hooks

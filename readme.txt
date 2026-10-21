@@ -59,6 +59,10 @@ To sell entries, yes. Without WooCommerce, the map and leaderboard still work fo
 
 From Open-Meteo's free weather API, for the area each balloon is in, so balloons that spread apart follow different winds. If the wind can't be fetched, balloons follow a default heading.
 
+= Can I try it before selling entries? =
+
+Yes: **Balloon Race → Settings → Demo race → Create a demo race** makes a race with 30 made-up balloons that have already flown for three days. Remove it from the same place.
+
 = How far do the balloons go? =
 
 It depends on the wind and the flight mode. In Soar (the default), a week-long race typically sees the leader several hundred to about a thousand kilometres from the launch point. Settings shows an estimate for each mode.
@@ -113,6 +117,7 @@ Used by the "search for a place" box when choosing a launch point (in Settings, 
 * New: Leaflet is bundled with the plugin instead of loaded from a CDN.
 * New: Settings link on the Plugins screen.
 * New: readme.txt for WordPress.org.
+* New: Settings → Demo race creates a ready-made race with made-up balloons (also `wp vbr demo`).
 
 = 1.9.0 =
 * New: abandoned logo uploads are deleted after 7 days.

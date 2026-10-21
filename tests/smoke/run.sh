@@ -58,6 +58,11 @@ wp eval-file "$CHECKS" housekeeping
 stage "Scenario A: entry limits"
 wp eval-file "$CHECKS" limits
 
+stage "Scenario A: demo race"
+wp eval-file "$CHECKS" demo
+wp vbr demo --balloons=5
+wp vbr demo --remove
+
 stage "Scenario B: WooCommerce first, then the plugin"
 fresh_site
 wp plugin activate woocommerce

@@ -611,6 +611,24 @@ switch ( $stage ) {
 		WC()->cart->empty_cart();
 		break;
 
+	// Demo race: made-up balloons flown for three days; removed cleanly.
+	case 'demo':
+		global $wpdb;
+
+		$race_id  = VBR_Demo::create( 12 );
+		$race     = VBR_Races::get( $race_id );
+		$balloons = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM ' . VBR_Balloons::table() . ' WHERE race_id = %d', $race_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$check( $race && VBR_Races::FLYING === VBR_Races::status( $race ), 'demo race created and flying' );
+		$check( 12 === count( $balloons ), 'demo race has the requested balloons' );
+		$check( count( array_filter( wp_list_pluck( $balloons, 'from_start_km' ) ) ) >= 10, 'demo balloons have already flown' );
+		$check( array( '' ) === array_values( array_unique( wp_list_pluck( $balloons, 'owner_email' ) ) ), 'demo entrants have no email addresses' );
+		$check( array() === VBR_Race_Emails::recipients( $race_id ), 'nobody would be emailed about the demo race' );
+		$check( array( $race_id ) === VBR_Demo::race_ids(), 'demo race is remembered for removal' );
+		$check( false !== strpos( $render( array( new VBR_Demo(), 'render_panel' ) ), 'Remove demo races' ), 'Settings shows the demo race panel' );
+		$check( 1 === VBR_Demo::remove() && ! VBR_Races::get( $race_id ), 'demo race removed' );
+		$check( 0 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . VBR_Balloons::table() . ' WHERE race_id = %d', $race_id ) ), 'demo balloons removed' ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		break;
+
 	// After deleting the plugin with "Delete all race data" off: everything stays.
 	case 'uninstalled-kept':
 		global $wpdb;
