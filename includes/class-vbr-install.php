@@ -100,6 +100,7 @@ class VBR_Install {
 			race_id bigint(20) unsigned NOT NULL DEFAULT 0,
 			team_id bigint(20) unsigned NOT NULL DEFAULT 0,
 			order_id bigint(20) unsigned NOT NULL DEFAULT 0,
+			order_item_id bigint(20) unsigned NOT NULL DEFAULT 0,
 			user_id bigint(20) unsigned NOT NULL DEFAULT 0,
 			owner_name varchar(255) NOT NULL DEFAULT '',
 			owner_email varchar(255) NOT NULL DEFAULT '',
@@ -110,6 +111,8 @@ class VBR_Install {
 			from_start_km decimal(10,2) NOT NULL DEFAULT 0.00,
 			flight_hours decimal(10,3) NOT NULL DEFAULT 0.000,
 			is_burst tinyint(1) NOT NULL DEFAULT 0,
+			withdrawn_at datetime DEFAULT NULL,
+			withdrawn_reason varchar(20) NOT NULL DEFAULT '',
 			latitude decimal(10,7) DEFAULT NULL,
 			longitude decimal(10,7) DEFAULT NULL,
 			start_lat decimal(10,7) DEFAULT NULL,
@@ -123,6 +126,8 @@ class VBR_Install {
 			KEY race_id (race_id),
 			KEY team_id (team_id),
 			KEY order_id (order_id),
+			KEY order_item_id (order_item_id),
+			KEY withdrawn_at (withdrawn_at),
 			KEY user_id (user_id),
 			KEY is_burst (is_burst),
 			KEY distance_km (distance_km),
@@ -178,6 +183,10 @@ class VBR_Install {
 
 		if ( version_compare( $previous, '1.6.0', '<' ) ) {
 			VBR_Balloons::backfill_flight_hours();
+		}
+
+		if ( version_compare( $previous, '1.7.0', '<' ) ) {
+			VBR_Balloons::backfill_order_items();
 		}
 
 		// Work that needs WooCommerce's post types or rewrite rules runs on the next `init`.

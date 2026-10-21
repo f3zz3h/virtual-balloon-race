@@ -147,7 +147,7 @@ class VBR_Frontend {
 			// Every flying balloon is rendered so search covers the whole race; the script pages them (rows past the first page start hidden).
 			$balloons = $wpdb->get_results(
 				$wpdb->prepare(
-					"SELECT * FROM {$table} WHERE is_burst = 0 AND race_id = %d ORDER BY {$order} DESC, id ASC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+					"SELECT * FROM {$table} WHERE is_burst = 0 AND withdrawn_at IS NULL AND race_id = %d ORDER BY {$order} DESC, id ASC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 					(int) $race->id
 				)
 			);

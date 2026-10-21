@@ -259,12 +259,12 @@ class VBR_Teams {
 		$column   = VBR_Races::ranking_column( $race );
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$rows = (array) $wpdb->get_results( $wpdb->prepare( "SELECT t.id, t.name, t.color, COUNT(b.id) AS balloons, COALESCE(SUM(b.{$column}), 0) AS total, COALESCE(AVG(b.{$column}), 0) AS average, COALESCE(MAX(b.{$column}), 0) AS best FROM {$teams} t LEFT JOIN {$balloons} b ON b.team_id = t.id AND b.race_id = t.race_id WHERE t.race_id = %d GROUP BY t.id, t.name, t.color, t.sort ORDER BY t.sort ASC, t.id ASC", (int) $race->id ) );
+		$rows = (array) $wpdb->get_results( $wpdb->prepare( "SELECT t.id, t.name, t.color, COUNT(b.id) AS balloons, COALESCE(SUM(b.{$column}), 0) AS total, COALESCE(AVG(b.{$column}), 0) AS average, COALESCE(MAX(b.{$column}), 0) AS best FROM {$teams} t LEFT JOIN {$balloons} b ON b.team_id = t.id AND b.race_id = t.race_id AND b.withdrawn_at IS NULL WHERE t.race_id = %d GROUP BY t.id, t.name, t.color, t.sort ORDER BY t.sort ASC, t.id ASC", (int) $race->id ) );
 
 		// Furthest balloon per team, for the "leading balloon" column.
 		$leaders = array();
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		foreach ( (array) $wpdb->get_results( $wpdb->prepare( "SELECT team_id, balloon_name FROM {$balloons} WHERE race_id = %d AND team_id > 0 ORDER BY {$column} DESC, id ASC", (int) $race->id ) ) as $b ) {
+		foreach ( (array) $wpdb->get_results( $wpdb->prepare( "SELECT team_id, balloon_name FROM {$balloons} WHERE race_id = %d AND team_id > 0 AND withdrawn_at IS NULL ORDER BY {$column} DESC, id ASC", (int) $race->id ) ) as $b ) {
 			if ( ! isset( $leaders[ (int) $b->team_id ] ) ) {
 				$leaders[ (int) $b->team_id ] = $b->balloon_name;
 			}

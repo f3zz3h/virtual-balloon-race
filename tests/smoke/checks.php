@@ -200,6 +200,120 @@ switch ( $stage ) {
 		$check( false !== strpos( $render_race_screen( VBR_Races::get( $flying ) ), 'vbr-race-products' ), 'race screen lists entry products' );
 		break;
 
+	// Refunds, cancellations and hand withdrawals take balloons out of the race and back again.
+	case 'refunds':
+		global $wpdb;
+
+		$product = VBR_Product_Type::all_products()[0];
+		$race    = VBR_Races::save(
+			array(
+				'name'       => 'Smoke Refund Race',
+				'launch_lat' => 51.4885,
+				'launch_lng' => -2.58,
+				'launch_at'  => gmdate( 'Y-m-d H:i:s', time() + WEEK_IN_SECONDS ),
+			)
+		);
+
+		// Two balloons in one order.
+		$order = wc_create_order();
+		foreach ( array( 'Refund Me', 'Keep Me' ) as $name ) {
+			$item = new WC_Order_Item_Product();
+			$item->set_product( $product );
+			$item->set_quantity( 1 );
+			$item->set_subtotal( 3 );
+			$item->set_total( 3 );
+			$item->add_meta_data( 'Balloon Name', $name, true );
+			$item->add_meta_data( 'Balloon Color', 'Red', true );
+			$item->add_meta_data( 'Helium Fill Strategy', 'Balanced', true );
+			$item->add_meta_data( '_vbr_race_id', (string) $race, true );
+			$order->add_item( $item );
+		}
+		$order->set_billing_first_name( 'Rae' );
+		$order->set_billing_last_name( 'Fund' );
+		$order->set_billing_email( 'rae.fund@example.com' );
+		$order->calculate_totals();
+		$order->save();
+		$order->update_status( 'processing' );
+
+		$balloon = static function ( $name ) use ( $wpdb, $order ) {
+			return $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM ' . VBR_Balloons::table() . ' WHERE order_id = %d AND balloon_name = %s', $order->get_id(), $name ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		};
+		$public  = static function () use ( $race ) {
+			$request = new WP_REST_Request( 'GET', '/vbr/v1/balloons' );
+			$request->set_param( 'race', $race );
+			return wp_list_pluck( rest_do_request( $request )->get_data()['balloons'], 'name' );
+		};
+		$active  = static function ( $name ) use ( $balloon ) {
+			$row = $balloon( $name );
+			return $row && null === $row->withdrawn_at;
+		};
+
+		$check( $active( 'Refund Me' ) && $active( 'Keep Me' ), 'paid order with two entries makes two balloons' );
+		$check( (int) $balloon( 'Refund Me' )->order_item_id > 0, 'balloons remember their order line' );
+
+		// Refund one line.
+		$lines   = array_values( $order->get_items() );
+		$refund  = wc_create_refund(
+			array(
+				'order_id'   => $order->get_id(),
+				'amount'     => 3,
+				'line_items' => array(
+					$lines[0]->get_id() => array(
+						'qty'          => 1,
+						'refund_total' => 3,
+					),
+				),
+			)
+		);
+		$check( ! is_wp_error( $refund ), 'line refund created' );
+		$check( ! $active( 'Refund Me' ) && 'refunded' === $balloon( 'Refund Me' )->withdrawn_reason, 'refunded line\'s balloon is withdrawn (refunded)' );
+		$check( $active( 'Keep Me' ), 'the other balloon stays in the race' );
+		$check( array( 'Keep Me' ) === $public(), 'map/REST shows only the balloon still in the race' );
+		$check( false === strpos( do_shortcode( '[balloon_leaderboard race="' . $race . '"]' ), 'Refund Me' ), 'leaderboard hides the withdrawn balloon' );
+
+		// Delete the refund: the balloon comes back.
+		if ( ! is_wp_error( $refund ) ) {
+			$refund_id = $refund->get_id();
+			$refund->delete( true );
+			do_action( 'woocommerce_refund_deleted', $refund_id, $order->get_id() ); // As WooCommerce's admin does.
+		}
+		$check( $active( 'Refund Me' ), 'deleting the refund reinstates the balloon' );
+
+		// A money-only refund (no lines) leaves balloons alone.
+		wc_create_refund(
+			array(
+				'order_id' => $order->get_id(),
+				'amount'   => 1,
+			)
+		);
+		$check( $active( 'Refund Me' ) && $active( 'Keep Me' ), 'a goodwill refund with no lines withdraws nothing' );
+
+		// Cancel, then back to processing.
+		$order = wc_get_order( $order->get_id() );
+		$order->update_status( 'cancelled' );
+		$check( ! $active( 'Refund Me' ) && ! $active( 'Keep Me' ) && 'cancelled' === $balloon( 'Keep Me' )->withdrawn_reason, 'cancelling the order withdraws both (cancelled)' );
+		$check( array() === $public(), 'map/REST shows none of them' );
+		$order->update_status( 'processing' );
+		$check( $active( 'Refund Me' ) && $active( 'Keep Me' ), 'reopening the order reinstates both' );
+
+		// Withdrawn by an organiser: stays out even when the order changes.
+		VBR_Balloons::withdraw( array( (int) $balloon( 'Keep Me' )->id ), 'admin' );
+		$order->update_status( 'completed' );
+		$check( ! $active( 'Keep Me' ) && 'admin' === $balloon( 'Keep Me' )->withdrawn_reason, 'a hand-withdrawn balloon stays out when the order changes' );
+		$check( null === VBR_Balloons::rank( $balloon( 'Keep Me' ) ), 'withdrawn balloons have no position' );
+
+		// Withdrawn balloons don't move.
+		$wpdb->update( VBR_Races::table(), array( 'launch_at' => gmdate( 'Y-m-d H:i:s', time() - HOUR_IN_SECONDS ) ), array( 'id' => $race ) );
+		VBR_Races::flush();
+		VBR_Cron::tick( 6, array( 'race_id' => $race, 'source' => 'cli' ) );
+		$check( 0.0 === (float) $balloon( 'Keep Me' )->distance_km, 'a withdrawn balloon doesn\'t move' );
+		$check( (float) $balloon( 'Refund Me' )->distance_km > 0, 'the active balloon still moves' );
+
+		// Failed payment.
+		$order->update_status( 'failed' );
+		$check( ! $active( 'Refund Me' ) && 'failed' === $balloon( 'Refund Me' )->withdrawn_reason, 'a failed payment withdraws the balloon (failed)' );
+		break;
+
 	default:
 		WP_CLI::error( "Unknown stage: {$stage}" );
 }

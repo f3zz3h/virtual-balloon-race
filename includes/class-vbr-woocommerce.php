@@ -356,6 +356,7 @@ class VBR_WooCommerce {
 				$row   = array_merge(
 					array(
 						'order_id'      => $order_id,
+						'order_item_id' => (int) $item_id,
 						'user_id'       => intval( $order->get_user_id() ),
 						'owner_name'    => sanitize_text_field( $order->get_formatted_billing_full_name() ),
 						'owner_email'   => sanitize_email( $order->get_billing_email() ),
