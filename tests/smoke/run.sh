@@ -55,6 +55,9 @@ wp eval-file "$CHECKS" emails
 stage "Scenario A: housekeeping"
 wp eval-file "$CHECKS" housekeeping
 
+stage "Scenario A: entry limits"
+wp eval-file "$CHECKS" limits
+
 stage "Scenario B: WooCommerce first, then the plugin"
 fresh_site
 wp plugin activate woocommerce

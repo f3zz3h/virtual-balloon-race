@@ -147,6 +147,7 @@ class VBR_Admin_Races {
 			'end_at'        => VBR_Races::local_input_to_gmt( isset( $in['end_at'] ) ? sanitize_text_field( $in['end_at'] ) : '' ),
 			'ranking'       => isset( $in['ranking'] ) ? sanitize_key( $in['ranking'] ) : VBR_Races::FROM_START,
 			'flight_mode'   => isset( $in['flight_mode'] ) ? sanitize_key( $in['flight_mode'] ) : '',
+			'entry_limit'   => isset( $in['entry_limit'] ) ? absint( $in['entry_limit'] ) : 0,
 		);
 
 		if ( VBR_Teams::enabled() ) {
@@ -336,6 +337,25 @@ class VBR_Admin_Races {
 			<ul class="vbr-race-facts">
 				<li><strong><?php esc_html_e( 'Entries open:', 'virtual-balloon-race' ); ?></strong> <?php echo esc_html( $race->sales_open_at ? VBR_Races::format_date( $race->sales_open_at ) : __( 'Now', 'virtual-balloon-race' ) ); ?></li>
 				<li><strong><?php esc_html_e( 'Launch (entries close):', 'virtual-balloon-race' ); ?></strong> <?php echo esc_html( VBR_Races::format_date( $race->launch_at ) ); ?></li>
+				<li>
+					<strong><?php esc_html_e( 'Entries:', 'virtual-balloon-race' ); ?></strong>
+					<?php
+					$taken = VBR_Race_Entries::entries_taken( $race );
+					if ( (int) $race->entry_limit ) {
+						$left = VBR_Race_Entries::places_left( $race );
+						echo esc_html(
+							$left
+								/* translators: 1: entries taken, 2: entry limit, 3: places left */
+								? sprintf( __( '%1$s of %2$s (%3$s left)', 'virtual-balloon-race' ), number_format_i18n( $taken ), number_format_i18n( (int) $race->entry_limit ), number_format_i18n( (int) $left ) )
+								/* translators: 1: entries taken, 2: entry limit */
+								: sprintf( __( '%1$s of %2$s — sold out', 'virtual-balloon-race' ), number_format_i18n( $taken ), number_format_i18n( (int) $race->entry_limit ) )
+						);
+					} else {
+						/* translators: %s: entries taken */
+						echo esc_html( sprintf( __( '%s (no limit)', 'virtual-balloon-race' ), number_format_i18n( $taken ) ) );
+					}
+					?>
+				</li>
 				<li><strong><?php esc_html_e( 'Ends:', 'virtual-balloon-race' ); ?></strong> <?php echo esc_html( $race->end_at ? VBR_Races::format_date( $race->end_at ) : __( 'When finished by hand', 'virtual-balloon-race' ) ); ?></li>
 				<li><strong><?php esc_html_e( 'Launch point:', 'virtual-balloon-race' ); ?></strong> <?php echo esc_html( ( $launch['label'] ? $launch['label'] . ' ' : '' ) . sprintf( '(%.4f, %.4f)', $launch['lat'], $launch['lng'] ) ); ?></li>
 				<li><strong><?php esc_html_e( 'Shortcodes:', 'virtual-balloon-race' ); ?></strong> <code>[balloon_map race="<?php echo esc_html( $race->slug ); ?>"]</code> <code>[balloon_leaderboard race="<?php echo esc_html( $race->slug ); ?>"]</code></li>
@@ -491,6 +511,7 @@ class VBR_Admin_Races {
 			'end_at'        => $race ? VBR_Races::gmt_to_local_input( $race->end_at ) : '',
 			'ranking'       => VBR_Races::ranking( $race ),
 			'flight_mode'   => $race ? (string) $race->flight_mode : '',
+			'entry_limit'   => $race && (int) $race->entry_limit ? (string) (int) $race->entry_limit : '',
 		);
 
 		// Re-fill after a validation error.
@@ -544,6 +565,13 @@ class VBR_Admin_Races {
 						<td>
 							<input type="datetime-local" id="vbr_race_end_at" name="vbr_race[end_at]" value="<?php echo esc_attr( $values['end_at'] ); ?>" />
 							<p class="description"><?php esc_html_e( 'Optional. Balloons stop and the leaderboard is final after this time. Leave blank to finish by hand.', 'virtual-balloon-race' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="vbr_race_entry_limit"><?php esc_html_e( 'Entry limit', 'virtual-balloon-race' ); ?></label></th>
+						<td>
+							<input type="number" class="small-text" id="vbr_race_entry_limit" name="vbr_race[entry_limit]" value="<?php echo esc_attr( $values['entry_limit'] ); ?>" min="0" step="1" placeholder="<?php esc_attr_e( 'None', 'virtual-balloon-race' ); ?>" />
+							<p class="description"><?php esc_html_e( 'Optional. The most balloons this race can have; the shop shows "sold out" once it’s reached. Unpaid orders (bank transfer on hold, or awaiting payment from the last day) hold their places. Leave blank for no limit.', 'virtual-balloon-race' ); ?></p>
 						</td>
 					</tr>
 					<tr>

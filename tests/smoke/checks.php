@@ -502,6 +502,115 @@ switch ( $stage ) {
 		WC()->cart->empty_cart();
 		break;
 
+	// Entry limits: places taken (paid and unpaid), sold out, basket limits.
+	case 'limits':
+		global $wpdb;
+
+		$product = VBR_Product_Type::all_products()[0];
+		$races   = new VBR_Race_Entries();
+
+		// Only this race takes entries during this stage.
+		foreach ( VBR_Races::open_for_entries() as $other ) {
+			$wpdb->update( VBR_Races::table(), array( 'launch_at' => gmdate( 'Y-m-d H:i:s', time() - 60 ) ), array( 'id' => (int) $other->id ) );
+		}
+		VBR_Races::flush();
+
+		$race_id = VBR_Races::save(
+			array(
+				'name'        => 'Smoke Limited Race',
+				'launch_lat'  => 51.4885,
+				'launch_lng'  => -2.58,
+				'launch_at'   => gmdate( 'Y-m-d H:i:s', time() + WEEK_IN_SECONDS ),
+				'entry_limit' => 3,
+			)
+		);
+		$race    = static function () use ( $race_id ) {
+			VBR_Races::flush();
+			VBR_Race_Entries::flush_counts();
+			return VBR_Races::get( $race_id );
+		};
+		$paid    = static function ( $name ) use ( $wpdb, $race_id ) {
+			$wpdb->insert(
+				VBR_Balloons::table(),
+				array(
+					'race_id'       => $race_id,
+					'owner_name'    => 'Lim Ited',
+					'owner_email'   => 'limited@example.com',
+					'balloon_name'  => $name,
+					'balloon_color' => 'Red',
+					'helium_level'  => 'Balanced',
+					'latitude'      => 51.4885,
+					'longitude'     => -2.58,
+					'start_lat'     => 51.4885,
+					'start_lng'     => -2.58,
+					'trail_json'    => '[[51.4885,-2.58]]',
+					'created_at'    => current_time( 'mysql' ),
+				)
+			);
+			return (int) $wpdb->insert_id;
+		};
+
+		$check( 3 === VBR_Race_Entries::places_left( $race() ), 'a new race with a limit of 3 has 3 places' );
+		$first = $paid( 'Limit One' );
+		$check( 2 === VBR_Race_Entries::places_left( $race() ), 'a paid balloon takes a place' );
+
+		// An unpaid bank-transfer order holds a place.
+		$order = wc_create_order();
+		$item  = new WC_Order_Item_Product();
+		$item->set_product( $product );
+		$item->set_quantity( 1 );
+		$item->add_meta_data( '_vbr_race_id', (string) $race_id, true );
+		$order->add_item( $item );
+		$order->calculate_totals();
+		$order->save();
+		$order->update_status( 'on-hold' );
+		$check( 1 === VBR_Race_Entries::places_left( $race() ), 'an on-hold (unpaid) order holds a place' );
+		$check( wc_get_product( $product->get_id() )->is_purchasable(), 'still purchasable with 1 place left' );
+		$field = $render(
+			static function () use ( $races, $product ) {
+				$races->output_race_field( $product );
+			}
+		);
+		$check( false !== strpos( $field, 'Only 1 place left!' ), 'product page says "Only 1 place left!"' );
+
+		// Basket: one entry fits, a second is refused.
+		wc_load_cart();
+		WC()->cart->empty_cart();
+		$_POST['vbr_race_id'] = (string) $race_id;
+		$check( true === $races->validate( true, $product->get_id() ), 'the last place can go in the basket' );
+		WC()->cart->add_to_cart( $product->get_id(), 1, 0, array(), array( 'vbr_balloon_name' => 'Last Place', 'vbr_race_id' => $race_id, 'vbr_unique_key' => 'l1' ) );
+		$check( false === $races->validate( true, $product->get_id() ), 'a second entry is refused when only one place is left' );
+		wc_clear_notices();
+
+		// Someone else takes the last place: sold out.
+		$paid( 'Limit Two' );
+		$check( 0 === VBR_Race_Entries::places_left( $race() ), 'sold out' );
+		$check( ! wc_get_product( $product->get_id() )->is_purchasable(), 'not purchasable when sold out' );
+		ob_start();
+		$GLOBALS['product'] = wc_get_product( $product->get_id() );
+		$races->closed_message();
+		$check( false !== strpos( (string) ob_get_clean(), 'Sorry, Smoke Limited Race is sold out.' ), 'product page says it is sold out' );
+		do_action( 'woocommerce_check_cart_items' );
+		$check( 0 === count( WC()->cart->get_cart() ), 'the basket entry is removed once the race sells out' );
+		$check( false !== strpos( wp_json_encode( wc_get_notices( 'error' ) ), 'has sold out' ), 'the buyer is told it sold out' );
+		wc_clear_notices();
+		$check( false !== strpos( do_shortcode( '[balloon_races]' ), 'Sold out' ), 'race list shows Sold out' );
+		$response = rest_do_request( new WP_REST_Request( 'GET', '/vbr/v1/races' ) );
+		$listed   = wp_list_filter( $response->get_data()['races'], array( 'id' => $race_id ) );
+		$check( $listed && 0 === array_values( $listed )[0]['places_left'] && 3 === array_values( $listed )[0]['entry_limit'], 'REST shows the limit and places left' );
+
+		// Cancelling the unpaid order frees its place.
+		$order->update_status( 'cancelled' );
+		$check( 1 === VBR_Race_Entries::places_left( $race() ), 'a cancelled unpaid order frees its place' );
+		VBR_Balloons::withdraw( array( $first ), 'refunded' );
+		$check( 2 === VBR_Race_Entries::places_left( $race() ), 'a withdrawn (refunded) balloon frees its place' );
+
+		$check( false !== strpos( $render_race_screen( $race() ), '1 of 3 (2 left)' ), 'race screen shows entries of the limit' );
+		$check( null === VBR_Race_Entries::places_left( VBR_Races::get( VBR_Races::save( array( 'name' => 'Smoke Unlimited', 'launch_lat' => 51.4, 'launch_lng' => -2.5, 'launch_at' => gmdate( 'Y-m-d H:i:s', time() + DAY_IN_SECONDS ) ) ) ) ), 'no limit means unlimited places' );
+		unset( $_POST['vbr_race_id'] );
+		WC()->cart->empty_cart();
+		break;
+
 	// After deleting the plugin with "Delete all race data" off: everything stays.
 	case 'uninstalled-kept':
 		global $wpdb;

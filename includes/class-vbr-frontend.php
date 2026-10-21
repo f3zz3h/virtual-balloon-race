@@ -437,6 +437,9 @@ class VBR_Frontend {
 					<li class="vbr-races__item<?php echo $current ? ' is-current' : ''; ?>">
 						<a href="<?php echo esc_url( add_query_arg( 'race', $race->slug, $base ) ); ?>"<?php echo $current ? ' aria-current="page"' : ''; ?>><?php echo esc_html( $race->name ); ?></a>
 						<span class="vbr-pill vbr-pill--<?php echo esc_attr( $pill[ $stage ] ); ?>"><?php echo esc_html( VBR_Races::status_label( $race ) ); ?></span>
+						<?php if ( VBR_Races::ON_SALE === $stage && 0 === VBR_Race_Entries::places_left( $race ) ) : ?>
+							<span class="vbr-pill vbr-pill--finished"><?php esc_html_e( 'Sold out', 'virtual-balloon-race' ); ?></span>
+						<?php endif; ?>
 						<span class="vbr-races__date"><?php echo esc_html( VBR_Races::format_date( $date ) ); ?></span>
 					</li>
 				<?php endforeach; ?>
