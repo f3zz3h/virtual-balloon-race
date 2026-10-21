@@ -25,7 +25,14 @@ class VBR_Demo {
 	public function __construct() {
 		add_action( 'vbr_settings_page_end', array( $this, 'render_panel' ), 20 );
 		add_action( 'admin_post_vbr_demo', array( $this, 'handle_post' ) );
-		add_action( VBR_Housekeeping::HOOK, array( __CLASS__, 'renew_if_due' ) );
+		add_action( VBR_Housekeeping::HOOK, array( __CLASS__, 'on_daily_hook' ) );
+	}
+
+	/**
+	 * The daily hook's callback (actions don't return values; tests call renew_if_due() for the race ID).
+	 */
+	public static function on_daily_hook() {
+		self::renew_if_due();
 	}
 
 	/**
