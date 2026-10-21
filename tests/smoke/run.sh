@@ -12,7 +12,8 @@ PLUGIN="virtual-balloon-race"
 CHECKS="$(cd "$(dirname "$0")" && pwd)/checks.php"
 LOG="$WP_PATH/wp-content/debug.log"
 
-wp() { $WP_CLI --path="$WP_PATH" "$@"; }
+# `command` so this calls WP-CLI itself, not this function again.
+wp() { command "$WP_CLI" --path="$WP_PATH" "$@"; }
 
 # Empty the database from PHP (`wp db reset` needs the mysql command-line client).
 fresh_site() {
