@@ -16,7 +16,7 @@ class VBR_Support {
 	 * Where donations go. Empty = no donate links anywhere.
 	 * Keep in step with "Donate link:" in readme.txt and .github/FUNDING.yml.
 	 */
-	const DONATE_URL = 'https://buymeacoffee.com/lukemhartl';
+	const DONATE_URL = 'https://buymeacoffee.com/lumaha';
 
 	/**
 	 * Register hooks.
