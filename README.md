@@ -3,7 +3,7 @@
 A WordPress + WooCommerce plugin for running virtual balloon races as fundraisers. Supporters buy a balloon entry for a race, customise it (name, colour, helium strategy, and optional paid extras), and after launch the balloons drift across a live map using real wind data. A leaderboard ranks balloons by how far they get from the launch point (or, per race, by distance travelled).
 
 - **Requires:** WordPress 6.0+, PHP 7.4+, WooCommerce 7.0+ (for selling entries)
-- **Version:** 1.8.0 (database schema 1.8.0)
+- **Version:** 1.9.0 (database schema 1.8.0)
 - **Licence:** GPL-2.0-or-later
 
 ---
