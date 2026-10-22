@@ -12,11 +12,11 @@ A WordPress + WooCommerce plugin for running virtual balloon races as fundraiser
 
 ### 1. Install
 
-1. Download `virtual-balloon-race-<version>.zip` from the repository's **Releases** page on GitHub.
+1. Download `virtual-balloon-race-<version>.zip` from the [Releases](https://github.com/f3zz3h/virtual-balloon-race/releases) page on GitHub.
 2. In WordPress, go to **Plugins → Add New Plugin → Upload Plugin**, choose the zip, then **Install Now** and **Activate**.
 3. Make sure WooCommerce is active. Without it the leaderboard and map still work, but entries can't be sold.
 
-**Updating:** upload the newer zip the same way. WordPress notices the plugin is already installed and offers **Replace current with uploaded**. Races, balloons and settings are kept, and any database upgrade runs on the next page load. If the site uses LiteSpeed Cache, run **LiteSpeed Cache → Purge All** afterwards.
+**Updating:** from version 1.11.0, new GitHub releases show up as normal plugin updates (Dashboard → Updates and the Plugins screen, with **View details** showing the release notes), and **Enable auto-updates** on the Plugins screen installs them by itself. WordPress checks about twice a day. Earlier versions: upload the newer zip the same way as installing; WordPress offers **Replace current with uploaded**. Either way, races, balloons and settings are kept, and any database upgrade runs on the next page load. If the site uses LiteSpeed Cache, run **LiteSpeed Cache → Purge All** afterwards.
 
 **Deleting the plugin** keeps all race data unless **Settings → Data → Delete all race data when the plugin is deleted** is ticked. Its scheduled jobs always stop.
 
@@ -301,8 +301,11 @@ Donations go to https://buymeacoffee.com/lumaha: a **Donate** link on the Plugin
 1. On a branch, bump the version in the plugin header (`Version:`) and `VBR_VERSION` in `virtual-balloon-race.php` (and `VBR_DB_VERSION` if the schema changed). Merge it.
 2. Tag `main` and push the tag: `git tag v1.7.0 && git push origin v1.7.0`.
 3. The **Release** workflow (`.github/workflows/release.yml`) checks the tag matches the plugin version, builds the zip with `.github/scripts/build-zip.sh` and publishes a GitHub release with the zip attached and notes listing the merged pull requests.
+4. Sites running 1.11.0 or later are offered the update within about 12 hours (`includes/class-vbr-github-updater.php` reads the latest release through GitHub's API, cached for 12 hours; the plugin header's `Update URI` sends WordPress's update check there). A release must stay non-draft, non-prerelease and keep its `virtual-balloon-race-<version>.zip` asset, or it isn't offered.
 
 `.distignore` lists the files left out of the zip (tests, CI, Composer and PHPStan files, TODO, `docs/`). Every pull request also builds the zip and offers it as a download (**Checks → Release → Artifacts**, kept 7 days), and the fresh-install smoke test installs from that same zip. Build one locally with `bash .github/scripts/build-zip.sh` (output in `dist/`).
+
+**WordPress.org build:** `bash .github/scripts/build-zip.sh --wporg` makes `dist/virtual-balloon-race-<version>-wporg.zip` without the GitHub update checker and the `Update URI` header, as WordPress.org requires (its plugins may only update from WordPress.org). Use it for the first submission; its folder, `dist/wporg/virtual-balloon-race/`, is what gets deployed to WordPress.org's SVN.
 
 ### Testing locally
 

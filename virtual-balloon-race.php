@@ -11,6 +11,7 @@
  * Text Domain:       virtual-balloon-race
  * Domain Path:       /languages
  * WC requires at least: 7.0
+ * Update URI:        https://github.com/f3zz3h/virtual-balloon-race
  *
  * @package Virtual_Balloon_Race
  */
@@ -50,6 +51,11 @@ require_once VBR_PLUGIN_DIR . 'includes/class-vbr-demo.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-product-preview.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-product-type.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-account.php';
+
+// Updates from GitHub releases (starts itself). Not in the WordPress.org build, which updates from WordPress.org.
+if ( file_exists( VBR_PLUGIN_DIR . 'includes/class-vbr-github-updater.php' ) ) {
+	require_once VBR_PLUGIN_DIR . 'includes/class-vbr-github-updater.php';
+}
 
 /**
  * Main plugin bootstrap.

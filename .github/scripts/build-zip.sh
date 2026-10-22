@@ -2,10 +2,20 @@
 # Build the installable plugin zip: dist/virtual-balloon-race-<version>.zip containing a
 # virtual-balloon-race/ folder, without the development files listed in .distignore.
 #
-# Usage: build-zip.sh [expected-version]
+# Usage: build-zip.sh [--wporg] [expected-version]
 # With an expected version (e.g. from a v1.7.0 tag), fail unless the plugin header and
 # VBR_VERSION both say that version.
+#
+# --wporg builds the WordPress.org version instead: dist/virtual-balloon-race-<version>-wporg.zip,
+# without the GitHub update checker and the header's Update URI (WordPress.org plugins may only
+# update from WordPress.org). Its folder is kept in dist/wporg/virtual-balloon-race for the SVN deploy.
 set -euo pipefail
+
+WPORG=""
+if [ "${1:-}" = "--wporg" ]; then
+	WPORG=1
+	shift
+fi
 
 SLUG="virtual-balloon-race"
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -27,10 +37,23 @@ fi
 DIST="$ROOT/dist"
 STAGE="$DIST/stage"
 ZIP="$DIST/$SLUG-$header_version.zip"
+if [ -n "$WPORG" ]; then
+	STAGE="$DIST/wporg"
+	ZIP="$DIST/$SLUG-$header_version-wporg.zip"
+fi
 
 rm -rf "$STAGE" "$ZIP"
 mkdir -p "$STAGE/$SLUG"
 rsync -a --exclude-from="$ROOT/.distignore" --exclude dist "$ROOT/" "$STAGE/$SLUG/"
+
+if [ -n "$WPORG" ]; then
+	rm "$STAGE/$SLUG/includes/class-vbr-github-updater.php"
+	sed -i '/^ \* Update URI:/d' "$STAGE/$SLUG/$SLUG.php"
+	if grep -q '^ \* Update URI:' "$STAGE/$SLUG/$SLUG.php" || grep -rq 'VBR_GitHub_Updater' "$STAGE/$SLUG" --include=*.php; then
+		echo "The WordPress.org build still refers to the GitHub updater." >&2
+		exit 1
+	fi
+fi
 
 # Refresh the translation template from the code being shipped (needs WP-CLI; otherwise the committed one is used).
 if command -v wp > /dev/null; then
@@ -44,7 +67,7 @@ else
 	# No zip program (e.g. a minimal WSL): Python's zipfile does the same job.
 	python3 -c 'import shutil, sys; shutil.make_archive(sys.argv[1][:-4], "zip", sys.argv[2], sys.argv[3])' "$ZIP" "$STAGE" "$SLUG"
 fi
-rm -rf "$STAGE"
+[ -n "$WPORG" ] || rm -rf "$STAGE"
 
 echo "Built $ZIP ($(du -h "$ZIP" | cut -f1)), version $header_version"
 if [ -n "${GITHUB_OUTPUT:-}" ]; then

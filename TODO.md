@@ -24,9 +24,7 @@ Done since: leaderboard paging (10 entries per page by default, with a dropdown 
 
 https://www.lumaha.uk/balloonrace/ shows the plugin with a live demo race (which renews itself), and links from the portfolio at https://www.lumaha.uk/. Hosting, access and the scripts that build the sites are kept in a separate private repo, as are the dev site's details.
 
-- [ ] After each release, upload the zip to the project site (Plugins → Add New → Upload → "Replace current with uploaded"). Or automate it:
-  - A step in `release.yml` that copies the built plugin to the project site over SFTP, with a deploy-only login kept in GitHub Secrets. Then visit the site once, so database upgrades run
-  - Or an update checker in the plugin that offers new GitHub releases as normal WordPress updates (WordPress's `Update URI` header and the `update_plugins_{hostname}` filter), with auto-updates on for the project site. This also helps every other site using the plugin, but needs the repo to be public (or a token). Not allowed in the WordPress.org version, which updates from WordPress.org, so leave it out of that build
+- [x] Updates from GitHub releases: from 1.11.0, sites (the project site included) get new releases as normal plugin updates; turn on **Enable auto-updates** for the plugin on the project site once it runs 1.11.0. Not in the WordPress.org build
 - [ ] Download page: add the zip and release notes when the repo goes public
 
 ## Public repo
@@ -44,7 +42,8 @@ Free for anyone to use (GPL-2.0-or-later), with an optional donation link (https
 - [ ] Confirm the WordPress.org username for `Contributors:` in `readme.txt` (currently `f3zz3h`, the GitHub name)
 - [ ] Choose the plugin's `Author` (and optional `Author URI` / `Plugin URI`) in the plugin header: currently "Virtual Balloon Race"
 - [ ] Listing assets (in the SVN `assets/` folder, not the zip): `screenshot-1.png`…`screenshot-5.png` matching the readme's Screenshots section, `banner-772x250.png`, `icon-256x256.png`
-- [ ] Submit at wordpress.org/plugins/developers/add/ and work through the review
+- [ ] Submit at wordpress.org/plugins/developers/add/ with the `--wporg` zip, and work through the review
+- [ ] Once approved: deploy releases to WordPress.org's SVN from GitHub with the [10up WordPress Plugin Deploy action](https://github.com/10up/action-wordpress-plugin-deploy) (on each release, using the `--wporg` build folder; `SVN_USERNAME` / `SVN_PASSWORD` as repository secrets), with banner, icon and screenshots in a `.wordpress-org/` folder
 
 ### Features
 - [ ] Settings for outside services, so busier sites stay within the providers' terms: an Open-Meteo API key (its commercial plan), a map tile provider (e.g. MapTiler, Stadia or Thunderforest, with a key) instead of tile.openstreetmap.org, and the place search's rate limit and identification (Nominatim policy)
