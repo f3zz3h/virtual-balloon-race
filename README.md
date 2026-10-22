@@ -303,7 +303,7 @@ Donations go to https://buymeacoffee.com/lumaha: a **Donate** link on the Plugin
 3. The **Release** workflow (`.github/workflows/release.yml`) checks the tag matches the plugin version, builds the zip with `.github/scripts/build-zip.sh` and publishes a GitHub release with the zip attached and notes listing the merged pull requests.
 4. Sites running 1.11.0 or later are offered the update within about 12 hours (`includes/class-vbr-github-updater.php` reads the latest release through GitHub's API, cached for 12 hours; the plugin header's `Update URI` sends WordPress's update check there). A release must stay non-draft, non-prerelease and keep its `virtual-balloon-race-<version>.zip` asset, or it isn't offered.
 
-`.distignore` lists the files left out of the zip (tests, CI, Composer and PHPStan files, TODO, `docs/`). Every pull request also builds the zip and offers it as a download (**Checks → Release → Artifacts**, kept 7 days), and the fresh-install smoke test installs from that same zip. Build one locally with `bash .github/scripts/build-zip.sh` (output in `dist/`).
+`.distignore` lists the files left out of the zip (tests, CI, Composer and PHPStan files, `docs/`). Every pull request also builds the zip and offers it as a download (**Checks → Release → Artifacts**, kept 7 days), and the fresh-install smoke test installs from that same zip. Build one locally with `bash .github/scripts/build-zip.sh` (output in `dist/`).
 
 **WordPress.org build:** `bash .github/scripts/build-zip.sh --wporg` makes `dist/virtual-balloon-race-<version>-wporg.zip` without the GitHub update checker and the `Update URI` header, as WordPress.org requires (its plugins may only update from WordPress.org). Use it for the first submission; its folder, `dist/wporg/virtual-balloon-race/`, is what gets deployed to WordPress.org's SVN.
 
@@ -323,7 +323,7 @@ wp vbr demo --balloons=10
 
 ## Known gaps
 
-How it works and why: [docs/design.md](docs/design.md). Not built yet (see [TODO.md](TODO.md)):
+How it works and why: [docs/design.md](docs/design.md). Plans, bugs and ideas are tracked in [GitHub Issues](https://github.com/f3zz3h/virtual-balloon-race/issues) (milestones: **Ready for wider use**, **WordPress.org listing**). Not built yet:
 
 - Movement settings (speed, interval, bursts) apply to all races, not per race
 - Logo upload needs the standard product form (themes using AJAX add-to-cart on single products won't send the file)
