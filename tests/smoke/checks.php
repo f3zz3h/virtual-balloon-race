@@ -642,6 +642,71 @@ switch ( $stage ) {
 		$check( 0 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . VBR_Balloons::table() . ' WHERE race_id = %d', $renewed ) ), 'demo balloons removed' ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		break;
 
+	// Two races taking entries at once: when one launches, only its entries leave the basket.
+	case 'two-races':
+		global $wpdb;
+
+		$product = VBR_Product_Type::all_products()[0];
+		$pid     = $product->get_id();
+
+		foreach ( VBR_Races::open_for_entries() as $other ) {
+			$wpdb->update( VBR_Races::table(), array( 'launch_at' => gmdate( 'Y-m-d H:i:s', time() - 60 ) ), array( 'id' => (int) $other->id ) );
+		}
+		VBR_Races::flush();
+
+		$open = static function ( $name, $days ) {
+			return VBR_Races::save(
+				array(
+					'name'       => $name,
+					'launch_lat' => 51.4885,
+					'launch_lng' => -2.58,
+					'launch_at'  => gmdate( 'Y-m-d H:i:s', time() + $days * DAY_IN_SECONDS ),
+				)
+			);
+		};
+		$first  = $open( 'Smoke Morning Race', 1 );
+		$second = $open( 'Smoke Evening Race', 2 );
+		$check( 2 === count( VBR_Race_Entries::open_races_for( $pid ) ), 'both races take entries for the product' );
+
+		wc_load_cart();
+		WC()->cart->empty_cart();
+		wc_clear_notices();
+		WC()->cart->add_to_cart( $pid, 1, 0, array(), array( 'vbr_balloon_name' => 'Morning Glory', 'vbr_race_id' => $first, 'vbr_unique_key' => 't1' ) );
+		WC()->cart->add_to_cart( $pid, 1, 0, array(), array( 'vbr_balloon_name' => 'Evening Star', 'vbr_race_id' => $second, 'vbr_unique_key' => 't2' ) );
+		do_action( 'woocommerce_check_cart_items' );
+		$check( 2 === count( WC()->cart->get_cart() ) && ! wc_get_notices( 'error' ), 'an entry for each open race stays in the basket' );
+
+		// The first race launches.
+		VBR_Races::set_time( $first, 'launch_at', time() - 60 );
+		do_action( 'woocommerce_check_cart_items' );
+		$left    = array_values( wp_list_pluck( WC()->cart->get_cart(), 'vbr_balloon_name' ) );
+		$notices = wp_json_encode( wc_get_notices( 'error' ) );
+		$check( array( 'Evening Star' ) === $left, 'only the launched race\'s entry leaves the basket' );
+		$check( false !== strpos( $notices, 'Smoke Morning Race' ) && false === strpos( $notices, 'Smoke Evening Race' ), 'the notice names only the race that launched' );
+		wc_clear_notices();
+
+		$check( wc_get_product( $pid )->is_purchasable(), 'the product can still be bought for the race that is open' );
+		$_POST['vbr_race_id'] = (string) $first;
+		$check( null === VBR_Race_Entries::posted_race( $pid ), 'the launched race can no longer be chosen' );
+		$_POST['vbr_race_id'] = (string) $second;
+		$check( $second === (int) VBR_Race_Entries::posted_race( $pid )->id, 'the open race can still be chosen' );
+		unset( $_POST['vbr_race_id'] );
+
+		update_post_meta( $pid, VBR_Race_Entries::PRODUCT_META, $first );
+		$check( ! wc_get_product( $pid )->is_purchasable(), 'a product locked to the launched race can\'t be bought, even with another race open' );
+		update_post_meta( $pid, VBR_Race_Entries::PRODUCT_META, 0 );
+
+		// The second race launches too.
+		VBR_Races::set_time( $second, 'launch_at', time() - 60 );
+		do_action( 'woocommerce_check_cart_items' );
+		$check( 0 === count( WC()->cart->get_cart() ) && ! wc_get_product( $pid )->is_purchasable(), 'once both have launched, the basket is empty and entries are closed' );
+
+		wc_clear_notices();
+		WC()->cart->empty_cart();
+		VBR_Races::delete( $first );
+		VBR_Races::delete( $second );
+		break;
+
 	// The balloon preview replaces the product images, in a block theme as well as a classic one.
 	case 'product-preview':
 		$products = wc_get_products( array( 'type' => 'balloon_entry', 'status' => 'publish', 'limit' => 1 ) );

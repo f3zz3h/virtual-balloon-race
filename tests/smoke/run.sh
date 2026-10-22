@@ -63,6 +63,9 @@ wp eval-file "$CHECKS" demo
 wp vbr demo --balloons=5
 wp vbr demo --remove
 
+stage "Scenario A: two races taking entries at once"
+wp eval-file "$CHECKS" two-races
+
 stage "Scenario A: balloon preview on the product page"
 wp eval-file "$CHECKS" product-preview
 
