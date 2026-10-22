@@ -36,7 +36,42 @@ class VBR_Product_Preview {
 		}
 
 		remove_action( 'woocommerce_before_single_product_summary', 'woocommerce_show_product_images', 20 );
-		add_action( 'woocommerce_before_single_product_summary', array( $this, 'render' ), 20 );
+
+		// Block themes draw the images with a block (Twenty Twenty-Five and other block themes): swap the
+		// preview in for that block. Classic themes, and block themes using WooCommerce's classic template, use the hook.
+		if ( self::uses_block_template() ) {
+			add_filter( 'render_block_woocommerce/product-image-gallery', array( $this, 'replace_block' ) );
+			add_filter( 'render_block_woocommerce/product-gallery', array( $this, 'replace_block' ) );
+		} else {
+			add_action( 'woocommerce_before_single_product_summary', array( $this, 'render' ), 20 );
+		}
+	}
+
+	/**
+	 * Whether the product page comes from a block template (not WooCommerce's classic template block).
+	 *
+	 * @return bool
+	 */
+	private static function uses_block_template() {
+		if ( ! function_exists( 'wp_is_block_theme' ) || ! wp_is_block_theme() || ! function_exists( 'get_block_template' ) ) {
+			return false;
+		}
+
+		$template = get_block_template( get_stylesheet() . '//single-product' );
+
+		return $template && false === strpos( (string) $template->content, 'woocommerce/legacy-template' );
+	}
+
+	/**
+	 * The preview in place of the product image block.
+	 *
+	 * @return string
+	 */
+	public function replace_block() {
+		ob_start();
+		$this->render();
+
+		return '<div class="wp-block-woocommerce-product-image-gallery vbr-product-preview-block">' . ob_get_clean() . '</div>';
 	}
 
 	/**
