@@ -304,16 +304,17 @@ Donations go to https://buymeacoffee.com/lumaha: a **Donate** link on the Plugin
 
 `.distignore` lists the files left out of the zip (tests, CI, Composer and PHPStan files, TODO, the plan). Every pull request also builds the zip and offers it as a download (**Checks → Release → Artifacts**, kept 7 days), and the fresh-install smoke test installs from that same zip. Build one locally with `bash .github/scripts/build-zip.sh` (output in `dist/`).
 
-### Testing on the dev site
+### Testing locally
 
-Commands run inside the WordPress Docker container:
+Any WordPress with WooCommerce will do (for example [wp-env](https://developer.wordpress.org/block-editor/reference-guides/packages/packages-env/) or the official Docker images). Copy the plugin in with the same exclusions as the zip:
 
 ```
-docker exec -u www-data -w /var/www/html wordpress wp vbr status
-docker exec -i wordpress php -l < includes/class-vbr-races.php
+rsync -rlt --delete --exclude-from=.distignore --exclude dist ./ /path/to/wp-content/plugins/virtual-balloon-race/
+wp vbr status
+wp vbr demo --balloons=10
 ```
 
-Deploy with `rsync --exclude-from=.distignore` into the existing plugin folder (`scp -r` into an existing folder creates a nested copy).
+`scp -r` into an existing folder creates a nested copy; use rsync. The fresh-install smoke test runs locally too: `WP_PATH=/path/to/wordpress bash tests/smoke/run.sh` (see the comments at its top).
 
 ---
 
