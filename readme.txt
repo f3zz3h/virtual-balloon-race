@@ -5,7 +5,7 @@ Tags: fundraising, balloon race, charity, woocommerce, school
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.10.0
+Stable tag: 1.11.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -112,6 +112,10 @@ Used by the "search for a place" box when choosing a launch point (in Settings, 
 
 == Changelog ==
 
+= 1.11.0 =
+* New: copies installed from the GitHub release zip are offered new versions as normal plugin updates, with release notes under View details and automatic updates if switched on.
+* The plugin's code is now public on GitHub: https://github.com/f3zz3h/virtual-balloon-race
+
 = 1.10.0 =
 * New: optional entry limit per race, with "Only N places left!" and "Sold out" in the shop. Unpaid orders hold their places.
 * New: Leaflet is bundled with the plugin instead of loaded from a CDN.
@@ -151,6 +155,9 @@ Used by the "search for a place" box when choosing a launch point (in Settings, 
 * New: race schedules (entries open, launch, end) and per-race sales.
 
 == Upgrade Notice ==
+
+= 1.11.0 =
+Installed from GitHub? From this version, new releases appear as normal plugin updates.
 
 = 1.10.0 =
 Adds optional entry limits per race. The map library is now bundled with the plugin.

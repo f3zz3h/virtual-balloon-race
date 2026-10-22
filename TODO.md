@@ -7,7 +7,7 @@ Things agreed but not done yet. Tick them off (`[x]`) or delete them as they're 
 1. [x] **Refunds and cancellations** (v1.7.0): refunded, cancelled and failed orders and refunded lines withdraw their balloons; reopening or deleting a refund reinstates them; Withdraw / Reinstate by hand
 2. [x] **Release zip** (`.github/workflows/release.yml`): a `v*` tag builds the zip (files listed in `.distignore` left out) and publishes a GitHub release; pull requests build it as a download, and the smoke test installs from it.
    - [x] Tagged `v1.7.0`: first release published
-   - [ ] Live site: install from release zips from now on (see README "Moving from a hand-copied folder")
+   - [ ] Horfield SA live site: install from the release zip (see README "Moving from a hand-copied folder"); from 1.11.0 it then updates itself from GitHub releases
 3. [x] **Emails to entrants** (v1.8.0): launch and final-results WooCommerce emails, one per person, switchable in WooCommerce → Settings → Emails
 4. [x] **Housekeeping.**
    - [x] `LICENSE` file (GPL-2.0)
@@ -31,7 +31,7 @@ https://www.lumaha.uk/balloonrace/ shows the plugin with a live demo race (which
 
 Public since 22 Oct 2026 at https://github.com/f3zz3h/virtual-balloon-race, made from the private development repo with its history cleaned of private details.
 
-- [ ] GitHub → Settings → Emails: tick **Keep my email addresses private** and **Block command line pushes that expose my email**
+- [x] GitHub → Settings → Emails: email addresses kept private
 
 ## Stretch goals
 
@@ -66,14 +66,8 @@ Free for anyone to use (GPL-2.0-or-later), with an optional donation link (https
 ## GitHub setup
 
 ### Protect `main`
-- [ ] Rulesets are free on public repos (a private repo needs GitHub Pro or Team): set this up on the public repo. See **Settings → Rules**.
-- [ ] **Settings → Rules → Rulesets → New branch ruleset**, targeting `main`:
-  - [ ] Require a pull request before merging, with **0** required approvals (you can't approve your own PR)
-  - [ ] Block force pushes
-  - [ ] Restrict deletions
-  - [ ] Require status checks to pass: "PHP 7.4 syntax", "PHP 8.0 syntax", "PHP 8.3 syntax", "WordPress Coding Standards", "PHPStan", "Fresh install smoke test"
-  - [ ] Add yourself to the bypass list, for emergencies only
-- [x] GitHub CLI (`gh`) installed in WSL (`~/.local/bin/gh`) and logged in, so Claude can open PRs
+- [x] Ruleset on the public repo: pull requests only, the six checks must pass, no force pushes or deletion; admins can bypass in an emergency
+- [x] GitHub CLI (`gh`) logged in, so Claude can open PRs
 
 ### GitHub Actions checks (run on every PR)
 - [x] PHP syntax check on PHP 7.4 (the plugin's minimum) up to 8.3 (`.github/workflows/php_check.yml`)
@@ -88,5 +82,4 @@ Free for anyone to use (GPL-2.0-or-later), with an optional donation link (https
 
 ## Other open items
 - [x] Demo race: Settings → Demo race (Create / Remove) and `wp vbr demo [--remove]`; a fresh one replaces it automatically when it's about to end (on by default)
-- [ ] Delete the old `f3zz3h-php-check` and `f3zz3h-demo-action` branches and the `demo.yml` workflow if they're no longer needed
 - [ ] LiteSpeed: after each plugin update on the live site, run **LiteSpeed Cache → Purge All**, and check its JS/CSS minify/combine settings so changed files get new addresses (browsers kept old copies during testing)
