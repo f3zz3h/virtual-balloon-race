@@ -5,7 +5,7 @@ Tags: fundraising, balloon race, charity, woocommerce, school
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.12.0
+Stable tag: 1.12.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,11 @@ Used by the "search for a place" box when choosing a launch point (in Settings, 
 
 == Changelog ==
 
+= 1.12.1 =
+* Fix: in block themes (such as Twenty Twenty-Five), the balloon preview now replaces the product image, instead of appearing at the top of the page with the placeholder image still showing.
+* Fix: the entry form's fields are styled consistently, so the balloon name box is no longer flat in block themes.
+* Fix: Dashboard → Updates → Check again looks for a new release straight away (copies installed from GitHub).
+
 = 1.12.0 =
 * New: Settings → Maps, weather and place search. Choose the map tiles (OpenStreetMap, MapTiler, Stadia Maps or a custom tile server, with an API key), the place search (Nominatim, MapTiler or off) and an Open-Meteo API key for commercial use.
 * Changed: place searches are spaced at least a second apart, as Nominatim's usage policy asks.
@@ -166,6 +171,9 @@ Used by the "search for a place" box when choosing a launch point (in Settings, 
 * New: race schedules (entries open, launch, end) and per-race sales.
 
 == Upgrade Notice ==
+
+= 1.12.1 =
+Fixes the balloon preview on product pages in block themes such as Twenty Twenty-Five.
 
 = 1.12.0 =
 Busier or commercial sites can now use paid map, place search and weather providers. Nothing changes unless you pick one.
