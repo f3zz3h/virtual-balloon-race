@@ -755,6 +755,29 @@ switch ( $stage ) {
 		global $wp_filesystem;
 		$wp_filesystem->delete( $remote, true );
 
+		// "Check again" on Dashboard → Updates asks GitHub again, before WordPress's own check runs.
+		$release = array(
+			'tag_name' => 'v99.2.0',
+			'html_url' => 'https://github.com/f3zz3h/virtual-balloon-race/releases/tag/v99.2.0',
+			'assets'   => array( array( 'name' => 'virtual-balloon-race-99.2.0.zip', 'browser_download_url' => 'https://example.com/virtual-balloon-race-99.2.0.zip' ) ),
+		);
+		set_site_transient( VBR_GitHub_Updater::CACHE, array( 'version' => '99.1.0', 'package' => 'https://example.com/old.zip', 'url' => '', 'notes' => '', 'date' => '' ), HOUR_IN_SECONDS );
+		$seen_in_check = '';
+		$watch         = static function () use ( &$seen_in_check ) {
+			$latest        = VBR_GitHub_Updater::latest();
+			$seen_in_check = $latest ? $latest['version'] : '';
+		};
+		add_action( 'load-update-core.php', $watch, 10 );
+		wp_set_current_user( (int) get_users( array( 'role' => 'administrator', 'fields' => 'ID', 'number' => 1 ) )[0] );
+		$_GET['force-check'] = '1';
+		do_action( 'load-update-core.php' );
+		unset( $_GET['force-check'] );
+		remove_action( 'load-update-core.php', $watch, 10 );
+		$check( '99.2.0' === $seen_in_check, '"Check again" asks GitHub afresh before WordPress checks for updates' );
+
+		set_site_transient( VBR_GitHub_Updater::CACHE, array( 'version' => '1.0.0' ), HOUR_IN_SECONDS );
+		$check( '99.2.0' === ( VBR_GitHub_Updater::latest() ? VBR_GitHub_Updater::latest()['version'] : '' ), 'an incomplete cached release is fetched again' );
+
 		remove_filter( 'pre_http_request', $fake, 10 );
 		VBR_GitHub_Updater::forget();
 		break;

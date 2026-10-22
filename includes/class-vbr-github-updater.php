@@ -29,6 +29,17 @@ class VBR_GitHub_Updater {
 		add_filter( 'plugins_api', array( $this, 'details' ), 20, 3 );
 		add_filter( 'upgrader_source_selection', array( $this, 'keep_folder_name' ), 10, 4 );
 		add_action( 'upgrader_process_complete', array( __CLASS__, 'forget' ) );
+		// Before WordPress's own update check on that screen (priority 10).
+		add_action( 'load-update-core.php', array( __CLASS__, 'forget_on_check_again' ), 1 );
+	}
+
+	/**
+	 * Dashboard → Updates → "Check again" asks GitHub again too, instead of using the cached release.
+	 */
+	public static function forget_on_check_again() {
+		if ( isset( $_GET['force-check'] ) && current_user_can( 'update_plugins' ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- WordPress's own link, no change of state.
+			self::forget();
+		}
 	}
 
 	/**
@@ -40,8 +51,12 @@ class VBR_GitHub_Updater {
 	public static function latest() {
 		$cached = get_site_transient( self::CACHE );
 
-		if ( is_array( $cached ) ) {
-			return empty( $cached['version'] ) ? null : $cached;
+		if ( array() === $cached ) {
+			return null; // A recent failure: don't ask again yet.
+		}
+
+		if ( is_array( $cached ) && isset( $cached['version'], $cached['package'], $cached['url'], $cached['notes'], $cached['date'] ) ) {
+			return $cached;
 		}
 
 		$release  = null;
