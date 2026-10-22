@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       # WP-CLI refreshes the translation template inside the zip.
       - name: Set up PHP and WP-CLI
@@ -54,7 +54,7 @@ jobs:
       contents: write
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       # WP-CLI refreshes the translation template inside the zip.
       - name: Set up PHP and WP-CLI
