@@ -29,14 +29,11 @@ https://www.lumaha.uk/balloonrace/ shows the plugin with a live demo race (which
   - Or an update checker in the plugin that offers new GitHub releases as normal WordPress updates (WordPress's `Update URI` header and the `update_plugins_{hostname}` filter), with auto-updates on for the project site. This also helps every other site using the plugin, but needs the repo to be public (or a token). Not allowed in the WordPress.org version, which updates from WordPress.org, so leave it out of that build
 - [ ] Download page: add the zip and release notes when the repo goes public
 
-## Going public
+## Public repo
 
-The public repo will be a **new** repo made from this one's history, rewritten so it carries no private details; this private repo stays as the full archive (GitHub keeps every pull request's commits, so making this one public would expose them). The step-by-step procedure and the rewrite rules are in the private notes repo.
+Public since 22 Oct 2026 at https://github.com/f3zz3h/virtual-balloon-race, made from the private development repo with its history cleaned of private details.
 
-- [x] Audit: no passwords, tokens or keys have ever been committed
-- [x] Dev site, hosting and website details moved to the private notes repo
-- [ ] GitHub → Settings → Emails: tick **Keep my email addresses private** (commits then use the noreply address)
-- [ ] When ready: create the public repo from the rewritten history, check it, then point the Download page and readme at it
+- [ ] GitHub → Settings → Emails: tick **Keep my email addresses private** and **Block command line pushes that expose my email**
 
 ## Stretch goals
 
@@ -88,7 +85,7 @@ Free for anyone to use (GPL-2.0-or-later), with an optional donation link (https
 
 ### Other GitHub housekeeping
 - [ ] Move the open items in this file into GitHub Issues
-- [ ] Turn on Dependabot for GitHub Actions and Composer (dev tools) versions
+- [x] Dependabot for GitHub Actions and Composer (dev tools) versions (`.github/dependabot.yml`)
 
 ## Other open items
 - [x] Demo race: Settings → Demo race (Create / Remove) and `wp vbr demo [--remove]`; a fresh one replaces it automatically when it's about to end (on by default)
