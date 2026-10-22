@@ -5,7 +5,7 @@ Tags: fundraising, balloon race, charity, woocommerce, school
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.11.0
+Stable tag: 1.12.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,11 @@ Used by the "search for a place" box when choosing a launch point (in Settings, 
 
 == Changelog ==
 
+= 1.12.0 =
+* New: Settings → Maps, weather and place search. Choose the map tiles (OpenStreetMap, MapTiler, Stadia Maps or a custom tile server, with an API key), the place search (Nominatim, MapTiler or off) and an Open-Meteo API key for commercial use.
+* Changed: place searches are spaced at least a second apart, as Nominatim's usage policy asks.
+* Changed: the plugin's author is Luke Hart, with the project site as the plugin's home page.
+
 = 1.11.0 =
 * New: copies installed from the GitHub release zip are offered new versions as normal plugin updates, with release notes under View details and automatic updates if switched on.
 * The plugin's code is now public on GitHub: https://github.com/f3zz3h/virtual-balloon-race
@@ -161,6 +166,9 @@ Used by the "search for a place" box when choosing a launch point (in Settings, 
 * New: race schedules (entries open, launch, end) and per-race sales.
 
 == Upgrade Notice ==
+
+= 1.12.0 =
+Busier or commercial sites can now use paid map, place search and weather providers. Nothing changes unless you pick one.
 
 = 1.11.0 =
 Installed from GitHub? From this version, new releases appear as normal plugin updates.
