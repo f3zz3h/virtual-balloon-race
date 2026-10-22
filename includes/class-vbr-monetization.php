@@ -176,7 +176,7 @@ class VBR_Monetization {
 				<p class="vbr-addon__help"><?php esc_html_e( 'Start your balloon from your school, hometown or anywhere you like.', 'virtual-balloon-race' ); ?></p>
 
 				<div class="vbr-addon__panel" <?php echo $posted_launch ? '' : 'hidden'; ?>>
-					<div class="vbr-addon__search">
+					<div class="vbr-addon__search"<?php echo VBR_Services::search_enabled() ? '' : ' hidden'; ?>>
 						<input type="search" class="vbr-addon__search-input" placeholder="<?php esc_attr_e( 'Search a place or postcode', 'virtual-balloon-race' ); ?>" aria-label="<?php esc_attr_e( 'Search a place or postcode', 'virtual-balloon-race' ); ?>" />
 						<button type="button" class="button vbr-addon__search-btn"><?php esc_html_e( 'Search', 'virtual-balloon-race' ); ?></button>
 					</div>

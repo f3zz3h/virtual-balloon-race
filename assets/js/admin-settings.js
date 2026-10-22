@@ -18,10 +18,7 @@
 	var start = [parseFloat(latInput.value) || 51.4885, parseFloat(lngInput.value) || -2.58];
 	var map = L.map(mapEl).setView(start, parseInt(mapEl.getAttribute('data-zoom'), 10) || 7);
 
-	L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-		maxZoom: 19,
-		attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-	}).addTo(map);
+	window.vbrServices.tileLayer().addTo(map);
 
 	var marker = L.marker(start, { draggable: true }).addTo(map);
 
@@ -71,13 +68,10 @@
 
 		showMessage(i18n.searching || 'Searching…');
 
-		fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&q=' + encodeURIComponent(q), {
-			headers: { 'Accept': 'application/json' }
-		})
-			.then(function (r) { return r.json(); })
+		window.vbrServices.searchPlaces(q)
 			.then(function (places) {
 				results.innerHTML = '';
-				if (!places || !places.length) {
+				if (!places.length) {
 					showMessage(i18n.noResults || 'No places found.');
 					return;
 				}
@@ -86,11 +80,11 @@
 					var btn = document.createElement('button');
 					btn.type = 'button';
 					btn.className = 'button-link';
-					btn.textContent = place.display_name;
+					btn.textContent = place.name;
 					btn.addEventListener('click', function () {
-						setPoint(parseFloat(place.lat), parseFloat(place.lon), true);
+						setPoint(place.lat, place.lng, true);
 						if (labelInput) {
-							labelInput.value = place.display_name.split(',').slice(0, 2).join(',').trim();
+							labelInput.value = place.name.split(',').slice(0, 2).join(',').trim();
 						}
 						results.hidden = true;
 					});
@@ -102,6 +96,10 @@
 			.catch(function () {
 				showMessage(i18n.error || 'Search failed.');
 			});
+	}
+
+	if (!searchBtn || !searchInput) {
+		return;
 	}
 
 	searchBtn.addEventListener('click', search);

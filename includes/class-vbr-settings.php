@@ -87,7 +87,7 @@ class VBR_Settings {
 			'launch_label'      => array( 'section' => 'launch', 'type' => 'text', 'default' => 'Horfield, Bristol', 'label' => __( 'Launch name', 'virtual-balloon-race' ) ),
 			'launch_lat'        => array( 'section' => 'launch', 'type' => 'number', 'default' => 51.4885, 'min' => -90, 'max' => 90, 'step' => 0.0000001, 'label' => __( 'Launch latitude', 'virtual-balloon-race' ) ),
 			'launch_lng'        => array( 'section' => 'launch', 'type' => 'number', 'default' => -2.5800, 'min' => -180, 'max' => 180, 'step' => 0.0000001, 'label' => __( 'Launch longitude', 'virtual-balloon-race' ), 'help' => __( 'Used for new races. Search for a place above or click the map. Each race can have its own launch point.', 'virtual-balloon-race' ) ),
-			'weather_enabled'   => array( 'section' => 'launch', 'type' => 'checkbox', 'default' => 1, 'label' => __( 'Use live wind (Open-Meteo)', 'virtual-balloon-race' ), 'help' => __( 'Free, no API key. When off, balloons follow the default heading at base speed.', 'virtual-balloon-race' ) ),
+			'weather_enabled'   => array( 'section' => 'launch', 'type' => 'checkbox', 'default' => 1, 'label' => __( 'Use live wind (Open-Meteo)', 'virtual-balloon-race' ), 'help' => __( 'Free for non-commercial use, no key needed (see Maps, weather and place search for an API key). When off, balloons follow the default heading at base speed.', 'virtual-balloon-race' ) ),
 			'per_balloon_wind'  => array( 'section' => 'launch', 'type' => 'checkbox', 'default' => 1, 'label' => __( 'Per-balloon wind', 'virtual-balloon-race' ), 'help' => __( 'Fetch wind for each balloon\'s ~11 km area so paths diverge as they spread. Turn off to use launch-point wind only.', 'virtual-balloon-race' ) ),
 			'wind_weight'       => array( 'section' => 'launch', 'type' => 'number', 'default' => 0.6, 'min' => 0, 'max' => 1, 'step' => 0.05, 'label' => __( 'Wind influence (0–1)', 'virtual-balloon-race' ), 'help' => __( '0 = wind only sets direction; 1 = wind speed fully drives distance.', 'virtual-balloon-race' ) ),
 			'default_heading'   => array( 'section' => 'launch', 'type' => 'number', 'default' => 70, 'min' => 0, 'max' => 359, 'step' => 1, 'label' => __( 'Default heading (°)', 'virtual-balloon-race' ), 'help' => __( 'Direction of travel when no wind data is available. 0 = north, 90 = east.', 'virtual-balloon-race' ) ),
@@ -102,6 +102,14 @@ class VBR_Settings {
 			'map_refresh'       => array( 'section' => 'map', 'type' => 'number', 'default' => 60, 'min' => 15, 'max' => 3600, 'step' => 1, 'label' => __( 'Map refresh (seconds)', 'virtual-balloon-race' ) ),
 			'leaderboard_per_page' => array( 'section' => 'map', 'type' => 'select', 'default' => '10', 'label' => __( 'Leaderboard entries per page', 'virtual-balloon-race' ), 'options' => array( '10' => '10', '25' => '25', '50' => '50', '100' => '100' ), 'help' => __( 'How many balloons each leaderboard page shows at first. Visitors can change it with the dropdown under the leaderboard; the admin leaderboard uses it too.', 'virtual-balloon-race' ) ),
 			'trail_cap'         => array( 'section' => 'map', 'type' => 'number', 'default' => 80, 'min' => 2, 'max' => 500, 'step' => 1, 'label' => __( 'Trail length (points)', 'virtual-balloon-race' ) ),
+
+			// Outside services.
+			'tile_provider'     => array( 'section' => 'services', 'type' => 'select', 'default' => 'osm', 'label' => __( 'Map tiles', 'virtual-balloon-race' ), 'options' => VBR_Services::tile_labels(), 'help' => __( 'OpenStreetMap\'s own tile servers are free but only for light use. For a busy site, use a provider with an API key. Without a key (or a custom URL), maps fall back to OpenStreetMap.', 'virtual-balloon-race' ) ),
+			'map_api_key'       => array( 'section' => 'services', 'type' => 'text', 'default' => '', 'label' => __( 'Map API key', 'virtual-balloon-race' ), 'help' => __( 'For MapTiler or Stadia Maps. Visitors\' browsers load the tiles with it, so anyone can see it: restrict it to your site\'s address in the provider\'s dashboard.', 'virtual-balloon-race' ) ),
+			'tile_url'          => array( 'section' => 'services', 'type' => 'tile_url', 'default' => '', 'label' => __( 'Custom tile URL', 'virtual-balloon-race' ), 'help' => __( 'For "Custom tile URL": an https address with {z}, {x} and {y}, e.g. https://tile.example.com/{z}/{x}/{y}.png?key=…', 'virtual-balloon-race' ) ),
+			'tile_attribution'  => array( 'section' => 'services', 'type' => 'attribution', 'default' => '', 'label' => __( 'Custom tile attribution', 'virtual-balloon-race' ), 'help' => __( 'The credit the tile provider requires, shown in the map corner. Text and links only.', 'virtual-balloon-race' ) ),
+			'search_provider'   => array( 'section' => 'services', 'type' => 'select', 'default' => 'nominatim', 'label' => __( 'Place search', 'virtual-balloon-race' ), 'options' => VBR_Services::search_labels(), 'help' => __( 'Used to find launch points by name, in Settings, on race screens and for buyers choosing a custom launch point. Searches run when the Search button is pressed, at most one a second. MapTiler search needs MapTiler map tiles.', 'virtual-balloon-race' ) ),
+			'weather_api_key'   => array( 'section' => 'services', 'type' => 'text', 'default' => '', 'label' => __( 'Open-Meteo API key', 'virtual-balloon-race' ), 'help' => __( 'Optional. Open-Meteo\'s free API is for non-commercial use; for commercial use, get a key from open-meteo.com. With a key, wind requests go to its customer API. Kept on the server, never sent to browsers.', 'virtual-balloon-race' ) ),
 
 			// Shop add-ons.
 			/* translators: %s: currency symbol */
@@ -134,6 +142,7 @@ class VBR_Settings {
 			'launch' => __( 'Default launch point and wind', 'virtual-balloon-race' ),
 			'burst'  => __( 'Bursts', 'virtual-balloon-race' ),
 			'map'    => __( 'Map and leaderboard', 'virtual-balloon-race' ),
+			'services' => __( 'Maps, weather and place search', 'virtual-balloon-race' ),
 			'shop'   => __( 'Shop add-ons', 'virtual-balloon-race' ),
 			'teams'  => __( 'Teams', 'virtual-balloon-race' ),
 			'data'   => __( 'Data', 'virtual-balloon-race' ),
@@ -271,6 +280,14 @@ class VBR_Settings {
 					);
 					break;
 
+				case 'tile_url':
+					$output[ $key ] = VBR_Services::sanitize_tile_url( $raw );
+					break;
+
+				case 'attribution':
+					$output[ $key ] = VBR_Services::sanitize_attribution( $raw );
+					break;
+
 				case 'datetime':
 					$raw            = sanitize_text_field( (string) $raw );
 					$output[ $key ] = date_create_immutable_from_format( 'Y-m-d\TH:i', $raw ) ? $raw : '';
@@ -293,8 +310,11 @@ class VBR_Settings {
 		}
 
 		// Leaflet 1.9.4 ships with the plugin (assets/vendor/leaflet, BSD-2-Clause): no third-party CDN.
+		// Every map gets vbr-services with it: the tiles and place search chosen in Settings.
+		wp_register_script( 'vbr-services', VBR_PLUGIN_URL . 'assets/js/services.js', array(), VBR_Balloons::asset_version( 'assets/js/services.js' ), true );
+		wp_add_inline_script( 'vbr-services', 'window.vbrServicesConfig = ' . wp_json_encode( VBR_Services::browser_config() ) . ';', 'before' );
 		wp_register_style( 'vbr-leaflet', VBR_PLUGIN_URL . 'assets/vendor/leaflet/leaflet.css', array(), '1.9.4' );
-		wp_register_script( 'vbr-leaflet', VBR_PLUGIN_URL . 'assets/vendor/leaflet/leaflet.js', array(), '1.9.4', true );
+		wp_register_script( 'vbr-leaflet', VBR_PLUGIN_URL . 'assets/vendor/leaflet/leaflet.js', array( 'vbr-services' ), '1.9.4', true );
 	}
 
 
@@ -351,14 +371,16 @@ class VBR_Settings {
 
 						<?php if ( 'launch' === $section ) : ?>
 							<div class="vbr-launch-picker">
-								<div class="vbr-launch-search">
+								<div class="vbr-launch-search"<?php echo VBR_Services::search_enabled() ? '' : ' hidden'; ?>>
 									<label for="vbr-place-search" class="screen-reader-text"><?php esc_html_e( 'Search for a place', 'virtual-balloon-race' ); ?></label>
 									<input type="search" id="vbr-place-search" class="regular-text" placeholder="<?php esc_attr_e( 'Search for a place, e.g. Horfield, Bristol', 'virtual-balloon-race' ); ?>" />
 									<button type="button" class="button" id="vbr-place-search-btn"><?php esc_html_e( 'Search', 'virtual-balloon-race' ); ?></button>
 									<ul class="vbr-place-results" id="vbr-place-results" hidden></ul>
 								</div>
 								<div id="vbr-launch-map" class="vbr-launch-map" data-zoom="<?php echo esc_attr( (string) $values['map_zoom'] ); ?>"></div>
-								<p class="description"><?php esc_html_e( 'Place search uses OpenStreetMap Nominatim.', 'virtual-balloon-race' ); ?></p>
+								<?php if ( VBR_Services::search_enabled() ) : ?>
+									<p class="description"><?php echo esc_html( VBR_Services::search_credit() ); ?></p>
+								<?php endif; ?>
 							</div>
 						<?php endif; ?>
 
@@ -456,6 +478,11 @@ class VBR_Settings {
 
 					case 'modes':
 						VBR_Flight_Modes::render_cards( $name, (string) $value );
+						break;
+
+					case 'tile_url':
+					case 'attribution':
+						echo '<input type="text" class="large-text code" id="' . esc_attr( $id ) . '" name="' . esc_attr( $name ) . '" value="' . esc_attr( (string) $value ) . '" />';
 						break;
 
 					case 'datetime':

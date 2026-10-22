@@ -37,7 +37,7 @@ Supporters buy an entry in your WooCommerce shop, name their balloon, choose its
 * Withdraw or reinstate balloons by hand, mark bursts, advance the race, export a CSV
 * Public names are shown as first name and last initial
 
-The map uses [Leaflet](https://leafletjs.com/) (bundled with the plugin) and OpenStreetMap. Wind comes from [Open-Meteo](https://open-meteo.com/). No API keys are needed. See **External services** below.
+The map uses [Leaflet](https://leafletjs.com/) (bundled with the plugin) and OpenStreetMap. Wind comes from [Open-Meteo](https://open-meteo.com/). No API keys are needed; busier or commercial sites can add keys for paid map and weather providers. See **External services** below.
 
 == Installation ==
 
@@ -85,22 +85,28 @@ Everything, unless you tick **Settings → Data → Delete all race data when th
 
 == External services ==
 
-This plugin connects to these third-party services. No API keys or accounts are used.
+This plugin connects to the third-party services below. By default it uses free services that need no API keys or accounts; **Balloon Race → Settings → Maps, weather and place search** can switch to keyed providers for busier or commercial sites.
 
 = Open-Meteo (weather) =
 
-Used to move balloons with the real wind. When a race is flying, your server requests the current wind speed and direction for the areas the balloons are in (rounded latitude and longitude) each time balloons move. No personal data is sent; requests identify the plugin and your site's address.
-Service: [open-meteo.com](https://open-meteo.com/). [Terms of use](https://open-meteo.com/en/terms). The free API is for non-commercial use; check the terms if your use is commercial.
+Used to move balloons with the real wind. When a race is flying, your server requests the current wind speed and direction for the areas the balloons are in (rounded latitude and longitude) each time balloons move. No personal data is sent; requests identify the plugin and your site's address. With an Open-Meteo API key set, requests go to customer-api.open-meteo.com and include the key.
+Service: [open-meteo.com](https://open-meteo.com/). [Terms of use](https://open-meteo.com/en/terms). The free API is for non-commercial use; for commercial use, get an API key.
 
-= OpenStreetMap map tiles =
+= Map tiles: OpenStreetMap, MapTiler, Stadia Maps or a custom provider =
 
-Used to draw the map. Visitors' browsers load map images from tile.openstreetmap.org whenever a map is shown (public race map, Settings, race screen, and the launch point picker on the product page), which shares their IP address and browser details with the OpenStreetMap Foundation.
-[Tile usage policy](https://operations.osmfoundation.org/policies/tiles/). [Privacy policy](https://osmfoundation.org/wiki/Privacy_Policy).
+Used to draw the map. Visitors' browsers load map images from the chosen provider whenever a map is shown (public race map, Settings, race screen, and the launch point picker on the product page), which shares their IP address and browser details with that provider. With a keyed provider, the key is part of each image address.
 
-= Nominatim (place search) =
+* OpenStreetMap (default): tile.openstreetmap.org. [Tile usage policy](https://operations.osmfoundation.org/policies/tiles/). [Privacy policy](https://osmfoundation.org/wiki/Privacy_Policy).
+* MapTiler (optional): api.maptiler.com. [Terms](https://www.maptiler.com/terms/). [Privacy policy](https://www.maptiler.com/privacy-policy/).
+* Stadia Maps (optional): tiles.stadiamaps.com. [Terms](https://stadiamaps.com/terms-of-service/). [Privacy policy](https://stadiamaps.com/privacy-policy/).
+* Custom: whatever tile address the site admin enters.
 
-Used by the "search for a place" box when choosing a launch point (in Settings, on the race screen, and for buyers choosing a custom launch point). The text typed is sent from the visitor's browser to nominatim.openstreetmap.org when they search.
-[Usage policy](https://operations.osmfoundation.org/policies/nominatim/). [Privacy policy](https://osmfoundation.org/wiki/Privacy_Policy).
+= Place search: Nominatim or MapTiler =
+
+Used by the "search for a place" box when choosing a launch point (in Settings, on the race screen, and for buyers choosing a custom launch point). When the Search button is pressed, the text typed is sent from the visitor's browser to the chosen service (at most one search a second). Place search can be switched off.
+
+* Nominatim (default): nominatim.openstreetmap.org. [Usage policy](https://operations.osmfoundation.org/policies/nominatim/). [Privacy policy](https://osmfoundation.org/wiki/Privacy_Policy).
+* MapTiler (optional, with MapTiler map tiles): api.maptiler.com. [Terms](https://www.maptiler.com/terms/). [Privacy policy](https://www.maptiler.com/privacy-policy/).
 
 == Screenshots ==
 

@@ -613,7 +613,7 @@ class VBR_Admin_Races {
 			<section class="vbr-admin-panel">
 				<h2><?php esc_html_e( 'Launch point', 'virtual-balloon-race' ); ?></h2>
 				<div class="vbr-launch-picker">
-					<div class="vbr-launch-search">
+					<div class="vbr-launch-search"<?php echo VBR_Services::search_enabled() ? '' : ' hidden'; ?>>
 						<label for="vbr-place-search" class="screen-reader-text"><?php esc_html_e( 'Search for a place', 'virtual-balloon-race' ); ?></label>
 						<input type="search" id="vbr-place-search" class="regular-text" placeholder="<?php esc_attr_e( 'Search for a place, e.g. Horfield, Bristol', 'virtual-balloon-race' ); ?>" />
 						<button type="button" class="button" id="vbr-place-search-btn"><?php esc_html_e( 'Search', 'virtual-balloon-race' ); ?></button>

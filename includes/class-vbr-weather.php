@@ -144,14 +144,18 @@ class VBR_Weather {
 			$lngs[]            = $lng;
 		}
 
-		$url = add_query_arg(
-			array(
-				'latitude'        => implode( ',', $lats ),
-				'longitude'       => implode( ',', $lngs ),
-				'current'         => 'wind_speed_10m,wind_direction_10m',
-				'wind_speed_unit' => 'kmh',
+		$endpoint = VBR_Services::weather_endpoint();
+		$url      = add_query_arg(
+			array_merge(
+				array(
+					'latitude'        => implode( ',', $lats ),
+					'longitude'       => implode( ',', $lngs ),
+					'current'         => 'wind_speed_10m,wind_direction_10m',
+					'wind_speed_unit' => 'kmh',
+				),
+				$endpoint['args']
 			),
-			self::API
+			$endpoint['url']
 		);
 
 		$response = wp_remote_get(

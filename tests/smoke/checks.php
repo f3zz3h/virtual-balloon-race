@@ -642,6 +642,67 @@ switch ( $stage ) {
 		$check( 0 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . VBR_Balloons::table() . ' WHERE race_id = %d', $renewed ) ), 'demo balloons removed' ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		break;
 
+	// Outside services: map tiles, place search and the weather API from Settings.
+	case 'services':
+		$saved = get_option( VBR_Settings::OPTION, null );
+		$use   = static function ( $values ) {
+			update_option( VBR_Settings::OPTION, array_merge( VBR_Settings::defaults(), $values ) );
+			VBR_Settings::flush_cache();
+		};
+		$use( array() );
+		$tiles = VBR_Services::tiles();
+		$check( 'osm' === $tiles['provider'] && 0 === strpos( $tiles['url'], 'https://tile.openstreetmap.org/' ) && 'nominatim' === VBR_Services::search_provider(), 'defaults: OpenStreetMap tiles and Nominatim search' );
+		$check( VBR_Weather::API === VBR_Services::weather_endpoint()['url'], 'defaults: the free Open-Meteo API' );
+
+		VBR_Settings::register_leaflet();
+		$scripts = wp_scripts();
+		$check( in_array( 'vbr-services', $scripts->registered['vbr-leaflet']->deps, true ) && false !== strpos( implode( '', (array) $scripts->get_data( 'vbr-services', 'before' ) ), 'tile.openstreetmap.org' ), 'every map loads the services config with Leaflet' );
+
+		$use( array( 'tile_provider' => 'maptiler', 'map_api_key' => 'abc123', 'search_provider' => 'maptiler' ) );
+		$tiles = VBR_Services::tiles();
+		$check( 'maptiler' === $tiles['provider'] && false !== strpos( $tiles['url'], 'key=abc123' ) && false !== strpos( $tiles['attribution'], 'MapTiler' ), 'MapTiler tiles use the key and credit MapTiler' );
+		$config = VBR_Services::browser_config();
+		$check( 'maptiler' === $config['search']['provider'] && 'abc123' === $config['search']['key'], 'MapTiler place search uses the same key' );
+
+		$use( array( 'tile_provider' => 'maptiler', 'map_api_key' => '' ) );
+		$check( 'osm' === VBR_Services::tiles()['provider'], 'a keyed provider without a key falls back to OpenStreetMap' );
+		$use( array( 'tile_provider' => 'stadia', 'map_api_key' => 'k', 'search_provider' => 'maptiler' ) );
+		$check( 'nominatim' === VBR_Services::search_provider() && '' === VBR_Services::browser_config()['search']['key'], 'MapTiler search needs MapTiler tiles (no key leaks to another provider)' );
+		$use( array( 'search_provider' => 'off' ) );
+		$check( ! VBR_Services::search_enabled(), 'place search can be switched off' );
+
+		$settings = new VBR_Settings();
+		$clean    = $settings->sanitize( array_merge( VBR_Settings::defaults(), array( 'tile_provider' => 'custom', 'tile_url' => 'http://tiles.example.com/{z}/{x}/{y}.png', 'tile_attribution' => 'Tiles <a href="https://example.com" onclick="x()">Example</a><script>alert(1)</script>' ) ) );
+		$check( '' === $clean['tile_url'], 'a custom tile URL must be https' );
+		$check( 'Tiles <a href="https://example.com">Example</a>alert(1)' === $clean['tile_attribution'], 'attribution keeps text and links only' );
+		$clean = $settings->sanitize( array_merge( VBR_Settings::defaults(), array( 'tile_provider' => 'custom', 'tile_url' => 'https://tiles.example.com/{z}/{x}/{y}.png?key=1', 'tile_attribution' => '© Example' ) ) );
+		$use( $clean );
+		$check( 'custom' === VBR_Services::tiles()['provider'] && 'https://tiles.example.com/{z}/{x}/{y}.png?key=1' === VBR_Services::tiles()['url'], 'a custom tile URL is used as given' );
+
+		// With an Open-Meteo key, wind comes from the customer API.
+		$use( array( 'weather_api_key' => 'om-key' ) );
+		$seen = '';
+		$spy  = static function ( $pre, $args, $url ) use ( &$seen ) {
+			if ( false !== strpos( $url, 'open-meteo.com' ) ) {
+				$seen = $url;
+				return array( 'response' => array( 'code' => 200, 'message' => 'OK' ), 'body' => wp_json_encode( array( 'current' => array( 'wind_speed_10m' => 12.5, 'wind_direction_10m' => 250 ) ) ), 'headers' => array(), 'cookies' => array() );
+			}
+			return $pre;
+		};
+		add_filter( 'pre_http_request', $spy, 10, 3 );
+		$wind = VBR_Weather::at( -33.9 + wp_rand( 0, 99 ) / 1000, 151.2 );
+		remove_filter( 'pre_http_request', $spy, 10 );
+		$check( 0 === strpos( $seen, 'https://customer-api.open-meteo.com/v1/forecast' ) && false !== strpos( $seen, 'apikey=om-key' ) && $wind && 12.5 === $wind['speed'], 'with a key, wind comes from Open-Meteo\'s customer API' );
+		$check( false === strpos( wp_json_encode( VBR_Services::browser_config() ), 'om-key' ), 'the weather key never goes to browsers' );
+
+		if ( null === $saved ) {
+			delete_option( VBR_Settings::OPTION );
+		} else {
+			update_option( VBR_Settings::OPTION, $saved );
+		}
+		VBR_Settings::flush_cache();
+		break;
+
 	// Updates from GitHub releases, with GitHub's API answered by a fake release.
 	case 'github-updates':
 		require_once ABSPATH . 'wp-admin/includes/plugin.php';
