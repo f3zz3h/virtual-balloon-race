@@ -642,6 +642,58 @@ switch ( $stage ) {
 		$check( 0 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . VBR_Balloons::table() . ' WHERE race_id = %d', $renewed ) ), 'demo balloons removed' ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		break;
 
+	// Whose balloons are whose: logged-in purchases and orders on the account, not typed-in emails.
+	case 'owners':
+		global $wpdb;
+
+		$alice   = wp_insert_user( array( 'user_login' => 'smoke_alice', 'user_email' => 'alice@example.com', 'user_pass' => wp_generate_password(), 'role' => 'customer' ) );
+		$mallory = wp_insert_user( array( 'user_login' => 'smoke_mallory', 'user_email' => 'mallory@example.com', 'user_pass' => wp_generate_password(), 'role' => 'customer' ) );
+		update_user_meta( $mallory, 'billing_email', 'alice@example.com' ); // Typed in, never verified.
+		$race = VBR_Races::save( array( 'name' => 'Smoke Owners Race', 'launch_lat' => 51.4885, 'launch_lng' => -2.58, 'launch_at' => gmdate( 'Y-m-d H:i:s', time() + DAY_IN_SECONDS ) ) );
+
+		$order = static function ( $customer_id ) {
+			$o = wc_create_order( array( 'customer_id' => $customer_id ) );
+			$o->set_billing_email( 'alice@example.com' );
+			$o->save();
+			return $o;
+		};
+		$balloon = static function ( $name, $user_id, $order_id ) use ( $wpdb, $race ) {
+			$wpdb->insert( VBR_Balloons::table(), array_merge( array( 'race_id' => $race, 'user_id' => $user_id, 'order_id' => $order_id, 'owner_name' => 'Alice Smoke', 'owner_email' => 'alice@example.com', 'balloon_name' => $name, 'balloon_color' => 'Red', 'helium_level' => 'Balanced', 'created_at' => current_time( 'mysql' ) ), VBR_Balloons::start_columns( 51.4885, -2.58 ) ) );
+			return (int) $wpdb->insert_id;
+		};
+		$guest_order   = $order( 0 );
+		$account_order = $order( $alice );
+		$logged_in     = $balloon( 'Bought Logged In', $alice, 0 );
+		$guest         = $balloon( 'Guest Order', 0, $guest_order->get_id() );
+		$on_account    = $balloon( 'On The Account', 0, $account_order->get_id() );
+		$names         = static function ( $user_id ) use ( $race ) {
+			$found = wp_list_pluck( VBR_Balloons::owned_by( $user_id, $race ), 'balloon_name' );
+			sort( $found );
+			return $found;
+		};
+
+		$check( array( 'Bought Logged In', 'On The Account' ) === $names( $alice ), 'a user\'s balloons: bought while logged in, or on an order on their account' );
+		$check( array() === $names( $mallory ), 'typing someone else\'s email as your billing email claims nothing' );
+
+		$guest_order->set_customer_id( $alice );
+		$guest_order->save();
+		$check( array( 'Bought Logged In', 'Guest Order', 'On The Account' ) === $names( $alice ), 'a guest order linked to the account counts' );
+		$guest_order->set_customer_id( 0 );
+		$guest_order->save();
+
+		add_filter( 'vbr_match_balloons_by_email', '__return_true' );
+		$check( in_array( 'Guest Order', $names( $alice ), true ), 'vbr_match_balloons_by_email turns email matching back on' );
+		remove_filter( 'vbr_match_balloons_by_email', '__return_true' );
+
+		$wpdb->query( $wpdb->prepare( 'DELETE FROM ' . VBR_Balloons::table() . ' WHERE race_id = %d', $race ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		VBR_Races::delete( $race );
+		$guest_order->delete( true );
+		$account_order->delete( true );
+		require_once ABSPATH . 'wp-admin/includes/user.php';
+		wp_delete_user( $alice );
+		wp_delete_user( $mallory );
+		break;
+
 	// The balloon preview replaces the product images, in a block theme as well as a classic one.
 	case 'product-preview':
 		$products = wc_get_products( array( 'type' => 'balloon_entry', 'status' => 'publish', 'limit' => 1 ) );

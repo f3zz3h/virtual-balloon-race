@@ -147,7 +147,13 @@ class VBR_Balloons {
 	}
 
 	/**
-	 * SQL condition matching a user's balloons: bought while logged in, or with their account or billing email.
+	 * SQL condition matching a user's balloons: bought while logged in, or on an order that belongs to their
+	 * account (the orders WooCommerce lists under My Account → Orders, including guest orders it has since
+	 * linked to the account).
+	 *
+	 * Account and billing emails aren't matched by default: WooCommerce doesn't verify them, so anyone could
+	 * type someone else's address and see their balloons as their own. Sites that verify emails can turn
+	 * matching back on with the `vbr_match_balloons_by_email` filter.
 	 *
 	 * @param int $user_id User ID.
 	 * @return string Empty when the user doesn't exist.
@@ -162,13 +168,51 @@ class VBR_Balloons {
 		}
 
 		$sql    = $wpdb->prepare( 'user_id = %d', $user->ID );
-		$emails = array_unique( array_filter( array( strtolower( $user->user_email ), strtolower( (string) get_user_meta( $user->ID, 'billing_email', true ) ) ) ) );
+		$orders = self::order_ids_for( $user->ID );
 
-		foreach ( $emails as $email ) {
-			$sql .= $wpdb->prepare( ' OR owner_email = %s', $email );
+		if ( $orders ) {
+			$sql .= ' OR order_id IN (' . implode( ',', $orders ) . ')';
+		}
+
+		/**
+		 * Whether a user's account and billing emails also claim balloons with that email.
+		 *
+		 * @param bool    $match Default false.
+		 * @param WP_User $user  The user.
+		 */
+		if ( apply_filters( 'vbr_match_balloons_by_email', false, $user ) ) {
+			$emails = array_unique( array_filter( array( strtolower( $user->user_email ), strtolower( (string) get_user_meta( $user->ID, 'billing_email', true ) ) ) ) );
+
+			foreach ( $emails as $email ) {
+				$sql .= $wpdb->prepare( ' OR owner_email = %s', $email );
+			}
 		}
 
 		return '(' . $sql . ')';
+	}
+
+	/**
+	 * IDs of the orders that belong to a user's account (any status).
+	 *
+	 * @param int $user_id User ID.
+	 * @return int[]
+	 */
+	private static function order_ids_for( $user_id ) {
+		if ( ! function_exists( 'wc_get_orders' ) || ! $user_id ) {
+			return array();
+		}
+
+		return array_map(
+			'intval',
+			(array) wc_get_orders(
+				array(
+					'customer_id' => (int) $user_id,
+					'status'      => array_keys( wc_get_order_statuses() ),
+					'limit'       => -1,
+					'return'      => 'ids',
+				)
+			)
+		);
 	}
 
 	/**
