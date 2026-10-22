@@ -5,6 +5,7 @@
 .gitignore
 .gitattributes
 .distignore
+/.wordpress-org
 .vscode
 /tests
 /vendor
