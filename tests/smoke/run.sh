@@ -63,6 +63,9 @@ wp eval-file "$CHECKS" demo
 wp vbr demo --balloons=5
 wp vbr demo --remove
 
+stage "Scenario A: updates from GitHub releases"
+wp eval-file "$CHECKS" github-updates
+
 stage "Scenario B: WooCommerce first, then the plugin"
 fresh_site
 wp plugin activate woocommerce

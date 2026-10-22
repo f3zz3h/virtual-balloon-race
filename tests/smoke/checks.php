@@ -642,6 +642,62 @@ switch ( $stage ) {
 		$check( 0 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . VBR_Balloons::table() . ' WHERE race_id = %d', $renewed ) ), 'demo balloons removed' ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		break;
 
+	// Updates from GitHub releases, with GitHub's API answered by a fake release.
+	case 'github-updates':
+		require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		$basename = plugin_basename( VBR_PLUGIN_FILE );
+		$header   = get_plugin_data( VBR_PLUGIN_FILE, false, false );
+		$check( class_exists( 'VBR_GitHub_Updater' ) && 'https://github.com/f3zz3h/virtual-balloon-race' === $header['UpdateURI'], 'the GitHub build has the updater and its Update URI' );
+
+		$requests = 0;
+		$release  = array(
+			'tag_name'     => 'v99.1.0',
+			'html_url'     => 'https://github.com/f3zz3h/virtual-balloon-race/releases/tag/v99.1.0',
+			'body'         => "## What's changed\n* Faster balloons",
+			'published_at' => '2026-10-22T12:00:00Z',
+			'assets'       => array(
+				array( 'name' => 'virtual-balloon-race-99.1.0.zip', 'browser_download_url' => 'https://github.com/f3zz3h/virtual-balloon-race/releases/download/v99.1.0/virtual-balloon-race-99.1.0.zip' ),
+			),
+		);
+		$fake = static function ( $pre, $args, $url ) use ( &$requests, &$release ) {
+			if ( false === strpos( $url, 'api.github.com/repos/f3zz3h/virtual-balloon-race/releases/latest' ) ) {
+				return $pre;
+			}
+			++$requests;
+			return $release ? array( 'response' => array( 'code' => 200, 'message' => 'OK' ), 'body' => wp_json_encode( $release ), 'headers' => array(), 'cookies' => array() ) : array( 'response' => array( 'code' => 403, 'message' => 'Forbidden' ), 'body' => '{}', 'headers' => array(), 'cookies' => array() );
+		};
+		add_filter( 'pre_http_request', $fake, 10, 3 );
+		VBR_GitHub_Updater::forget();
+
+		$update = apply_filters( 'update_plugins_github.com', false, $header, $basename, array() );
+		$check( is_array( $update ) && '99.1.0' === $update['version'] && false !== strpos( $update['package'], 'virtual-balloon-race-99.1.0.zip' ), 'the latest release is offered as an update, with its zip' );
+		$check( false === apply_filters( 'update_plugins_github.com', false, $header, 'other-plugin/other-plugin.php', array() ), 'other plugins on GitHub are left alone' );
+
+		$info = apply_filters( 'plugins_api', false, 'plugin_information', (object) array( 'slug' => 'virtual-balloon-race' ) );
+		$check( is_object( $info ) && '99.1.0' === $info->version && false !== strpos( $info->sections['changelog'], 'Faster balloons' ), '"View details" shows the release notes' );
+		$check( 1 === $requests, 'the release is fetched once and cached' );
+
+		VBR_GitHub_Updater::forget();
+		$release = null;
+		$check( false === apply_filters( 'update_plugins_github.com', false, $header, $basename, array() ) && false === apply_filters( 'update_plugins_github.com', false, $header, $basename, array() ) && 2 === $requests, 'a failed check offers nothing and is not retried straight away' );
+
+		// An update unpacked under another folder name goes back into the plugin's own folder.
+		WP_Filesystem();
+		$remote = trailingslashit( get_temp_dir() ) . 'vbr-upgrade-' . wp_generate_password( 6, false );
+		wp_mkdir_p( $remote . '/unpacked-elsewhere' );
+		$updater = new VBR_GitHub_Updater();
+		$other   = $updater->keep_folder_name( $remote . '/unpacked-elsewhere/', $remote, null, array( 'plugin' => 'another-plugin/another-plugin.php' ) );
+		$check( $remote . '/unpacked-elsewhere/' === $other, 'other plugins\' upgrades are left alone' );
+		$moved = $updater->keep_folder_name( $remote . '/unpacked-elsewhere/', $remote, null, array( 'plugin' => $basename ) );
+		$check( trailingslashit( $remote ) . dirname( $basename ) . '/' === $moved && is_dir( $moved ) && ! is_dir( $remote . '/unpacked-elsewhere' ), 'the update installs into the plugin\'s own folder' );
+		global $wp_filesystem;
+		$wp_filesystem->delete( $remote, true );
+
+		remove_filter( 'pre_http_request', $fake, 10 );
+		VBR_GitHub_Updater::forget();
+		break;
+
 	// After deleting the plugin with "Delete all race data" off: everything stays.
 	case 'uninstalled-kept':
 		global $wpdb;
