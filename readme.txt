@@ -114,7 +114,7 @@ Used by the "search for a place" box when choosing a launch point (in Settings, 
 2. Team standings and the leaderboard, with paging and search.
 3. The product page: a live preview of the balloon as the buyer chooses its colour, logo and team.
 4. Settings → Flight mode, with distance estimates for each mode.
-5. A race's admin screen: dates, launch point, entry limit, teams and email status.
+5. A race's admin screen: its status, entries against the limit, shortcodes, the emails to entrants, and its dates.
 
 == Changelog ==
 
