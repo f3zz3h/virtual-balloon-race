@@ -14,4 +14,4 @@ composer.lock
 phpstan.neon.dist
 phpstan-baseline.neon
 TODO.md
-*.plan.md
+/docs
