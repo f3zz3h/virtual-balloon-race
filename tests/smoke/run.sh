@@ -63,6 +63,9 @@ wp eval-file "$CHECKS" demo
 wp vbr demo --balloons=5
 wp vbr demo --remove
 
+stage "Scenario A: maps, weather and place search settings"
+wp eval-file "$CHECKS" services
+
 stage "Scenario A: updates from GitHub releases"
 wp eval-file "$CHECKS" github-updates
 

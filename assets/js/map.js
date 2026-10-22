@@ -58,10 +58,7 @@
 		this.map = L.map(root.querySelector('.vbr-map__canvas'), { scrollWheelZoom: false })
 			.setView([launch.lat, launch.lng], this.config.zoom || 7);
 
-		L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-			maxZoom: 19,
-			attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-		}).addTo(this.map);
+		window.vbrServices.tileLayer().addTo(this.map);
 
 		// Enable scroll zoom only after the user interacts, so the page still scrolls.
 		this.map.once('focus click', function () {

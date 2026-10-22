@@ -31,6 +31,7 @@ require_once VBR_PLUGIN_DIR . 'includes/class-vbr-teams.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-flight-modes.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-install.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-settings.php';
+require_once VBR_PLUGIN_DIR . 'includes/class-vbr-services.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-geo.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-weather.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-cron.php';
