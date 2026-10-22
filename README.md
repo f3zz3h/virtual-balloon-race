@@ -302,7 +302,7 @@ Donations go to https://buymeacoffee.com/lumaha: a **Donate** link on the Plugin
 2. Tag `main` and push the tag: `git tag v1.7.0 && git push origin v1.7.0`.
 3. The **Release** workflow (`.github/workflows/release.yml`) checks the tag matches the plugin version, builds the zip with `.github/scripts/build-zip.sh` and publishes a GitHub release with the zip attached and notes listing the merged pull requests.
 
-`.distignore` lists the files left out of the zip (tests, CI, Composer and PHPStan files, TODO, the plan). Every pull request also builds the zip and offers it as a download (**Checks → Release → Artifacts**, kept 7 days), and the fresh-install smoke test installs from that same zip. Build one locally with `bash .github/scripts/build-zip.sh` (output in `dist/`).
+`.distignore` lists the files left out of the zip (tests, CI, Composer and PHPStan files, TODO, `docs/`). Every pull request also builds the zip and offers it as a download (**Checks → Release → Artifacts**, kept 7 days), and the fresh-install smoke test installs from that same zip. Build one locally with `bash .github/scripts/build-zip.sh` (output in `dist/`).
 
 ### Testing locally
 
@@ -320,10 +320,11 @@ wp vbr demo --balloons=10
 
 ## Known gaps
 
-See [`race_settings_and_map_9db2297a.plan.md`](race_settings_and_map_9db2297a.plan.md) for the full plan and status. In short, not built yet:
+How it works and why: [docs/design.md](docs/design.md). Not built yet (see [TODO.md](TODO.md)):
 
 - Movement settings (speed, interval, bursts) apply to all races, not per race
 - Logo upload needs the standard product form (themes using AJAX add-to-cart on single products won't send the file)
 - Balloons can drift over sea; there's no land awareness
+- Wind is the 10 m wind speed and direction only (no gusts, rain or altitude bands)
 - The public leaderboard still sends every balloon in the race to the browser (so search can find any of them) and pages them there; very large races (thousands of entries) make a heavy page
 - Matching balloons by email trusts the account and billing emails, which WooCommerce doesn't verify. Someone who sets their email to another person's sees that person's balloons marked as theirs (balloon name and short owner name only)
