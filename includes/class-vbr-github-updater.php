@@ -143,7 +143,7 @@ class VBR_GitHub_Updater {
 			'name'          => 'Virtual Balloon Race',
 			'slug'          => self::SLUG,
 			'version'       => $release['version'],
-			'author'        => 'Virtual Balloon Race',
+			'author'        => '<a href="https://www.lumaha.uk/">Luke Hart</a>',
 			'homepage'      => 'https://github.com/' . self::REPO,
 			'download_link' => $release['package'],
 			'last_updated'  => $release['date'],
