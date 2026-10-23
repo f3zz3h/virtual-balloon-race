@@ -5,7 +5,7 @@ Tags: fundraising, balloon race, charity, woocommerce, school
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.16.1
+Stable tag: 1.16.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -124,6 +124,11 @@ Used by the "search for a place" box when choosing a launch point (in Settings, 
 
 == Changelog ==
 
+= 1.16.2 =
+* Fix: with the plugin active, other products (such as Simple products) lost the General tab, and so their price fields, in the product editor.
+* Changed: tidied for WordPress.org's Plugin Check (no errors); releases include a WordPress.org build.
+* New: a race-day checklist in the documentation.
+
 = 1.16.1 =
 * Changed: the entry product is only listed in the shop, search, product blocks and the sitemap once a race is planned. Its own page still opens and says when entries open.
 
@@ -197,6 +202,9 @@ Used by the "search for a place" box when choosing a launch point (in Settings, 
 * New: race schedules (entries open, launch, end) and per-race sales.
 
 == Upgrade Notice ==
+
+= 1.16.2 =
+Fixes missing price fields when editing other products. Recommended for shops that sell anything besides balloon entries.
 
 = 1.16.1 =
 The entry product stays out of shop listings until a race is planned.
