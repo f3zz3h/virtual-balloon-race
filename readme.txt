@@ -5,7 +5,7 @@ Tags: fundraising, balloon race, charity, woocommerce, school
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.16.0
+Stable tag: 1.16.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -124,6 +124,9 @@ Used by the "search for a place" box when choosing a launch point (in Settings, 
 
 == Changelog ==
 
+= 1.16.1 =
+* Changed: the entry product is only listed in the shop, search, product blocks and the sitemap once a race is planned. Its own page still opens and says when entries open.
+
 = 1.16.0 =
 * New: sponsor views and clicks. Each sponsor's card shows how often they were shown on the race pages and how often their links were clicked, with a CSV download per race. Only totals are kept: no cookies or visitor data.
 
@@ -194,6 +197,9 @@ Used by the "search for a place" box when choosing a launch point (in Settings, 
 * New: race schedules (entries open, launch, end) and per-race sales.
 
 == Upgrade Notice ==
+
+= 1.16.1 =
+The entry product stays out of shop listings until a race is planned.
 
 = 1.16.0 =
 Adds a views and clicks report for race sponsors (totals only, no cookies).
