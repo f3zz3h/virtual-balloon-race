@@ -280,12 +280,7 @@ class VBR_Sponsors {
 		?>
 		<section class="vbr-sponsors">
 			<h2 class="vbr-sponsors__title"><?php esc_html_e( 'Thank you to our sponsors', 'virtual-balloon-race' ); ?></h2>
-			<?php foreach ( $groups as $tier => $group ) : ?>
-				<?php
-				if ( ! $group ) {
-					continue;
-				}
-				?>
+			<?php foreach ( array_filter( $groups ) as $tier => $group ) : ?>
 				<div class="vbr-sponsors__tier vbr-sponsors__tier--<?php echo esc_attr( $tier ); ?>">
 					<h3 class="vbr-sponsors__tier-name"><?php echo esc_html( $heading[ $tier ] ); ?></h3>
 					<?php if ( self::SUPPORTER === $tier ) : ?>
