@@ -61,8 +61,53 @@
 			'</svg>';
 	}
 
+	function escapeText(value) {
+		return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+	}
+
+	var ENVELOPE = 'M50 4C22 4 6 26 6 50c0 24 24 42 32 54h24c8-12 32-30 32-54C94 26 78 4 50 4z';
+
+	// A sponsor's hot-air balloon in a 100×140 box; the basket's base is the bottom centre.
+	// s: { style: stripes|panel|full, color1, color2, band, logo, fit }. The logo styles need a logo.
+	function hotAirSvg(s) {
+		var c1 = safeHex(s.color1);
+		var c2 = safeHex(s.color2);
+		var edge = shade(c1, -0.4);
+		var clipId = 'vbr-hot-air-clip-' + (++clipCount);
+		var body;
+
+		if (s.style === 'full' && s.logo) {
+			body = '<clipPath id="' + clipId + '"><path d="' + ENVELOPE + '"/></clipPath>' +
+				'<path d="' + ENVELOPE + '" fill="' + c1 + '"/>' +
+				'<image href="' + escapeAttr(s.logo) + '" x="6" y="4" width="88" height="100" preserveAspectRatio="xMidYMid ' + (s.fit === 'contain' ? 'meet' : 'slice') + '" clip-path="url(#' + clipId + ')"/>';
+		} else {
+			body = '<path d="' + ENVELOPE + '" fill="' + c1 + '"/>' +
+				'<path d="M50 4C36 4 28 28 28 50c0 22 10 40 14 54h16c4-14 14-32 14-54C72 28 64 4 50 4z" fill="' + c2 + '"/>' +
+				'<path d="M50 4C44 4 40 28 40 50c0 22 4 40 6 54h8c2-14 6-32 6-54C60 28 56 4 50 4z" fill="' + c1 + '"/>';
+
+			if (s.style === 'panel' && s.logo) {
+				body += '<clipPath id="' + clipId + '"><circle cx="50" cy="48" r="16"/></clipPath>' +
+					'<circle cx="50" cy="48" r="18" fill="#fff" stroke="' + edge + '" stroke-width="1.5"/>' +
+					'<image href="' + escapeAttr(s.logo) + '" x="34" y="32" width="32" height="32" preserveAspectRatio="xMidYMid meet" clip-path="url(#' + clipId + ')"/>';
+			} else if (s.band) {
+				var size = s.band.length > 9 ? 7 : (s.band.length > 7 ? 8.5 : 10);
+				body += '<rect x="14" y="40" width="72" height="20" rx="4" fill="#fff" stroke="' + edge + '" stroke-width="1.5"/>' +
+					'<text x="50" y="54" text-anchor="middle" font-size="' + size + '" font-weight="800" fill="' + edge + '" font-family="system-ui, sans-serif">' + escapeText(s.band) + '</text>';
+			}
+		}
+
+		return '<svg class="vbr-hot-air__svg" viewBox="0 0 100 140" aria-hidden="true">' +
+			body +
+			'<path d="' + ENVELOPE + '" fill="none" stroke="' + edge + '" stroke-width="2"/>' +
+			'<path d="M38 104h24l-4 7H42z" fill="' + edge + '"/>' +
+			'<path d="M43 111l2 9M57 111l-2 9" stroke="#5b4630" stroke-width="1.5"/>' +
+			'<rect x="42" y="120" width="16" height="12" rx="2" fill="#8b5a2b"/>' +
+			'</svg>';
+	}
+
 	window.vbrBalloon = {
 		BURST_HEX: BURST_HEX,
+		hotAir: hotAirSvg,
 		svg: balloonSvg
 	};
 })();

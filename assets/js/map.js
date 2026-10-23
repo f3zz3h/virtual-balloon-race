@@ -204,6 +204,7 @@
 		var seen = {};
 
 		this.setLaunch(data.launch);
+		this.setSponsors(data.sponsors || []);
 
 		(data.balloons || []).forEach(function (b) {
 			seen[b.id] = true;
@@ -253,7 +254,107 @@
 			this.launchMarker.setLatLng(latlng);
 		}
 
+		this.launchMarker.unbindTooltip();
+		this.launchMarker.unbindPopup();
+
+		if (launch.sponsor) {
+			// Branded launch flag: the sponsor's name always shows, and the flag links to them.
+			this.launchMarker.bindTooltip((this.i18n.launch || 'Launch') + ': ' + launch.sponsor.name, {
+				permanent: true,
+				direction: 'right',
+				offset: [14, -16],
+				className: 'vbr-launch-sponsor'
+			});
+			if (launch.sponsor.url) {
+				var popup = el('div', 'vbr-popup vbr-popup--sponsor');
+				popup.appendChild(el('strong', 'vbr-popup__title', launch.sponsor.name));
+				popup.appendChild(this.sponsorLink(launch.sponsor.url));
+				this.launchMarker.bindPopup(popup);
+			}
+			return;
+		}
+
 		this.launchMarker.bindTooltip((this.i18n.launch || 'Launch') + (launch.label ? ': ' + launch.label : ''));
+	};
+
+	RaceMap.prototype.sponsorLink = function (url) {
+		var a = el('a', 'vbr-popup__link', this.i18n.visit || 'Visit their website');
+		a.href = url;
+		a.target = '_blank';
+		a.rel = 'sponsored noopener';
+		return a;
+	};
+
+	// Sponsor hot-air balloons: they fly with the race but are never ranked.
+	RaceMap.prototype.setSponsors = function (list) {
+		var self = this;
+		var seen = {};
+
+		this.sponsorItems = this.sponsorItems || {};
+
+		list.forEach(function (s) {
+			var item = self.sponsorItems[s.id];
+			var w = s.size === 'large' ? 54 : 40;
+			var h = Math.round(w * 1.4);
+			var key = [s.style, s.color1, s.color2, s.band, s.logo, s.fit, s.size].join('|');
+
+			seen[s.id] = true;
+
+			if (!item) {
+				item = self.sponsorItems[s.id] = {};
+				item.line = L.polyline(s.trail, {
+					pane: 'vbr-trails',
+					color: s.color1,
+					weight: 2,
+					opacity: 0.45,
+					dashArray: '2 6',
+					interactive: false
+				}).addTo(self.map);
+				item.marker = L.marker([s.lat, s.lng], {
+					zIndexOffset: -50,
+					riseOnHover: true,
+					title: s.name,
+					alt: s.name
+				}).addTo(self.map);
+				item.marker.bindPopup(function () {
+					return self.sponsorPopup(item.data);
+				});
+			}
+
+			item.data = s;
+			if (item.key !== key) {
+				item.key = key;
+				item.marker.setIcon(L.divIcon({
+					className: 'vbr-hot-air',
+					html: window.vbrBalloon.hotAir(s),
+					iconSize: [w, h],
+					iconAnchor: [w / 2, h],
+					popupAnchor: [0, -h + 8]
+				}));
+			}
+			item.marker.setLatLng([s.lat, s.lng]);
+			item.line.setLatLngs(s.trail);
+		});
+
+		Object.keys(this.sponsorItems).forEach(function (id) {
+			if (!seen[id]) {
+				self.sponsorItems[id].marker.remove();
+				self.sponsorItems[id].line.remove();
+				delete self.sponsorItems[id];
+			}
+		});
+	};
+
+	RaceMap.prototype.sponsorPopup = function (s) {
+		var wrap = el('div', 'vbr-popup vbr-popup--sponsor');
+
+		wrap.appendChild(el('strong', 'vbr-popup__title', s.name));
+		wrap.appendChild(el('div', 'vbr-popup__row', this.i18n.sponsorNote || 'Sponsor balloon · flying with the race, not racing'));
+		if (s.url) {
+			wrap.appendChild(this.sponsorLink(s.url));
+		}
+
+		return wrap;
 	};
 
 	RaceMap.prototype.createItem = function (b) {
@@ -534,6 +635,25 @@
 		var balloons = (this.data && this.data.balloons) || [];
 
 		this.listEl.innerHTML = '';
+
+		// Sponsor balloons first, outside the ranking.
+		((this.data && this.data.sponsors) || []).forEach(function (s) {
+			var li = el('li', 'vbr-map__item is-sponsor');
+			var btn = el('button', 'vbr-map__item-btn');
+
+			btn.type = 'button';
+			btn.appendChild(el('span', 'vbr-map__tag', self.i18n.sponsor || 'Sponsor'));
+			btn.appendChild(el('span', 'vbr-map__name', s.name));
+			btn.addEventListener('click', function () {
+				var item = self.sponsorItems && self.sponsorItems[s.id];
+				if (item) {
+					self.map.panTo(item.marker.getLatLng());
+					item.marker.openPopup();
+				}
+			});
+			li.appendChild(btn);
+			self.listEl.appendChild(li);
+		});
 
 		if (!balloons.length) {
 			this.listEl.appendChild(el('li', 'vbr-map__empty', this.i18n.empty || 'No balloons yet.'));

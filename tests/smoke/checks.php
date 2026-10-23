@@ -921,6 +921,53 @@ switch ( $stage ) {
 		VBR_Races::delete( $plain );
 		break;
 
+	// Sponsor hot-air balloons fly with the race but are never ranked; the launch flag can be branded.
+	case 'hot-air':
+		global $wpdb;
+
+		$settings( array( 'weather_enabled' => 0 ) ); // No network calls: balloons follow the default heading.
+		$columns = $wpdb->get_col( 'SHOW COLUMNS FROM ' . VBR_Sponsors::table() ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$check( ! array_diff( array( 'balloon_style', 'color1', 'color2', 'band_text', 'latitude', 'longitude', 'trail_json', 'flight_hours' ), $columns ), 'the sponsors table has the hot-air columns' );
+
+		$clean = VBR_Sponsors::clean_rows( array( array( 'name' => 'Odd One', 'balloon_style' => 'blimp', 'color1' => 'red', 'color2' => '#00ff00', 'band_text' => 'FAR TOO LONG A NAME' ) ) );
+		$check( 'stripes' === $clean[0]['balloon_style'] && '#2b6cb0' === $clean[0]['color1'] && '#00ff00' === $clean[0]['color2'] && 'FAR TOO LONG' === $clean[0]['band_text'], 'hot-air style, colours and band text are cleaned' );
+
+		$race = VBR_Races::save( array( 'name' => 'Smoke Hot-Air Race', 'launch_lat' => 51.4885, 'launch_lng' => -2.58, 'launch_at' => gmdate( 'Y-m-d H:i:s', time() - HOUR_IN_SECONDS ) ) );
+		VBR_Sponsors::save_for_race(
+			$race,
+			VBR_Sponsors::clean_rows(
+				array(
+					array( 'name' => 'Smoke Pub Company', 'url' => 'https://pub.example', 'tier' => 'headline', 'placements' => array( 'hot_air' ), 'balloon_style' => 'full', 'color1' => '#c4851c', 'color2' => '#f2c14e' ),
+					array( 'name' => 'Smoke FC', 'tier' => 'gold', 'placements' => array( 'hot_air', 'launch_flag' ), 'balloon_style' => 'stripes', 'band_text' => 'FC' ),
+					array( 'name' => 'Smoke Café', 'tier' => 'supporter', 'placements' => array( 'wall' ) ),
+				)
+			)
+		);
+		$wpdb->insert( VBR_Balloons::table(), array_merge( array( 'race_id' => $race, 'balloon_name' => 'Smoke Racer', 'owner_name' => 'Ray Smoke', 'balloon_color' => 'Red', 'helium_level' => 'Balanced', 'created_at' => current_time( 'mysql' ) ), VBR_Balloons::start_columns( 51.4885, -2.58 ) ) );
+
+		$payload = VBR_Map::public_payload( VBR_Races::get( $race ) );
+		$hot     = $payload['sponsors'];
+		$check( 2 === count( $hot ) && 'large' === $hot[0]['size'] && 'normal' === $hot[1]['size'], 'two hot-air balloons, the headline one large' );
+		$check( 'stripes' === $hot[0]['style'] && 'SMOKE' === $hot[0]['band'] && 'FC' === $hot[1]['band'], 'a logo style without a logo falls back to stripes; the band defaults to the first word' );
+		$check( abs( $hot[0]['lat'] - 51.4885 ) < 0.0001 && 1 === count( $hot[0]['trail'] ), 'before the race moves, they wait at the launch point' );
+		$check( isset( $payload['launch']['sponsor'] ) && 'Smoke FC' === $payload['launch']['sponsor']['name'], 'the launch flag carries its sponsor' );
+
+		VBR_Cron::tick( 6, array( 'race_id' => $race ) );
+		$moved = VBR_Sponsors::with_placement( $race, 'hot_air' );
+		$check( null !== $moved[0]->latitude && abs( (float) $moved[0]->latitude - 51.4885 ) + abs( (float) $moved[0]->longitude + 2.58 ) > 0.01 && 6.0 === (float) $moved[0]->flight_hours && 2 === count( VBR_Balloons::decode_trail( $moved[0]->trail_json ) ), 'a tick moves the sponsor balloons on the same wind, with a trail' );
+
+		$payload = VBR_Map::public_payload( VBR_Races::get( $race ) );
+		$check( array( 'Smoke Racer' ) === wp_list_pluck( $payload['balloons'], 'name' ) && 1 === count( VBR_Frontend::ranked_ids( VBR_Races::get( $race ) ) ), 'sponsor balloons are not in the balloon list or the ranking' );
+		$check( false === strpos( do_shortcode( '[balloon_leaderboard race="' . $race . '"]' ), 'Smoke Pub Company' ), 'or on the leaderboard' );
+
+		$screen = $render_race_screen( VBR_Races::get( $race ) );
+		$check( 2 === substr_count( $screen, '<fieldset class="vbr-sponsors-editor__hot-air">' ) && 2 === substr_count( $screen, '<fieldset class="vbr-sponsors-editor__hot-air" hidden>' ), 'the hot-air fields show only for sponsors with a hot-air balloon' );
+
+		$wpdb->query( $wpdb->prepare( 'DELETE FROM ' . VBR_Balloons::table() . ' WHERE race_id = %d', $race ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		VBR_Races::delete( $race );
+		$settings( array( 'weather_enabled' => 1 ) );
+		break;
+
 	// Race sponsors: cleaned on save, one-per-race placements, kept with their race.
 	case 'sponsors':
 		global $wpdb;

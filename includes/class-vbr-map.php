@@ -215,9 +215,20 @@ class VBR_Map {
 			);
 		}
 
+		$launch = VBR_Races::launch_point( $race );
+		$flag   = $race ? VBR_Sponsors::holder( (int) $race->id, 'launch_flag' ) : null;
+
+		if ( $flag ) {
+			$launch['sponsor'] = array(
+				'name' => $flag->name,
+				'url'  => $flag->url,
+			);
+		}
+
 		return array(
 			'race'       => VBR_Races::to_public( $race ),
-			'launch'     => VBR_Races::launch_point( $race ),
+			'launch'     => $launch,
+			'sponsors'   => $race ? VBR_Sponsors::hot_air_payload( $race ) : array(),
 			'updated_at' => ! empty( $last['time'] ) ? gmdate( 'c', (int) $last['time'] ) : null,
 			'next_at'    => $next ? gmdate( 'c', $next ) : null,
 			'ranking'    => VBR_Races::ranking( $race ),
@@ -314,6 +325,9 @@ class VBR_Map {
 				'all'      => __( 'All balloons', 'virtual-balloon-race' ),
 				'yours'    => __( 'Yours', 'virtual-balloon-race' ),
 				'team'     => __( 'Team', 'virtual-balloon-race' ),
+				'sponsor'     => __( 'Sponsor', 'virtual-balloon-race' ),
+				'sponsorNote' => __( 'Sponsor balloon · flying with the race, not racing', 'virtual-balloon-race' ),
+				'visit'       => __( 'Visit their website', 'virtual-balloon-race' ),
 			),
 		);
 

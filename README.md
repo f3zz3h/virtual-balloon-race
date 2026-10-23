@@ -108,7 +108,8 @@ Change any sponsor's ticks (also: launch flag, map badge, leaderboard strip). **
 - **Leaderboard strip**: "Leaderboard brought to you by …" above the leaderboard
 - **Sponsor wall**: `[balloon_sponsors]`, by tier (Headline large, Gold and Silver with logos, Supporters as names); part of the default tracking page
 - **Emails**: one plain line in the launch and results emails, "This race was made possible by …"
-- Hot-air balloons and the branded launch flag on the map are coming next (see the Race sponsorship milestone)
+- **Hot-air balloon**: the sponsor's own hot-air balloon flies with the race on the same live wind, from the launch point, but is never ranked, burst or counted in team scores. Headline sponsors fly a large one. Pick a style on the sponsor's card: **stripes and name band** (two colours and up to 12 letters), **logo panel** or **logo fills the balloon** (the logo styles need a logo; a very wide or tall logo is shown whole rather than cropped). On the map it has a popup with a link to the sponsor, a faint trail in its colour, and a "Sponsor" entry above the ranking in the side list
+- **Launch flag**: the launch marker is labelled with the sponsor's name and links to them
 
 Every sponsor link opens their website in a new tab and is marked `rel="sponsored"`. Logos come from your Media Library; nothing is loaded from other sites.
 
