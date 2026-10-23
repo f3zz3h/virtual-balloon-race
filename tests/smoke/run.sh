@@ -99,6 +99,9 @@ wp eval-file "$CHECKS" services
 stage "Scenario A: big races page the leaderboard on the server"
 wp eval-file "$CHECKS" big-leaderboard
 
+stage "Scenario A: big races send the map lighter data"
+wp eval-file "$CHECKS" light-map
+
 stage "Scenario A: updates from GitHub releases"
 wp eval-file "$CHECKS" github-updates
 

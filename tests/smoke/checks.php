@@ -1282,6 +1282,70 @@ switch ( $stage ) {
 		wp_delete_user( $user );
 		break;
 
+	// Big races send the map only the leaders' trails; the rest load on demand.
+	case 'light-map':
+		global $wpdb;
+
+		$race   = VBR_Races::save( array( 'name' => 'Smoke Light Map', 'launch_lat' => 51.4885, 'launch_lng' => -2.58, 'launch_at' => gmdate( 'Y-m-d H:i:s', time() - HOUR_IN_SECONDS ) ) );
+		$other  = VBR_Races::save( array( 'name' => 'Smoke Light Map Other', 'launch_lat' => 51.4885, 'launch_lng' => -2.58, 'launch_at' => gmdate( 'Y-m-d H:i:s', time() - HOUR_IN_SECONDS ) ) );
+		$table  = VBR_Balloons::table();
+		$values = array();
+		for ( $i = 1; $i <= 40; $i++ ) {
+			$values[] = $wpdb->prepare( '(%d, %s, %s, %s, %s, %f, %f, %f, %f, %s, %s)', $race, 'Light ' . $i, 'Owner ' . $i . ' Person', 'Red', 'Balanced', 100 - $i, 100 - $i, 51.123456789, -1.987654321, '[[51.4885,-2.58],[51.3,-2.2],[51.123456789,-1.987654321]]', current_time( 'mysql' ) );
+		}
+		$wpdb->query( "INSERT INTO {$table} (race_id, balloon_name, owner_name, balloon_color, helium_level, from_start_km, distance_km, latitude, longitude, trail_json, created_at) VALUES " . implode( ',', $values ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- each row prepared above.
+		$ids  = array_map( 'intval', $wpdb->get_col( $wpdb->prepare( "SELECT id FROM {$table} WHERE race_id = %d ORDER BY id", $race ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$last = end( $ids );
+		$wpdb->query( $wpdb->prepare( "UPDATE {$table} SET withdrawn_at = NOW() WHERE id = %d", $ids[30] ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		$balloons   = static function ( $params = array(), $headers = array() ) use ( $race ) {
+			$request = new WP_REST_Request( 'GET', '/vbr/v1/balloons' );
+			$request->set_query_params( array_merge( array( 'race' => (string) $race ), $params ) );
+			foreach ( $headers as $name => $value ) {
+				$request->set_header( $name, $value );
+			}
+			return rest_do_request( $request );
+		};
+		$with_trail = static function ( $data ) {
+			return array_map( 'intval', wp_list_pluck( array_filter( $data['balloons'], static fn( $b ) => isset( $b['trail'] ) ), 'id' ) );
+		};
+
+		$small = $balloons()->get_data();
+		$check( 'all' === $small['trails'] && 39 === count( $with_trail( $small ) ), 'a small race sends every trail, as before' );
+		$check( 51.12346 === $small['balloons'][0]['lat'] && -1.98765 === $small['balloons'][0]['lng'], 'positions are rounded to 5 decimals (about a metre)' );
+
+		$under = static function () {
+			return 10;
+		};
+		add_filter( 'vbr_map_all_trails_up_to', $under );
+		$big = $balloons()->get_data();
+		$check( 'some' === $big['trails'] && 39 === count( $big['balloons'] ) && 25 === count( $with_trail( $big ) ) && ! in_array( $last, $with_trail( $big ), true ), 'above the limit only the top 25 trails are sent' );
+		$asked = $with_trail( $balloons( array( 'trails' => $last . ',' . $ids[30] ) )->get_data() );
+		$check( 26 === count( $asked ) && in_array( $last, $asked, true ), 'trails asked for (the viewer\'s, the selected balloon) are added' );
+
+		$etag = $balloons()->get_headers()['ETag'] ?? '';
+		$check( '' !== $etag && 304 === $balloons( array(), array( 'If-None-Match' => $etag ) )->get_status(), 'an unchanged race answers 304 "not modified"' );
+		$wpdb->query( $wpdb->prepare( "UPDATE {$table} SET distance_km = distance_km + 1 WHERE id = %d", $last ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$check( 200 === $balloons( array(), array( 'If-None-Match' => $etag ) )->get_status(), 'after the balloons move it sends the new data' );
+
+		$trail = static function ( $race_id, $id ) {
+			$request = new WP_REST_Request( 'GET', '/vbr/v1/trail' );
+			$request->set_query_params( array( 'race' => (string) $race_id, 'id' => (string) $id ) );
+			return rest_do_request( $request );
+		};
+		$one = $trail( $race, $last );
+		$check( 200 === $one->get_status() && $last === $one->get_data()['id'] && 3 === count( $one->get_data()['trail'] ), 'one balloon\'s trail loads on its own' );
+		$check( 404 === $trail( $race, $ids[30] )->get_status() && 404 === $trail( $other, $last )->get_status(), 'withdrawn balloons and other races\' balloons aren\'t found' );
+
+		$page = do_shortcode( '[balloon_map race="' . $race . '"]' );
+		$check( false !== strpos( $page, 'trailUrl' ) && false !== strpos( $page, '"trails":"some"' ), 'the map page has the trail address and starts with the light data' );
+		remove_filter( 'vbr_map_all_trails_up_to', $under );
+
+		$wpdb->query( $wpdb->prepare( "DELETE FROM {$table} WHERE race_id = %d", $race ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		VBR_Races::delete( $race );
+		VBR_Races::delete( $other );
+		break;
+
 	// Updates from GitHub releases, with GitHub's API answered by a fake release.
 	case 'github-updates':
 		require_once ABSPATH . 'wp-admin/includes/plugin.php';

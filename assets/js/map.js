@@ -179,8 +179,13 @@
 		var seconds = Math.max(15, this.config.refresh || 60);
 
 		function load() {
-			var url = self.config.endpoint + (self.config.endpoint.indexOf('?') === -1 ? '?' : '&') + '_=' + Date.now();
-			fetch(url, { cache: 'no-store', credentials: 'same-origin' })
+			var url = self.config.endpoint;
+			var wanted = self.wantedTrails();
+			if (wanted.length) {
+				url += (url.indexOf('?') === -1 ? '?' : '&') + 'trails=' + wanted.join(',');
+			}
+			// "no-cache" revalidates with the ETag: until the balloons move, the server answers "not modified".
+			fetch(url, { cache: 'no-cache', credentials: 'same-origin' })
 				.then(function (r) { return r.ok ? r.json() : null; })
 				.then(function (data) {
 					if (data) {
@@ -374,7 +379,7 @@
 	RaceMap.prototype.createItem = function (b) {
 		var item = { data: b };
 
-		item.line = L.polyline(b.trail, {
+		item.line = L.polyline(b.trail || [], {
 			pane: 'vbr-trails',
 			bubblingMouseEvents: false,
 			interactive: true,
@@ -427,9 +432,43 @@
 		});
 	};
 
+	// Big races only send the leaders' trails: ask for the viewer's balloons and the selected one too.
+	RaceMap.prototype.wantedTrails = function () {
+		if (!this.data || this.data.trails !== 'some') {
+			return [];
+		}
+		var ids = Object.keys(this.mine);
+		if (this.selectedId !== null && ids.indexOf(String(this.selectedId)) === -1) {
+			ids.push(String(this.selectedId));
+		}
+		return ids.slice(0, 50);
+	};
+
+	// Load one balloon's trail (big races), then draw it.
+	RaceMap.prototype.loadTrail = function (id, focus) {
+		var self = this;
+		var url = this.config.trailUrl + (this.config.trailUrl.indexOf('?') === -1 ? '?' : '&') + 'id=' + id;
+
+		fetch(url, { cache: 'no-cache', credentials: 'same-origin' })
+			.then(function (r) { return r.ok ? r.json() : null; })
+			.then(function (res) {
+				var item = res && self.items[res.id];
+				if (!item) {
+					return;
+				}
+				item.data.trail = res.trail;
+				item.line.setLatLngs(res.trail);
+				self.applyStyles();
+				if (focus && self.selectedId === res.id && res.trail.length > 1) {
+					self.map.fitBounds(item.line.getBounds().pad(0.25), { maxZoom: 12 });
+				}
+			})
+			.catch(function () { /* No trail this time; the marker still shows. */ });
+	};
+
 	RaceMap.prototype.updateItem = function (item, b) {
 		item.data = b;
-		item.line.setLatLngs(b.trail);
+		item.line.setLatLngs(b.trail || []);
 		item.marker.setLatLng([b.lat, b.lng]);
 
 		if (item.marker.isPopupOpen()) {
@@ -583,9 +622,13 @@
 
 		var item = this.items[id];
 
+		if (!item.data.trail && this.data && this.data.trails === 'some') {
+			this.loadTrail(id, focus);
+		}
+
 		if (focus) {
 			var bounds = item.line.getBounds();
-			if (bounds.isValid() && item.data.trail.length > 1) {
+			if (bounds.isValid() && item.data.trail && item.data.trail.length > 1) {
 				this.map.fitBounds(bounds.pad(0.25), { maxZoom: 12 });
 			} else {
 				this.map.setView([item.data.lat, item.data.lng], Math.max(this.map.getZoom(), 9));
@@ -624,7 +667,7 @@
 
 		ids.forEach(function (id) {
 			if (self.items[id]) {
-				points = points.concat(self.items[id].data.trail);
+				points = points.concat(self.items[id].data.trail || [[self.items[id].data.lat, self.items[id].data.lng]]);
 			}
 		});
 
@@ -649,6 +692,8 @@
 		var balloons = (this.data && this.data.balloons) || [];
 
 		this.listEl.innerHTML = '';
+		// Widen the rank column for races with 1,000 or more balloons.
+		this.listEl.style.setProperty('--vbr-rank-width', Math.max(1.6, String(balloons.length).length * 0.6) + 'rem');
 
 		// Sponsor balloons first, outside the ranking.
 		((this.data && this.data.sponsors) || []).forEach(function (s) {

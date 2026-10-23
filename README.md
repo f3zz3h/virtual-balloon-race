@@ -187,7 +187,7 @@ On the map, clicking a balloon (or its name in the list or leaderboard) highligh
 - **Their own balloon.** Logged-in entrants see their balloons marked **Yours**. The map opens on their best-placed balloon, the leaderboard pins **Your balloons** with each one's position, and both have an **All balloons / My balloons** toggle. A balloon counts as theirs if they bought it while logged in, or if its order belongs to their account (the orders listed under My Account → Orders, including guest orders WooCommerce has linked to the account). Typed-in account or billing emails don't claim balloons, because WooCommerce doesn't verify them; sites that verify emails can turn that back on with the `vbr_match_balloons_by_email` filter.
 - **Guests** get **Track your balloon** links on the order confirmation page and in their order emails.
 - **Search.** The map list and the leaderboard both search by balloon name, owner or team. Leaderboard search covers every balloon in the race, not just the page being shown.
-- **Big races.** Up to 500 balloons, the whole leaderboard is in the page, so paging and search are instant. Above that, the page holds only the first page of rows, and paging, search and My balloons ask the server (`GET /vbr/v1/leaderboard`), so a race of thousands still loads quickly. Search matches the same things either way: balloon name, public owner name (first name and initial) and team.
+- **Big races.** Up to 500 balloons, the whole leaderboard is in the page, so paging and search are instant. Above that, the page holds only the first page of rows, and paging, search and My balloons ask the server (`GET /vbr/v1/leaderboard`), so a race of thousands still loads quickly. Search matches the same things either way: balloon name, public owner name (first name and initial) and team. The map is lighter too: above 300 balloons it sends only the top 25 trails plus the viewer's own, and loads any other balloon's trail when it's clicked. A 5,000-balloon race drops from about 2.3 MB to 150 KB (gzipped), and refreshes that find nothing new are answered "not modified".
 - **Paging.** The leaderboard shows 10 balloons per page by default, with page links and a **Show … per page** dropdown (10, 25, 50, 100 or All). A visitor's choice is remembered on their device. Search and **My balloons** page their results too. The admin leaderboard pages the same way, with its own dropdown.
 - **Owner names** are shown publicly as first name and last initial ("Luke H."), on the map, the leaderboard and the REST API. Search only matches that short form. Admin screens and the CSV keep full names.
 
@@ -292,7 +292,8 @@ Uncached grid cells are fetched in batches (up to 50 per request), and a failed 
 | --- | --- |
 | `GET /wp-json/vbr/v1/races` | `{ current, races: [{ id, name, slug, status, status_label, entries_open, launch_at, end_at, launch, entry_limit, places_left }] }` (`entry_limit` and `places_left` are null when there's no limit) |
 | `GET /wp-json/vbr/v1/leaderboard?race=<id\|slug>&page=&per_page=&search=&mine=&map_url=` | One page of a race's leaderboard as rendered table rows: `{ html, total, page, pages, per_page }`. Used by big races (see Leaderboard paging). `search` matches balloon name, public owner name and team; `mine=1` limits to the logged-in viewer's balloons (send the `wp_rest` nonce) |
-| `GET /wp-json/vbr/v1/balloons?race=<id\|slug\|current>` | `{ race, launch, updated_at, next_at, balloons: [{ id, rank, name, owner, color, hex, helium, distance, burst, lat, lng, logo, logo_fit, team, trail, from_start, travelled }], teams: [{ id, rank, name, color, balloons, score, leader }], scoring, ranking }`. `distance` is the measure the race ranks by. `teams` is empty and `team` null when the race doesn't use teams |
+| `GET /wp-json/vbr/v1/balloons?race=<id\|slug\|current>` | `{ race, launch, updated_at, next_at, balloons: [{ id, rank, name, owner, color, hex, helium, distance, burst, lat, lng, logo, logo_fit, team, trail, from_start, travelled }], teams: [{ id, rank, name, color, balloons, score, leader }], scoring, ranking }`. `distance` is the measure the race ranks by. `teams` is empty and `team` null when the race doesn't use teams. Above 300 balloons (filter `vbr_map_all_trails_up_to`), `trail` is only sent for the top 25 and for IDs in `trails=1,2,…` (up to 50), and `trails` is `"some"` (else `"all"`). Sends an `ETag` and answers `If-None-Match` with 304 |
+| `GET /wp-json/vbr/v1/trail?race=<id\|slug>&id=<balloon id>` | `{ id, trail }`: one balloon's trail, for big races where the map loads it on demand |
 
 Emails and order details are never included, and owners are first name + initial. Responses are sent with no-cache headers, including LiteSpeed's.
 
@@ -321,6 +322,7 @@ wp vbr demo --remove                     # remove demo races
 | `vbr_product_preview` | filter | Return false to keep the product images instead of the live balloon preview (`$show, $product`) |
 | `vbr_match_balloons_by_email` | filter | Return true to also give users the balloons whose order email matches their account or billing email (`$match, $user`). Off by default, as WooCommerce doesn't verify those emails |
 | `vbr_leaderboard_server_paging_from` | filter | From how many balloons the leaderboard is paged and searched on the server (default 500) |
+| `vbr_map_all_trails_up_to` | filter | Up to how many balloons the map gets every trail (default 300); above it, the top 25, the viewer's and the selected balloon's |
 | `vbr_public_owner_name` | filter | Public owner name, after shortening to first name + initial (`$name, $balloon`) |
 | `vbr_after_tick` | action | Runs after a race moves (`$summary`) |
 
@@ -373,4 +375,3 @@ How it works and why: [docs/design.md](docs/design.md). Before a real race: [doc
 - Logo upload needs the standard product form (themes using AJAX add-to-cart on single products won't send the file)
 - Balloons can drift over sea; there's no land awareness
 - Wind is the 10 m wind speed and direction only (no gusts, rain or altitude bands)
-- The public map still loads every balloon in the race, with its trail, so very large races (thousands of entries) make a heavy map
