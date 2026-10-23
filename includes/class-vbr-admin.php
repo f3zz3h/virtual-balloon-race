@@ -257,7 +257,7 @@ class VBR_Admin {
 		header( 'Content-Type: text/csv; charset=utf-8' );
 		header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
 
-		$output = fopen( 'php://output', 'w' );
+		$output = fopen( 'php://output', 'w' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Streams the CSV to the browser; no file is written.
 
 		fputcsv(
 			$output,
@@ -289,7 +289,7 @@ class VBR_Admin {
 			);
 		}
 
-		fclose( $output );
+		fclose( $output ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Streams the CSV to the browser (php://output); no file is written.
 		exit;
 	}
 

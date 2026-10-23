@@ -68,7 +68,12 @@ jobs:
         id: build
         run: bash .github/scripts/build-zip.sh "${GITHUB_REF_NAME#v}"
 
-      - name: Create release with the zip
-        run: gh release create "$GITHUB_REF_NAME" "${{ steps.build.outputs.zip }}" --title "Virtual Balloon Race ${{ steps.build.outputs.version }}" --generate-notes --verify-tag
+      # The WordPress.org version: no GitHub updater (for submitting to, and later deploying on, WordPress.org).
+      - name: Build WordPress.org zip
+        id: wporg
+        run: bash .github/scripts/build-zip.sh --wporg "${GITHUB_REF_NAME#v}"
+
+      - name: Create release with the zips
+        run: gh release create "$GITHUB_REF_NAME" "${{ steps.build.outputs.zip }}" "${{ steps.wporg.outputs.zip }}" --title "Virtual Balloon Race ${{ steps.build.outputs.version }}" --generate-notes --verify-tag
         env:
           GH_TOKEN: ${{ github.token }}

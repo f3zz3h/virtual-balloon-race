@@ -106,8 +106,7 @@ final class Virtual_Balloon_Race {
 	 * Initialise components once WordPress (and optionally WooCommerce) is ready.
 	 */
 	public function init() {
-		load_plugin_textdomain( 'virtual-balloon-race', false, dirname( plugin_basename( VBR_PLUGIN_FILE ) ) . '/languages' );
-
+		// Translations load on their own (WordPress 4.6+), from wp-content/languages/plugins.
 		new VBR_Admin();
 		new VBR_Admin_Races();
 		new VBR_Settings();

@@ -107,7 +107,7 @@ class VBR_Demo {
 		global $wpdb;
 
 		if ( function_exists( 'set_time_limit' ) ) {
-			set_time_limit( 300 ); // Flying the balloons fetches wind for each area they reach.
+			set_time_limit( 300 ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Flying the demo balloons fetches wind for each area they reach; admin-only, on request.
 		}
 
 		$launch_point = VBR_Balloons::launch_point();
