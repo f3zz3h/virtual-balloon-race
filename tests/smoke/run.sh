@@ -63,11 +63,11 @@ wp eval-file "$CHECKS" demo
 wp vbr demo --balloons=5
 wp vbr demo --remove
 
-stage "Scenario A: whose balloons are whose"
-wp eval-file "$CHECKS" owners
-
 stage "Scenario A: balloon preview on the product page"
 wp eval-file "$CHECKS" product-preview
+
+stage "Scenario A: whose balloons are whose"
+wp eval-file "$CHECKS" owners
 
 stage "Scenario A: maps, weather and place search settings"
 wp eval-file "$CHECKS" services

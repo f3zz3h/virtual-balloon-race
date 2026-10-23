@@ -642,6 +642,27 @@ switch ( $stage ) {
 		$check( 0 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . VBR_Balloons::table() . ' WHERE race_id = %d', $renewed ) ), 'demo balloons removed' ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		break;
 
+	// The balloon preview replaces the product images, in a block theme as well as a classic one.
+	case 'product-preview':
+		$products = wc_get_products( array( 'type' => 'balloon_entry', 'status' => 'publish', 'limit' => 1 ) );
+		$check( (bool) $products, 'an entry product exists for the preview' );
+		if ( ! $products ) {
+			break;
+		}
+		if ( ! wp_is_block_theme() ) {
+			$check( true, 'skipped: the active theme is not a block theme (' . get_stylesheet() . ')' );
+			break;
+		}
+		$GLOBALS['wp_query'] = new WP_Query( array( 'p' => $products[0]->get_id(), 'post_type' => 'product' ) ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+		$GLOBALS['wp_the_query'] = $GLOBALS['wp_query']; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+		$preview = new VBR_Product_Preview();
+		$preview->maybe_replace_gallery();
+		$gallery = apply_filters( 'render_block_woocommerce/product-image-gallery', '<div class="woocommerce-product-gallery">placeholder</div>', array() );
+		$check( false !== strpos( $gallery, 'vbr-product-preview' ) && false === strpos( $gallery, 'placeholder' ), 'block theme (' . get_stylesheet() . '): the preview replaces the product image block' );
+		$check( false === has_action( 'woocommerce_before_single_product_summary', array( $preview, 'render' ) ), 'block theme: the preview is not printed a second time by the classic hook' );
+		wp_reset_query(); // phpcs:ignore WordPress.WP.DiscouragedFunctions.wp_reset_query_wp_reset_query
+		break;
+
 	// Whose balloons are whose: logged-in purchases and orders on the account, not typed-in emails.
 	case 'owners':
 		global $wpdb;
@@ -692,27 +713,6 @@ switch ( $stage ) {
 		require_once ABSPATH . 'wp-admin/includes/user.php';
 		wp_delete_user( $alice );
 		wp_delete_user( $mallory );
-		break;
-
-	// The balloon preview replaces the product images, in a block theme as well as a classic one.
-	case 'product-preview':
-		$products = wc_get_products( array( 'type' => 'balloon_entry', 'status' => 'publish', 'limit' => 1 ) );
-		$check( (bool) $products, 'an entry product exists for the preview' );
-		if ( ! $products ) {
-			break;
-		}
-		if ( ! wp_is_block_theme() ) {
-			$check( true, 'skipped: the active theme is not a block theme (' . get_stylesheet() . ')' );
-			break;
-		}
-		$GLOBALS['wp_query'] = new WP_Query( array( 'p' => $products[0]->get_id(), 'post_type' => 'product' ) ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-		$GLOBALS['wp_the_query'] = $GLOBALS['wp_query']; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-		$preview = new VBR_Product_Preview();
-		$preview->maybe_replace_gallery();
-		$gallery = apply_filters( 'render_block_woocommerce/product-image-gallery', '<div class="woocommerce-product-gallery">placeholder</div>', array() );
-		$check( false !== strpos( $gallery, 'vbr-product-preview' ) && false === strpos( $gallery, 'placeholder' ), 'block theme (' . get_stylesheet() . '): the preview replaces the product image block' );
-		$check( false === has_action( 'woocommerce_before_single_product_summary', array( $preview, 'render' ) ), 'block theme: the preview is not printed a second time by the classic hook' );
-		wp_reset_query(); // phpcs:ignore WordPress.WP.DiscouragedFunctions.wp_reset_query_wp_reset_query
 		break;
 
 	// Outside services: map tiles, place search and the weather API from Settings.
