@@ -78,9 +78,8 @@ class VBR_Product_Type {
 		if ( isset( $tabs['shipping'] ) ) {
 			$tabs['shipping']['class'][] = 'hide_if_' . self::TYPE;
 		}
-		if ( isset( $tabs['general'] ) ) {
-			$tabs['general']['class'][] = 'show_if_' . self::TYPE;
-		}
+		// The General tab is left alone: it shows for every type but grouped, entries included. Marking it
+		// show_if_balloon_entry would make WooCommerce hide it for every other product type.
 		if ( isset( $tabs['inventory'] ) ) {
 			$tabs['inventory']['class'][] = 'show_if_' . self::TYPE;
 		}
