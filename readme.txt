@@ -5,7 +5,7 @@ Tags: fundraising, balloon race, charity, woocommerce, school
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.12.1
+Stable tag: 1.13.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,11 @@ Used by the "search for a place" box when choosing a launch point (in Settings, 
 
 == Changelog ==
 
+= 1.13.0 =
+* New: big races (over 500 balloons) page and search the leaderboard on the server, so the page stays light with thousands of entries. Smaller races work as before.
+* Changed: "My balloons" and the Yours badges now count balloons bought while logged in, or on orders that belong to the account. Account and billing emails, which aren't verified, no longer claim balloons (developers can restore this with the vbr_match_balloons_by_email filter).
+* Tested: entries for two races open at the same time.
+
 = 1.12.1 =
 * Fix: in block themes (such as Twenty Twenty-Five), the balloon preview now replaces the product image, instead of appearing at the top of the page with the placeholder image still showing.
 * Fix: the entry form's fields are styled consistently, so the balloon name box is no longer flat in block themes.
@@ -171,6 +176,9 @@ Used by the "search for a place" box when choosing a launch point (in Settings, 
 * New: race schedules (entries open, launch, end) and per-race sales.
 
 == Upgrade Notice ==
+
+= 1.13.0 =
+"My balloons" no longer matches by unverified email addresses. Entrants who bought as guests still have the Track your balloon links in their emails.
 
 = 1.12.1 =
 Fixes the balloon preview on product pages in block themes such as Twenty Twenty-Five.
