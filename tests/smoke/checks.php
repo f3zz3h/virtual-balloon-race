@@ -841,6 +841,66 @@ switch ( $stage ) {
 		VBR_Settings::flush_cache();
 		break;
 
+	// Big races: the leaderboard is paged and searched on the server, without exposing surnames.
+	case 'big-leaderboard':
+		global $wpdb;
+
+		$race   = VBR_Races::save( array( 'name' => 'Smoke Big Race', 'launch_lat' => 51.4885, 'launch_lng' => -2.58, 'launch_at' => gmdate( 'Y-m-d H:i:s', time() - HOUR_IN_SECONDS ) ) );
+		$table  = VBR_Balloons::table();
+		$values = array();
+		for ( $i = 1; $i <= 600; $i++ ) {
+			$owner    = 7 === $i ? 'Jo Smithers' : 'Owner ' . $i . ' Person';
+			$values[] = $wpdb->prepare( '(%d, %s, %s, %s, %s, %f, %f, %s)', $race, sprintf( 'Balloon %03d', $i ), $owner, 'Red', 'Balanced', 1000 - $i, 1000 - $i, current_time( 'mysql' ) );
+		}
+		$wpdb->query( "INSERT INTO {$table} (race_id, balloon_name, owner_name, balloon_color, helium_level, from_start_km, distance_km, created_at) VALUES " . implode( ',', $values ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- each row prepared above.
+		$wpdb->query( $wpdb->prepare( "UPDATE {$table} SET is_burst = 1 WHERE race_id = %d AND balloon_name = 'Balloon 002'", $race ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$wpdb->query( $wpdb->prepare( "UPDATE {$table} SET withdrawn_at = NOW() WHERE race_id = %d AND balloon_name = 'Balloon 003'", $race ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		$html = do_shortcode( '[balloon_leaderboard race="' . $race . '" per_page="10"]' );
+		$check( false !== strpos( $html, 'data-vbr-remote=' ) && 10 === substr_count( $html, '<tr data-vbr-search=' ), 'a big race puts only the first page in the page' );
+		$check( false !== strpos( $html, 'data-vbr-total="598"' ) && false === strpos( $html, '>All</option>' ), 'burst and withdrawn balloons are left out, and there\'s no "All" option' );
+
+		$page       = static function ( $params ) use ( $race ) {
+			$request = new WP_REST_Request( 'GET', '/vbr/v1/leaderboard' );
+			$request->set_query_params( array_merge( array( 'race' => (string) $race ), $params ) );
+			return rest_do_request( $request )->get_data();
+		};
+		$first_rank = static function ( $row_html ) {
+			return preg_match( '#<td data-label="Rank">([\d,]+)</td>#', $row_html, $m ) ? (int) str_replace( ',', '', $m[1] ) : 0;
+		};
+
+		$third = $page( array( 'page' => 3, 'per_page' => 25 ) );
+		$check( 25 === substr_count( $third['html'], '<tr ' ) && 51 === $first_rank( $third['html'] ) && 24 === $third['pages'] && 598 === $third['total'], 'page 3 at 25 a page starts at rank 51 (24 pages, 598 balloons)' );
+
+		$found = $page( array( 'search' => 'Balloon 123' ) );
+		$check( 1 === $found['total'] && 121 === $first_rank( $found['html'] ), 'search finds a balloon by name and shows its real rank' );
+		$check( 0 === $page( array( 'search' => 'Smithers' ) )['total'], 'searching a surname finds nothing (only first name and initial are public)' );
+		$check( 1 === $page( array( 'search' => 'Jo S.' ) )['total'], 'searching the public name works' );
+		$check( 0 === $page( array( 'search' => 'Balloon 002' ) )['total'], 'burst balloons aren\'t found' );
+
+		$user = wp_insert_user( array( 'user_login' => 'smoke_bigrace', 'user_email' => 'bigrace@example.com', 'user_pass' => wp_generate_password(), 'role' => 'customer' ) );
+		$wpdb->query( $wpdb->prepare( "UPDATE {$table} SET user_id = %d WHERE race_id = %d AND balloon_name IN ('Balloon 400', 'Balloon 500')", $user, $race ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$check( 0 === $page( array( 'mine' => true ) )['total'], '"My balloons" is empty for visitors who aren\'t logged in' );
+		wp_set_current_user( $user );
+		$mine = $page( array( 'mine' => true ) );
+		$check( 2 === $mine['total'] && 2 === substr_count( $mine['html'], 'data-vbr-mine' ), '"My balloons" pages the logged-in user\'s balloons on the server' );
+		wp_set_current_user( 0 );
+
+		add_filter(
+			'vbr_leaderboard_server_paging_from',
+			static function () {
+				return 1000;
+			}
+		);
+		$small = do_shortcode( '[balloon_leaderboard race="' . $race . '" per_page="10"]' );
+		$check( false === strpos( $small, 'data-vbr-remote=' ) && 598 === substr_count( $small, '<tr data-vbr-search=' ), 'below the threshold every row is in the page, as before' );
+
+		$wpdb->query( $wpdb->prepare( "DELETE FROM {$table} WHERE race_id = %d", $race ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		VBR_Races::delete( $race );
+		require_once ABSPATH . 'wp-admin/includes/user.php';
+		wp_delete_user( $user );
+		break;
+
 	// Updates from GitHub releases, with GitHub's API answered by a fake release.
 	case 'github-updates':
 		require_once ABSPATH . 'wp-admin/includes/plugin.php';

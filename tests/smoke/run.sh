@@ -75,6 +75,9 @@ wp eval-file "$CHECKS" owners
 stage "Scenario A: maps, weather and place search settings"
 wp eval-file "$CHECKS" services
 
+stage "Scenario A: big races page the leaderboard on the server"
+wp eval-file "$CHECKS" big-leaderboard
+
 stage "Scenario A: updates from GitHub releases"
 wp eval-file "$CHECKS" github-updates
 

@@ -65,6 +65,49 @@ class VBR_Map {
 
 		register_rest_route(
 			self::REST_NS,
+			'/leaderboard',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( 'VBR_Frontend', 'rest_leaderboard' ),
+				'permission_callback' => '__return_true',
+				'args'                => array(
+					'race'     => array(
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'page'     => array(
+						'type'    => 'integer',
+						'default' => 1,
+						'minimum' => 1,
+					),
+					'per_page' => array(
+						'type'    => 'integer',
+						'default' => 10,
+						'minimum' => 1,
+						'maximum' => 100,
+					),
+					'search'   => array(
+						'type'              => 'string',
+						'default'           => '',
+						'maxLength'         => 100,
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'mine'     => array(
+						'type'    => 'boolean',
+						'default' => false,
+					),
+					'map_url'  => array(
+						'type'              => 'string',
+						'default'           => '',
+						'sanitize_callback' => 'esc_url_raw',
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::REST_NS,
 			'/races',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
