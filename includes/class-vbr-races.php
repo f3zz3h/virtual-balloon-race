@@ -92,6 +92,7 @@ class VBR_Races {
 	 */
 	public static function flush() {
 		self::$cache = array();
+		VBR_Race_Entries::flush_hidden();
 	}
 
 	/**

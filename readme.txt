@@ -71,6 +71,10 @@ It depends on the wind and the flight mode. In Soar (the default), a week-long r
 
 By default, the balloon furthest from its launch point in a straight line, as in real balloon races. Each race can instead rank by the whole distance travelled.
 
+= Will the entry product show in my shop before a race is planned? =
+
+No. It's only listed (shop, categories, search, product blocks, sitemap) once a race is planned, and can only be bought while that race is taking entries. Its own page still opens and says when entries open.
+
 = What happens if an order is refunded or cancelled? =
 
 Its balloons are withdrawn: they leave the map, leaderboard and team scores, but stay in the admin screens and the CSV for your records. Reopening the order brings them back.

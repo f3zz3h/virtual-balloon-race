@@ -63,6 +63,9 @@ wp eval-file "$CHECKS" demo
 wp vbr demo --balloons=5
 wp vbr demo --remove
 
+stage "Scenario A: entry product listed only once a race is planned"
+wp eval-file "$CHECKS" planned-visibility
+
 stage "Scenario A: two races taking entries at once"
 wp eval-file "$CHECKS" two-races
 

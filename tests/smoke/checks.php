@@ -642,6 +642,70 @@ switch ( $stage ) {
 		$check( 0 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . VBR_Balloons::table() . ' WHERE race_id = %d', $renewed ) ), 'demo balloons removed' ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		break;
 
+	// The entry product only shows in the shop once a race is planned for it.
+	case 'planned-visibility':
+		global $wpdb;
+
+		// No race planned: everything has launched (or finished).
+		foreach ( VBR_Races::all() as $existing ) {
+			if ( in_array( VBR_Races::status( $existing ), array( VBR_Races::UPCOMING, VBR_Races::ON_SALE ), true ) ) {
+				$wpdb->update( VBR_Races::table(), array( 'sales_open_at' => null, 'launch_at' => gmdate( 'Y-m-d H:i:s', time() - 60 ) ), array( 'id' => (int) $existing->id ) );
+			}
+		}
+		VBR_Races::flush();
+
+		$product = VBR_Product_Type::all_products()[0];
+		$pid     = $product->get_id();
+		$entries = new VBR_Race_Entries();
+		// Is the product in each place that lists products to visitors?
+		$listed = static function () use ( $pid, $entries, $product ) {
+			$shop = new WP_Query();
+			$shop->set( 'post_type', 'product' );
+			$entries->hide_from_query( $shop );
+
+			$search          = new WP_Query();
+			$main            = $GLOBALS['wp_the_query'];
+			$GLOBALS['wp_the_query'] = $search; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+			$search->query( array( 's' => $product->get_name(), 'post_type' => 'any', 'fields' => 'ids', 'post_status' => 'publish' ) );
+			$GLOBALS['wp_the_query'] = $main; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+
+			return array(
+				'visible'   => wc_get_product( $pid )->is_visible(),
+				'shop'      => ! in_array( $pid, (array) $shop->get( 'post__not_in' ), true ),
+				'search'    => in_array( $pid, array_map( 'intval', $search->posts ), true ),
+				'shortcode' => ! in_array( $pid, (array) ( apply_filters( 'woocommerce_shortcode_products_query', array( 'post_type' => 'product' ), array(), 'products' )['post__not_in'] ?? array() ), true ),
+				'blocks'    => ! in_array( $pid, (array) ( apply_filters( 'query_loop_block_query_vars', array( 'post_type' => 'product' ), null, 1 )['post__not_in'] ?? array() ), true ),
+				'sitemap'   => ! in_array( $pid, (array) ( apply_filters( 'wp_sitemaps_posts_query_args', array(), 'product' )['post__not_in'] ?? array() ), true ),
+			);
+		};
+		$none = array_fill_keys( array( 'visible', 'shop', 'search', 'shortcode', 'blocks', 'sitemap' ), false );
+		$all  = array_fill_keys( array_keys( $none ), true );
+
+		$check( $none === $listed(), 'with no race planned, the entry product isn\'t listed anywhere (shop, search, [products], blocks, sitemap)' );
+		$check( $product->get_id() === VBR_Product_Type::all_products()[0]->get_id() && ! wc_get_product( $pid )->is_purchasable(), 'the plugin still finds it (no duplicate product), and it can\'t be bought' );
+
+		// An upcoming race (entries not open yet): listed, not purchasable.
+		$upcoming = VBR_Races::save( array( 'name' => 'Smoke Planned Race', 'launch_lat' => 51.4885, 'launch_lng' => -2.58, 'sales_open_at' => gmdate( 'Y-m-d H:i:s', time() + DAY_IN_SECONDS ), 'launch_at' => gmdate( 'Y-m-d H:i:s', time() + 5 * DAY_IN_SECONDS ) ) );
+		VBR_Races::flush();
+		$check( $all === $listed() && ! wc_get_product( $pid )->is_purchasable(), 'once a race is planned it\'s listed everywhere, but not for sale until entries open' );
+
+		// Entries open: for sale.
+		$wpdb->update( VBR_Races::table(), array( 'sales_open_at' => gmdate( 'Y-m-d H:i:s', time() - 60 ) ), array( 'id' => $upcoming ) );
+		VBR_Races::flush();
+		$check( wc_get_product( $pid )->is_visible() && wc_get_product( $pid )->is_purchasable(), 'when entries open it can be bought' );
+
+		// A product locked to a race that has launched stays hidden, even with another race open.
+		$launched = VBR_Races::save( array( 'name' => 'Smoke Launched Race', 'launch_lat' => 51.4885, 'launch_lng' => -2.58, 'launch_at' => gmdate( 'Y-m-d H:i:s', time() - HOUR_IN_SECONDS ) ) );
+		update_post_meta( $pid, VBR_Race_Entries::PRODUCT_META, $launched );
+		VBR_Races::flush();
+		$check( $none === $listed(), 'a product locked to a launched race is hidden, even while another race is open' );
+
+		update_post_meta( $pid, VBR_Race_Entries::PRODUCT_META, 0 );
+		VBR_Races::delete( $upcoming );
+		VBR_Races::delete( $launched );
+		VBR_Races::flush();
+		break;
+
 	// Two races taking entries at once: when one launches, only its entries leave the basket.
 	case 'two-races':
 		global $wpdb;
