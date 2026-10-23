@@ -66,7 +66,7 @@ class VBR_Pages {
 	 * @return string
 	 */
 	public static function default_content() {
-		return self::shortcode_blocks( array( '[balloon_map]', '[balloon_teams]', '[balloon_leaderboard]', '[balloon_races]' ) );
+		return self::shortcode_blocks( array( '[balloon_map]', '[balloon_prizes]', '[balloon_teams]', '[balloon_leaderboard]', '[balloon_races]' ) );
 	}
 
 	/**
@@ -88,13 +88,18 @@ class VBR_Pages {
 	}
 
 	/**
-	 * 1.4.0: add team standings to a tracking page that still has the 1.3 default content.
+	 * A tracking page still on an earlier default gets the current one (team standings in 1.4.0, prizes in
+	 * 1.14.0). Pages the organiser has changed are left alone.
 	 */
 	public static function upgrade_default_content() {
 		$id   = self::tracking_page_id();
 		$page = $id ? get_post( $id ) : null;
+		$old  = array(
+			self::shortcode_blocks( array( '[balloon_map]', '[balloon_leaderboard]', '[balloon_races]' ) ),
+			self::shortcode_blocks( array( '[balloon_map]', '[balloon_teams]', '[balloon_leaderboard]', '[balloon_races]' ) ),
+		);
 
-		if ( $page && trim( $page->post_content ) === self::shortcode_blocks( array( '[balloon_map]', '[balloon_leaderboard]', '[balloon_races]' ) ) ) {
+		if ( $page && in_array( trim( $page->post_content ), $old, true ) ) {
 			self::regenerate();
 		}
 	}

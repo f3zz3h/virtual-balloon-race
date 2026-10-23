@@ -344,3 +344,42 @@
 	min-width: 24px;
 	font-size: 16px;
 }
+
+/* Prizes on the race screen. */
+.vbr-prizes-editor__list {
+	margin: 0 0 12px;
+	padding: 0;
+	list-style: none;
+}
+
+.vbr-prizes-editor__row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: 10px 16px;
+	padding: 12px 0;
+	border-top: 1px solid #dcdcde;
+}
+
+.vbr-prizes-editor__row label {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	font-weight: 600;
+}
+
+.vbr-prizes-editor__row label[hidden] {
+	display: none;
+}
+
+.vbr-prizes-editor__description {
+	flex: 1 1 280px;
+}
+
+.vbr-prizes-editor__description input {
+	width: 100%;
+}
+
+.vbr-prizes-editor__remove {
+	margin-bottom: 6px;
+}

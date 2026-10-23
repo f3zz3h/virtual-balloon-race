@@ -80,6 +80,7 @@ class VBR_Install {
 		$tables[] = VBR_Races::table();
 		$tables[] = VBR_Teams::table();
 		$tables[] = VBR_Sponsors::table();
+		$tables[] = VBR_Prizes::table();
 
 		return $tables;
 	}
@@ -196,6 +197,22 @@ class VBR_Install {
 		) {$charset_collate};"
 		);
 
+		$prizes = VBR_Prizes::table();
+
+		dbDelta(
+			"CREATE TABLE {$prizes} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			race_id bigint(20) unsigned NOT NULL DEFAULT 0,
+			kind varchar(20) NOT NULL DEFAULT '',
+			label varchar(100) NOT NULL DEFAULT '',
+			description varchar(255) NOT NULL DEFAULT '',
+			sponsor_id bigint(20) unsigned NOT NULL DEFAULT 0,
+			sort int(11) NOT NULL DEFAULT 0,
+			PRIMARY KEY  (id),
+			KEY race_id (race_id)
+		) {$charset_collate};"
+		);
+
 		self::seed_positions();
 		self::migrate_to_races();
 
@@ -224,7 +241,8 @@ class VBR_Install {
 		if ( '0' !== $previous && version_compare( $previous, '1.3.0', '<' ) ) {
 			$tasks[] = 'products';
 		}
-		if ( '0' !== $previous && version_compare( $previous, '1.4.0', '<' ) ) {
+		// Tracking pages still on an earlier default content get the current one (team standings, then prizes).
+		if ( '0' !== $previous && version_compare( $previous, '1.14.0', '<' ) ) {
 			$tasks[] = 'pages_1_4';
 		}
 		self::add_pending( $tasks );

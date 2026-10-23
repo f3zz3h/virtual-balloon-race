@@ -80,6 +80,16 @@ With **Enable teams** ticked in Settings, each race has its own teams on its rac
 
 When a race has teams, buyers must pick one. Team standings appear on the tracking page, the leaderboard and map show each balloon's team, and the map can be filtered to one team. Scores: **average** and **total** use every balloon in the team (burst balloons count at the distance they reached); **best** is the team's furthest balloon. Switching teams off hides them everywhere but keeps them.
 
+#### Prizes (optional)
+
+The race screen's **Prizes** panel lists what's up for grabs: 1st to 5th place, best team, a random draw, or your own label (e.g. "Furthest Eco-Glide"), each with a description and an optional **Donated by** sponsor (one of this race's saved sponsors). Prizes show:
+
+- on the tracking page, as cards (`[balloon_prizes]`, part of the default page; pages still on an earlier default get it on upgrade, edited pages are left alone),
+- on the product page as **Up for grabs: …**, when one race is taking entries,
+- in the final-results email, with each prize's winner: the balloon in that place (public name only), the leading team, or "To be announced" for draws and your own prizes.
+
+Sponsor links are marked `rel="sponsored"` and open in a new tab.
+
 #### Sponsors (optional)
 
 Each race can have its own sponsors (never site-wide), added on the race screen's **Sponsors** panel: name, website, logo (from the Media Library) and tier. Nothing is sold through the shop.
@@ -153,6 +163,7 @@ You can still build your own pages:
 | --- | --- |
 | `[balloon_map]` | `race` = ID, slug or `current`. Without it, the page's `?race=` is used, else the current race. `height` (default `520px`). `list="no"` hides the side list |
 | `[balloon_leaderboard]` | `race` (as above). `per_page`: entries per page (default from Settings, 10; `all` for everything; `limit` is the older name). `map_url`: where names link (default: the tracking page) |
+| `[balloon_prizes race="…"]` | The race's prizes as cards, with "Donated by" links (nothing when it has none) |
 | `[balloon_teams]` | Team standings: rank, team, balloons, score, leading balloon. `race` (as above), `title`. Shows nothing when teams are off or the race has none |
 | `[balloon_races]` | Links to every race on the same page. `title` (default "All races"). `min` (default 2): hidden when there are fewer races |
 

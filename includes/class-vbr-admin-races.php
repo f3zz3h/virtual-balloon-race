@@ -66,6 +66,7 @@ class VBR_Admin_Races {
 			wp_enqueue_script( 'vbr-admin-teams', VBR_PLUGIN_URL . 'assets/js/admin-teams.js', array(), VBR_Balloons::asset_version( 'assets/js/admin-teams.js' ), true );
 			wp_enqueue_media();
 			wp_enqueue_script( 'vbr-admin-sponsors', VBR_PLUGIN_URL . 'assets/js/admin-sponsors.js', array( 'media-editor' ), VBR_Balloons::asset_version( 'assets/js/admin-sponsors.js' ), true );
+			wp_enqueue_script( 'vbr-admin-prizes', VBR_PLUGIN_URL . 'assets/js/admin-prizes.js', array(), VBR_Balloons::asset_version( 'assets/js/admin-prizes.js' ), true );
 		}
 	}
 
@@ -177,6 +178,9 @@ class VBR_Admin_Races {
 		}
 
 		$messages = array_merge( $messages, VBR_Sponsors::save_for_race( $result, VBR_Sponsors::clean_rows( isset( $in['sponsors'] ) ? $in['sponsors'] : array() ) ) );
+
+		// After sponsors, so a prize can name a sponsor saved in the same form only from the next save.
+		VBR_Prizes::save_for_race( $result, VBR_Prizes::clean_rows( isset( $in['prizes'] ) ? $in['prizes'] : array(), $result ) );
 
 		if ( $messages ) {
 			/* translators: %s: what couldn't be saved as asked */
@@ -654,6 +658,12 @@ class VBR_Admin_Races {
 			</section>
 
 			<?php $this->render_teams_panel( $race ); ?>
+
+			<section class="vbr-admin-panel" id="vbr-prizes">
+				<h2><?php esc_html_e( 'Prizes', 'virtual-balloon-race' ); ?></h2>
+				<p class="description"><?php esc_html_e( 'Shown on the tracking page, next to Add to basket and in the results email. "Donated by" lists this race\'s saved sponsors: add a new sponsor below and save before picking it here.', 'virtual-balloon-race' ); ?></p>
+				<?php VBR_Prizes::render_editor( 'vbr_race[prizes]', $race ? VBR_Prizes::for_race( (int) $race->id ) : array(), $race ? VBR_Sponsors::for_race( (int) $race->id ) : array() ); ?>
+			</section>
 
 			<section class="vbr-admin-panel" id="vbr-sponsors">
 				<h2><?php esc_html_e( 'Sponsors', 'virtual-balloon-race' ); ?></h2>

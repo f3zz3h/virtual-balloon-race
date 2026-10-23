@@ -780,6 +780,77 @@ switch ( $stage ) {
 		wp_delete_user( $mallory );
 		break;
 
+	// Prizes: cleaned on save, shown on the tracking page and product page, and with winners in the results email.
+	case 'prizes':
+		global $wpdb;
+
+		$check( VBR_Prizes::table() === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', VBR_Prizes::table() ) ), 'the prizes table exists' );
+		$check( false !== strpos( VBR_Pages::default_content(), '[balloon_prizes]' ), 'the default tracking page includes the prizes' );
+
+		// A tracking page still on the 1.4–1.13 default gets the prizes; an edited page is left alone.
+		$tracking = VBR_Pages::tracking_page_id();
+		$before   = get_post_field( 'post_content', $tracking );
+		$old      = "<!-- wp:shortcode -->\n[balloon_map]\n<!-- /wp:shortcode -->\n\n<!-- wp:shortcode -->\n[balloon_teams]\n<!-- /wp:shortcode -->\n\n<!-- wp:shortcode -->\n[balloon_leaderboard]\n<!-- /wp:shortcode -->\n\n<!-- wp:shortcode -->\n[balloon_races]\n<!-- /wp:shortcode -->";
+		wp_update_post( array( 'ID' => $tracking, 'post_content' => $old ) );
+		VBR_Pages::upgrade_default_content();
+		$check( false !== strpos( get_post_field( 'post_content', $tracking ), '[balloon_prizes]' ), 'a tracking page on the previous default gets the prizes' );
+		wp_update_post( array( 'ID' => $tracking, 'post_content' => $old . "\n\n<!-- wp:paragraph -->\n<p>Our own words</p>\n<!-- /wp:paragraph -->" ) );
+		VBR_Pages::upgrade_default_content();
+		$check( false === strpos( get_post_field( 'post_content', $tracking ), '[balloon_prizes]' ), 'an edited tracking page is left alone' );
+		wp_update_post( array( 'ID' => $tracking, 'post_content' => $before ) );
+
+		$race  = VBR_Races::save( array( 'name' => 'Smoke Prize Race', 'launch_lat' => 51.4885, 'launch_lng' => -2.58, 'launch_at' => gmdate( 'Y-m-d H:i:s', time() - 2 * DAY_IN_SECONDS ), 'end_at' => gmdate( 'Y-m-d H:i:s', time() - HOUR_IN_SECONDS ) ) );
+		$other = VBR_Races::save( array( 'name' => 'Smoke Other Race', 'launch_lat' => 51.4885, 'launch_lng' => -2.58, 'launch_at' => gmdate( 'Y-m-d H:i:s', time() + DAY_IN_SECONDS ) ) );
+		VBR_Sponsors::save_for_race( $race, VBR_Sponsors::clean_rows( array( array( 'name' => 'Smoke Pub', 'url' => 'https://pub.example', 'tier' => 'headline' ) ) ) );
+		VBR_Sponsors::save_for_race( $other, VBR_Sponsors::clean_rows( array( array( 'name' => 'Elsewhere Ltd', 'tier' => 'gold' ) ) ) );
+		$pub       = (int) VBR_Sponsors::for_race( $race )[0]->id;
+		$elsewhere = (int) VBR_Sponsors::for_race( $other )[0]->id;
+
+		foreach ( array( array( 'First Flyer', 'Ann Smoke', 900 ), array( 'Second Flyer', 'Bob Smoke', 800 ), array( 'Third Flyer', 'Cat Smoke', 700 ) ) as $b ) {
+			$wpdb->insert( VBR_Balloons::table(), array_merge( array( 'race_id' => $race, 'balloon_name' => $b[0], 'owner_name' => $b[1], 'owner_email' => 'prize@example.com', 'balloon_color' => 'Red', 'helium_level' => 'Balanced', 'from_start_km' => $b[2], 'distance_km' => $b[2], 'created_at' => current_time( 'mysql' ) ), VBR_Balloons::start_columns( 51.4885, -2.58 ) ) );
+		}
+
+		$rows = VBR_Prizes::clean_rows(
+			array(
+				array( 'kind' => 'place_1', 'description' => 'Sunday lunch for four', 'sponsor_id' => $pub ),
+				array( 'kind' => 'place_2', 'description' => 'Two match tickets', 'sponsor_id' => $elsewhere ),
+				array( 'kind' => 'place_3', 'description' => '' ),
+				array( 'kind' => 'draw', 'description' => 'Book token' ),
+				array( 'kind' => 'made_up', 'label' => 'Furthest Eco-Glide', 'description' => 'Garden voucher' ),
+			),
+			$race
+		);
+		$check( 4 === count( $rows ) && 0 === $rows[1]['sponsor_id'] && 'other' === $rows[3]['kind'] && 'Furthest Eco-Glide' === $rows[3]['label'], 'empty prizes are dropped, another race\'s sponsor isn\'t allowed, unknown kinds become "other"' );
+		VBR_Prizes::save_for_race( $race, $rows );
+
+		$prizes = VBR_Prizes::for_race( $race );
+		$check( array( '1st place', '2nd place', 'Random draw', 'Furthest Eco-Glide' ) === array_map( array( 'VBR_Prizes', 'title' ), $prizes ) && $prizes[0]->sponsor && 'Smoke Pub' === $prizes[0]->sponsor->name, 'prizes are saved in order, with their sponsor' );
+
+		$html = do_shortcode( '[balloon_prizes race="' . $race . '"]' );
+		$check( 4 === substr_count( $html, '<li class="vbr-prizes__card' ) && false !== strpos( $html, 'Donated by <a href="https://pub.example" rel="sponsored noopener" target="_blank">Smoke Pub</a>' ), '[balloon_prizes] shows the prizes, with a sponsored link to the donor' );
+		$check( '' === do_shortcode( '[balloon_prizes race="' . $other . '"]' ), '[balloon_prizes] shows nothing for a race without prizes' );
+		$check( 0 === strpos( VBR_Prizes::summary( $race ), '1st place: Sunday lunch for four · 2nd place: Two match tickets' ), 'the "Up for grabs" summary lists the prizes' );
+
+		$results = VBR_Prizes::results( VBR_Races::get( $race ) );
+		$check( 'First Flyer (Ann S.)' === $results[0]['winner'] && 'Second Flyer (Bob S.)' === $results[1]['winner'] && '' === $results[2]['winner'] && 'Smoke Pub' === $results[0]['donor'], 'winners are worked out from the final positions (public names only); draws are left to the organisers' );
+
+		$mail = WC()->mailer()->get_emails()['VBR_Email_Results'];
+		$mail->race     = VBR_Races::get( $race );
+		$mail->balloons = VBR_Race_Emails::balloons_for( $mail->race, 'prize@example.com' );
+		$email_html     = $mail->get_content_html();
+		$email_text     = $mail->get_content_plain();
+		$check( false !== strpos( $email_html, 'First Flyer (Ann S.)' ) && false !== strpos( $email_html, 'Donated by Smoke Pub' ) && false !== strpos( $email_html, 'To be announced' ), 'the results email lists the prizes, donors and winners' );
+		$check( false !== strpos( $email_text, '1st place: Sunday lunch for four (donated by Smoke Pub)' ), 'the plain-text results email lists them too' );
+
+		$screen = $render_race_screen( VBR_Races::get( $race ) );
+		$check( false !== strpos( $screen, 'vbr-prizes-editor' ) && false !== strpos( $screen, 'value="Sunday lunch for four"' ), 'the race screen shows the Prizes panel' );
+
+		$wpdb->query( $wpdb->prepare( 'DELETE FROM ' . VBR_Balloons::table() . ' WHERE race_id = %d', $race ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		VBR_Races::delete( $race );
+		VBR_Races::delete( $other );
+		$check( array() === VBR_Prizes::for_race( $race ), 'deleting the race removes its prizes' );
+		break;
+
 	// Race sponsors: cleaned on save, one-per-race placements, kept with their race.
 	case 'sponsors':
 		global $wpdb;

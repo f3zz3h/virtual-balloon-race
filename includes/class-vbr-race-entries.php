@@ -365,6 +365,7 @@ class VBR_Race_Entries {
 				<input type="hidden" name="vbr_race_id" value="<?php echo esc_attr( (string) $race->id ); ?>" />
 			</p>
 			<?php self::places_left_notice( $race ); ?>
+			<?php VBR_Prizes::render_up_for_grabs( $race ); ?>
 			<?php
 			return;
 		}
