@@ -5,7 +5,7 @@ Tags: fundraising, balloon race, charity, woocommerce, school
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.16.2
+Stable tag: 1.17.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -124,6 +124,11 @@ Used by the "search for a place" box when choosing a launch point (in Settings, 
 
 == Changelog ==
 
+= 1.17.0 =
+* New: big races (over 300 balloons) load a much lighter map: only the leaders' trails, the viewer's own and the selected balloon's, with other trails loaded when a balloon is clicked. A 5,000-balloon race drops from about 2.3 MB to 150 KB.
+* New: map refreshes that find nothing new are answered "not modified", saving data on every poll.
+* Fix: in races of 1,000 or more balloons, rank numbers in the map list overlapped the balloon icons.
+
 = 1.16.2 =
 * Fix: with the plugin active, other products (such as Simple products) lost the General tab, and so their price fields, in the product editor.
 * Changed: tidied for WordPress.org's Plugin Check (no errors); releases include a WordPress.org build.
@@ -202,6 +207,9 @@ Used by the "search for a place" box when choosing a launch point (in Settings, 
 * New: race schedules (entries open, launch, end) and per-race sales.
 
 == Upgrade Notice ==
+
+= 1.17.0 =
+Much faster maps for races with hundreds or thousands of balloons.
 
 = 1.16.2 =
 Fixes missing price fields when editing other products. Recommended for shops that sell anything besides balloon entries.
