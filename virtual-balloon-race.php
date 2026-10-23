@@ -21,7 +21,7 @@
 defined( 'ABSPATH' ) || exit;
 
 define( 'VBR_VERSION', '1.13.0' );
-define( 'VBR_DB_VERSION', '1.10.0' );
+define( 'VBR_DB_VERSION', '1.14.0' );
 define( 'VBR_PLUGIN_FILE', __FILE__ );
 define( 'VBR_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'VBR_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -30,6 +30,7 @@ define( 'VBR_TABLE_SUFFIX', 'vbr_balloons' );
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-balloons.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-races.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-teams.php';
+require_once VBR_PLUGIN_DIR . 'includes/class-vbr-sponsors.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-flight-modes.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-install.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-settings.php';
