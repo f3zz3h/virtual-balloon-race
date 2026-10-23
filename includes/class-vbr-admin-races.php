@@ -668,7 +668,13 @@ class VBR_Admin_Races {
 			<section class="vbr-admin-panel" id="vbr-sponsors">
 				<h2><?php esc_html_e( 'Sponsors', 'virtual-balloon-race' ); ?></h2>
 				<p class="description"><?php esc_html_e( 'Sponsors belong to this race only. Choosing a tier ticks its usual places; change any you like. Presented by, launch flag, map badge and leaderboard strip have one spot per race.', 'virtual-balloon-race' ); ?></p>
-				<?php VBR_Sponsors::render_editor( 'vbr_race[sponsors]', $race ? VBR_Sponsors::for_race( (int) $race->id ) : array() ); ?>
+				<?php VBR_Sponsors::render_editor( 'vbr_race[sponsors]', $race ? VBR_Sponsors::for_race( (int) $race->id ) : array(), $race ? VBR_Sponsor_Stats::for_race( (int) $race->id ) : array() ); ?>
+				<?php if ( $race && VBR_Sponsors::for_race( (int) $race->id ) ) : ?>
+					<p>
+						<a class="button" href="<?php echo esc_url( wp_nonce_url( add_query_arg( array( 'action' => 'vbr_sponsor_stats_csv', 'race' => (int) $race->id ), admin_url( 'admin-post.php' ) ), 'vbr_sponsor_stats_csv_' . (int) $race->id ) ); ?>"><?php esc_html_e( 'Download views and clicks (CSV)', 'virtual-balloon-race' ); ?></a>
+						<span class="description"><?php esc_html_e( 'How often each sponsor was shown on the race pages, and how often their links were clicked. Only totals are kept: no cookies or visitor details. Emails aren\'t counted.', 'virtual-balloon-race' ); ?></span>
+					</p>
+				<?php endif; ?>
 			</section>
 
 			<p class="submit">

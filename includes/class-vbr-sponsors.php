@@ -155,21 +155,28 @@ class VBR_Sponsors {
 
 	/**
 	 * Wrap HTML in a link to the sponsor's website (marked as sponsored, new tab), or a span without one.
-	 * Every sponsor link on the site goes through here.
+	 * Every sponsor link on the site goes through here; it's tagged with its placement for the views and
+	 * clicks report (VBR_Sponsor_Stats).
 	 *
-	 * @param object $sponsor Sponsor row.
-	 * @param string $inner   Escaped inner HTML.
-	 * @param string $class   CSS class.
+	 * @param object $sponsor   Sponsor row.
+	 * @param string $inner     Escaped inner HTML.
+	 * @param string $class     CSS class.
+	 * @param string $placement Placement key (or 'prize'), for the report.
 	 * @return string
 	 */
-	public static function link( $sponsor, $inner, $class = '' ) {
-		$class = $class ? ' class="' . esc_attr( $class ) . '"' : '';
+	public static function link( $sponsor, $inner, $class = '', $placement = '' ) {
+		$attrs = $class ? ' class="' . esc_attr( $class ) . '"' : '';
 
-		if ( ! $sponsor->url ) {
-			return '<span' . $class . '>' . $inner . '</span>';
+		if ( $placement ) {
+			$attrs .= ' data-vbr-sponsor="' . esc_attr( (string) (int) $sponsor->id ) . '" data-vbr-placement="' . esc_attr( $placement ) . '"';
+			VBR_Sponsor_Stats::enqueue();
 		}
 
-		return '<a' . $class . ' href="' . esc_url( $sponsor->url ) . '" rel="sponsored noopener" target="_blank">' . $inner . '</a>';
+		if ( ! $sponsor->url ) {
+			return '<span' . $attrs . '>' . $inner . '</span>';
+		}
+
+		return '<a' . $attrs . ' href="' . esc_url( $sponsor->url ) . '" rel="sponsored noopener" target="_blank">' . $inner . '</a>';
 	}
 
 	/**
@@ -207,6 +214,10 @@ class VBR_Sponsors {
 	public static function hot_air_payload( $race ) {
 		$launch = VBR_Races::launch_point( $race );
 		$out    = array();
+
+		if ( self::with_placement( (int) $race->id, 'hot_air' ) || self::holder( (int) $race->id, 'launch_flag' ) ) {
+			VBR_Sponsor_Stats::enqueue();
+		}
 
 		foreach ( self::with_placement( (int) $race->id, 'hot_air' ) as $sponsor ) {
 			$lat   = null !== $sponsor->latitude ? (float) $sponsor->latitude : (float) $launch['lat'];
@@ -251,7 +262,7 @@ class VBR_Sponsors {
 		}
 
 		return '<span class="vbr-presented-by">' . esc_html__( 'presented by', 'virtual-balloon-race' ) . ' '
-			. self::link( $sponsor, self::logo( $sponsor ) . '<span class="vbr-presented-by__name">' . esc_html( $sponsor->name ) . '</span>', 'vbr-presented-by__link' )
+			. self::link( $sponsor, self::logo( $sponsor ) . '<span class="vbr-presented-by__name">' . esc_html( $sponsor->name ) . '</span>', 'vbr-presented-by__link', 'presented_by' )
 			. '</span>';
 	}
 
@@ -274,12 +285,12 @@ class VBR_Sponsors {
 			$logo = self::logo( $sponsor );
 
 			return '<p class="vbr-map__badge"><span class="vbr-map__badge-label">' . esc_html__( 'Map supported by', 'virtual-balloon-race' ) . '</span> '
-				. self::link( $sponsor, $logo ? $logo : '<strong>' . esc_html( $sponsor->name ) . '</strong>' )
+				. self::link( $sponsor, $logo ? $logo : '<strong>' . esc_html( $sponsor->name ) . '</strong>', '', 'map_badge' )
 				. '</p>';
 		}
 
 		return '<p class="vbr-leaderboard__strip">' . esc_html__( 'Leaderboard brought to you by', 'virtual-balloon-race' ) . ' '
-			. self::link( $sponsor, self::logo( $sponsor ) . '<strong>' . esc_html( $sponsor->name ) . '</strong>' )
+			. self::link( $sponsor, self::logo( $sponsor ) . '<strong>' . esc_html( $sponsor->name ) . '</strong>', '', 'leaderboard_strip' )
 			. '</p>';
 	}
 
@@ -354,7 +365,7 @@ class VBR_Sponsors {
 									' · ',
 									array_map(
 										static function ( $sponsor ) {
-											return self::link( $sponsor, esc_html( $sponsor->name ) );
+											return self::link( $sponsor, esc_html( $sponsor->name ), '', 'wall' );
 										},
 										$group
 									)
@@ -366,7 +377,7 @@ class VBR_Sponsors {
 						<ul class="vbr-sponsors__list">
 							<?php foreach ( $group as $sponsor ) : ?>
 								<li class="vbr-sponsors__item">
-									<?php echo wp_kses_post( self::link( $sponsor, self::logo( $sponsor ) . '<span class="vbr-sponsors__name">' . esc_html( $sponsor->name ) . '</span>', 'vbr-sponsors__card' ) ); ?>
+									<?php echo wp_kses_post( self::link( $sponsor, self::logo( $sponsor ) . '<span class="vbr-sponsors__name">' . esc_html( $sponsor->name ) . '</span>', 'vbr-sponsors__card', 'wall' ) ); ?>
 								</li>
 							<?php endforeach; ?>
 						</ul>
@@ -506,6 +517,7 @@ class VBR_Sponsors {
 		foreach ( array_keys( $existing ) as $id ) {
 			if ( ! isset( $kept[ $id ] ) ) {
 				$wpdb->delete( $table, array( 'id' => $id ), array( '%d' ) );
+				VBR_Sponsor_Stats::delete_for_sponsors( array( $id ) );
 			}
 		}
 
@@ -520,6 +532,7 @@ class VBR_Sponsors {
 	public static function delete_for_race( $race_id ) {
 		global $wpdb;
 
+		VBR_Sponsor_Stats::delete_for_sponsors( wp_list_pluck( self::for_race( $race_id ), 'id' ) );
 		$wpdb->delete( self::table(), array( 'race_id' => (int) $race_id ), array( '%d' ) );
 	}
 
@@ -528,11 +541,12 @@ class VBR_Sponsors {
 	 *
 	 * @param string   $name     Input name prefix, e.g. `vbr_race[sponsors]`.
 	 * @param object[] $sponsors Rows from for_race().
+	 * @param array    $stats    Views and clicks from VBR_Sponsor_Stats::for_race().
 	 */
-	public static function render_editor( $name, $sponsors ) {
+	public static function render_editor( $name, $sponsors, $stats = array() ) {
 		$tiers      = self::tier_labels();
 		$placements = self::placement_labels();
-		$card       = static function ( $index, $sponsor ) use ( $name, $tiers, $placements ) {
+		$card       = static function ( $index, $sponsor ) use ( $name, $tiers, $placements, $stats ) {
 			$prefix = $name . '[' . $index . ']';
 			$logo   = $sponsor['logo_id'] ? wp_get_attachment_image_url( (int) $sponsor['logo_id'], 'medium' ) : '';
 			?>
@@ -590,6 +604,21 @@ class VBR_Sponsors {
 						<?php endforeach; ?>
 					</fieldset>
 				</div>
+				<?php if ( $sponsor['id'] ) : ?>
+					<?php $counts = VBR_Sponsor_Stats::totals( isset( $stats[ $sponsor['id'] ] ) ? $stats[ $sponsor['id'] ] : array() ); ?>
+					<p class="vbr-sponsors-editor__stats">
+						<?php
+						echo esc_html(
+							sprintf(
+								/* translators: 1: number of views, 2: number of clicks */
+								__( 'Shown %1$s times · %2$s clicks', 'virtual-balloon-race' ),
+								number_format_i18n( $counts['views'] ),
+								number_format_i18n( $counts['clicks'] )
+							)
+						);
+						?>
+					</p>
+				<?php endif; ?>
 				<div class="vbr-sponsors-editor__actions">
 					<button type="button" class="button-link vbr-sponsors-editor__up" aria-label="<?php esc_attr_e( 'Move up', 'virtual-balloon-race' ); ?>">↑</button>
 					<button type="button" class="button-link vbr-sponsors-editor__down" aria-label="<?php esc_attr_e( 'Move down', 'virtual-balloon-race' ); ?>">↓</button>

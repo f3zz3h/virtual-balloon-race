@@ -84,6 +84,9 @@ wp eval-file "$CHECKS" sponsor-placements
 stage "Scenario A: sponsor hot-air balloons"
 wp eval-file "$CHECKS" hot-air
 
+stage "Scenario A: sponsor views and clicks"
+wp eval-file "$CHECKS" sponsor-stats
+
 stage "Scenario A: maps, weather and place search settings"
 wp eval-file "$CHECKS" services
 

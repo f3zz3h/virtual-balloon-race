@@ -113,6 +113,8 @@ Change any sponsor's ticks (also: launch flag, map badge, leaderboard strip). **
 
 Every sponsor link opens their website in a new tab and is marked `rel="sponsored"`. Logos come from your Media Library; nothing is loaded from other sites.
 
+**Views and clicks.** Each sponsor's card shows how often they were shown on the race pages and how often their links were clicked, and **Download views and clicks (CSV)** gives one row per sponsor and placement, handy for thanking sponsors after the race. The visitor's browser reports these (race pages are usually page-cached, so the server rarely sees a visit): one small request per page with the placements shown, and one per click. Only running totals are kept: no cookies, no IP addresses, nothing about who saw or clicked what. Each placement counts once per page view; emails and visitors without JavaScript (most bots) aren't counted. The numbers are a guide, not an audit: the reporting address is public.
+
 ### 4. Set up the balloon product
 
 A fresh install creates a ready-to-sell **Balloon Race Entry** product (£3, published, any race taking entries) as soon as WooCommerce is active. It can only be bought while a race is taking entries, so it's safe to leave published. Change its name, price, description and picture like any product. Upgrades never add a product. **Settings → Pages and products** lists your entry products and offers **Create entry product** if there are none.

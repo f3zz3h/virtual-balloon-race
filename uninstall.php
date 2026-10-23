@@ -4,7 +4,7 @@
  *
  * Always stops the plugin's scheduled jobs. Removes the plugin's data only if
  * Settings → Data → "Delete all race data when the plugin is deleted" is ticked
- * (per site on Multisite): its tables (races, balloons, teams, sponsors, prizes), settings and
+ * (per site on Multisite): its tables (races, balloons, teams, sponsors, prizes, sponsor counts), settings and
  * cached data. Pages, products, orders and uploaded logos are the site's own
  * content and are kept either way.
  *
@@ -34,7 +34,7 @@ function vbr_uninstall_site() {
 		return;
 	}
 
-	foreach ( array( 'vbr_balloons', 'vbr_races', 'vbr_teams', 'vbr_sponsors', 'vbr_prizes' ) as $table ) {
+	foreach ( array( 'vbr_balloons', 'vbr_races', 'vbr_teams', 'vbr_sponsors', 'vbr_prizes', 'vbr_sponsor_stats' ) as $table ) {
 		$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}{$table}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.SchemaChange -- uninstall.
 	}
 

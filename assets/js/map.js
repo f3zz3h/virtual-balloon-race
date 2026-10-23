@@ -259,6 +259,7 @@
 
 		if (launch.sponsor) {
 			// Branded launch flag: the sponsor's name always shows, and the flag links to them.
+			this.sponsorViewed(launch.sponsor.id, 'launch_flag');
 			this.launchMarker.bindTooltip((this.i18n.launch || 'Launch') + ': ' + launch.sponsor.name, {
 				permanent: true,
 				direction: 'right',
@@ -268,7 +269,7 @@
 			if (launch.sponsor.url) {
 				var popup = el('div', 'vbr-popup vbr-popup--sponsor');
 				popup.appendChild(el('strong', 'vbr-popup__title', launch.sponsor.name));
-				popup.appendChild(this.sponsorLink(launch.sponsor.url));
+				popup.appendChild(this.sponsorLink(launch.sponsor.url, launch.sponsor.id, 'launch_flag'));
 				this.launchMarker.bindPopup(popup);
 			}
 			return;
@@ -277,12 +278,24 @@
 		this.launchMarker.bindTooltip((this.i18n.launch || 'Launch') + (launch.label ? ': ' + launch.label : ''));
 	};
 
-	RaceMap.prototype.sponsorLink = function (url) {
+	RaceMap.prototype.sponsorLink = function (url, id, placement) {
 		var a = el('a', 'vbr-popup__link', this.i18n.visit || 'Visit their website');
 		a.href = url;
 		a.target = '_blank';
 		a.rel = 'sponsored noopener';
+		a.setAttribute('data-vbr-sponsor', id);
+		a.setAttribute('data-vbr-placement', placement);
 		return a;
+	};
+
+	// Tell the views and clicks report a sponsor was shown (sponsor-stats.js, when loaded).
+	RaceMap.prototype.sponsorViewed = function (id, placement) {
+		if (window.vbrSponsorStats && window.vbrSponsorStats.view) {
+			window.vbrSponsorStats.view(String(id), placement);
+		} else {
+			// The report script may load after the map draws; it picks these up when it starts.
+			(window.vbrSponsorStatsQueue = window.vbrSponsorStatsQueue || []).push([String(id), placement]);
+		}
 	};
 
 	// Sponsor hot-air balloons: they fly with the race but are never ranked.
@@ -322,6 +335,7 @@
 			}
 
 			item.data = s;
+			self.sponsorViewed(s.id, 'hot_air');
 			if (item.key !== key) {
 				item.key = key;
 				item.marker.setIcon(L.divIcon({
@@ -351,7 +365,7 @@
 		wrap.appendChild(el('strong', 'vbr-popup__title', s.name));
 		wrap.appendChild(el('div', 'vbr-popup__row', this.i18n.sponsorNote || 'Sponsor balloon · flying with the race, not racing'));
 		if (s.url) {
-			wrap.appendChild(this.sponsorLink(s.url));
+			wrap.appendChild(this.sponsorLink(s.url, s.id, 'hot_air'));
 		}
 
 		return wrap;
