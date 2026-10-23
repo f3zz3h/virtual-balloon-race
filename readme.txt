@@ -5,7 +5,7 @@ Tags: fundraising, balloon race, charity, woocommerce, school
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.13.0
+Stable tag: 1.14.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,11 @@ Used by the "search for a place" box when choosing a launch point (in Settings, 
 
 == Changelog ==
 
+= 1.14.0 =
+* New: race sponsors. Add sponsors to each race (name, website, logo, tier: Headline, Gold, Silver or Supporter) and choose where each appears: "presented by" the race, a leaderboard strip, a map badge, the sponsor wall ([balloon_sponsors]) and a line in the launch and results emails. Sponsor links are marked as sponsored.
+* New: prizes per race (1st–5th place, best team, random draw or your own), each optionally donated by a sponsor. Shown as cards on the tracking page ([balloon_prizes]), as "Up for grabs" on the product page, and with their winners in the results email.
+* Changed: the default tracking page now includes the prizes and the sponsor wall (pages you've edited are left alone).
+
 = 1.13.0 =
 * New: big races (over 500 balloons) page and search the leaderboard on the server, so the page stays light with thousands of entries. Smaller races work as before.
 * Changed: "My balloons" and the Yours badges now count balloons bought while logged in, or on orders that belong to the account. Account and billing emails, which aren't verified, no longer claim balloons (developers can restore this with the vbr_match_balloons_by_email filter).
@@ -176,6 +181,9 @@ Used by the "search for a place" box when choosing a launch point (in Settings, 
 * New: race schedules (entries open, launch, end) and per-race sales.
 
 == Upgrade Notice ==
+
+= 1.14.0 =
+Adds race sponsors and prizes. Nothing shows until you add them on a race's screen.
 
 = 1.13.0 =
 "My balloons" no longer matches by unverified email addresses. Entrants who bought as guests still have the Track your balloon links in their emails.
