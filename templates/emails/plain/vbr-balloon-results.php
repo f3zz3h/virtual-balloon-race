@@ -11,6 +11,7 @@
  * @var array[]        $balloons           The entrant's balloons, best first.
  * @var string         $first_name         Entrant's first name.
  * @var string         $tracking_url       Race tracking page.
+ * @var string         $sponsors_line      "This race was made possible by …", or ''.
  * @var array[]        $prizes             Prizes: title, description, donor, winner.
  * @var string         $additional_content Text from the email settings.
  * @var VBR_Email_Race $email              Email object.
@@ -49,6 +50,10 @@ if ( ! empty( $prizes ) ) {
 		echo "\n  " . esc_html( $prize['winner'] ? $prize['winner'] : __( 'To be announced', 'virtual-balloon-race' ) ) . "\n";
 	}
 	echo "\n";
+}
+
+if ( ! empty( $sponsors_line ) ) {
+	echo esc_html( $sponsors_line ) . "\n\n";
 }
 
 if ( $tracking_url ) {

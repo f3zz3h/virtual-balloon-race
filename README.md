@@ -101,7 +101,16 @@ Each race can have its own sponsors (never site-wide), added on the race screen'
 | Silver | Sponsor wall |
 | Supporter | Sponsor wall |
 
-Change any sponsor's ticks (also: launch flag, map badge, leaderboard strip). **Presented by**, **launch flag**, **map badge** and **leaderboard strip** have one spot per race: on a clash the higher tier keeps it (between equal tiers, the one higher in the list), and the save notice says who lost it. Deleting a race removes its sponsors; their logos stay in the Media Library. Where sponsors appear on the site is being built (see the Race sponsorship milestone in Issues).
+Change any sponsor's ticks (also: launch flag, map badge, leaderboard strip). **Presented by**, **launch flag**, **map badge** and **leaderboard strip** have one spot per race: on a clash the higher tier keeps it (between equal tiers, the one higher in the list), and the save notice says who lost it. Deleting a race removes its sponsors; their logos stay in the Media Library. Where they appear:
+
+- **Presented by**: above the map (with the race name), in the leaderboard header and next to "Entering: …" on the product page
+- **Map badge**: "Map supported by" with the sponsor's logo (or name) in the map's top-right corner, clear of the zoom buttons and the map credits
+- **Leaderboard strip**: "Leaderboard brought to you by …" above the leaderboard
+- **Sponsor wall**: `[balloon_sponsors]`, by tier (Headline large, Gold and Silver with logos, Supporters as names); part of the default tracking page
+- **Emails**: one plain line in the launch and results emails, "This race was made possible by …"
+- Hot-air balloons and the branded launch flag on the map are coming next (see the Race sponsorship milestone)
+
+Every sponsor link opens their website in a new tab and is marked `rel="sponsored"`. Logos come from your Media Library; nothing is loaded from other sites.
 
 ### 4. Set up the balloon product
 
@@ -164,6 +173,7 @@ You can still build your own pages:
 | `[balloon_map]` | `race` = ID, slug or `current`. Without it, the page's `?race=` is used, else the current race. `height` (default `520px`). `list="no"` hides the side list |
 | `[balloon_leaderboard]` | `race` (as above). `per_page`: entries per page (default from Settings, 10; `all` for everything; `limit` is the older name). `map_url`: where names link (default: the tracking page) |
 | `[balloon_prizes race="…"]` | The race's prizes as cards, with "Donated by" links (nothing when it has none) |
+| `[balloon_sponsors race="…"]` | The race's sponsor wall, by tier (nothing when it has none) |
 | `[balloon_teams]` | Team standings: rank, team, balloons, score, leading balloon. `race` (as above), `title`. Shows nothing when teams are off or the race has none |
 | `[balloon_races]` | Links to every race on the same page. `title` (default "All races"). `min` (default 2): hidden when there are fewer races |
 

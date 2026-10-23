@@ -851,6 +851,76 @@ switch ( $stage ) {
 		$check( array() === VBR_Prizes::for_race( $race ), 'deleting the race removes its prizes' );
 		break;
 
+	// Where sponsors appear: presented by, map badge, leaderboard strip, the wall and the emails.
+	case 'sponsor-placements':
+		global $wpdb;
+
+		$check( false !== strpos( VBR_Pages::default_content(), '[balloon_sponsors]' ), 'the default tracking page includes the sponsor wall' );
+
+		foreach ( VBR_Races::open_for_entries() as $open ) {
+			$wpdb->update( VBR_Races::table(), array( 'launch_at' => gmdate( 'Y-m-d H:i:s', time() - 60 ) ), array( 'id' => (int) $open->id ) );
+		}
+		VBR_Races::flush();
+
+		$race  = VBR_Races::save( array( 'name' => 'Smoke Placement Race', 'launch_lat' => 51.4885, 'launch_lng' => -2.58, 'launch_at' => gmdate( 'Y-m-d H:i:s', time() + DAY_IN_SECONDS ) ) );
+		$plain = VBR_Races::save( array( 'name' => 'Smoke Unsponsored Race', 'launch_lat' => 51.4885, 'launch_lng' => -2.58, 'sales_open_at' => gmdate( 'Y-m-d H:i:s', time() + 7 * DAY_IN_SECONDS ), 'launch_at' => gmdate( 'Y-m-d H:i:s', time() + 9 * DAY_IN_SECONDS ) ) );
+		VBR_Sponsors::save_for_race(
+			$race,
+			VBR_Sponsors::clean_rows(
+				array(
+					array( 'name' => 'Smoke Pub', 'url' => 'https://pub.example', 'tier' => 'headline', 'placements' => array( 'presented_by', 'emails', 'wall' ) ),
+					array( 'name' => 'Smoke FC', 'url' => 'https://fc.example', 'tier' => 'gold', 'placements' => array( 'emails', 'wall', 'map_badge' ) ),
+					array( 'name' => 'Smoke Books', 'url' => 'https://books.example', 'tier' => 'silver', 'placements' => array( 'leaderboard_strip', 'wall' ) ),
+					array( 'name' => 'Smoke Café', 'tier' => 'supporter', 'placements' => array( 'wall' ) ),
+					array( 'name' => 'Smoke Hidden', 'tier' => 'supporter', 'placements' => array() ),
+				)
+			)
+		);
+
+		$map = do_shortcode( '[balloon_map race="' . $race . '"]' );
+		$check( false !== strpos( $map, 'vbr-map__presented' ) && false !== strpos( $map, 'presented by' ) && false !== strpos( $map, 'Smoke Pub' ), 'the map shows "presented by" the headline sponsor' );
+		$check( false !== strpos( $map, 'Map supported by' ) && false !== strpos( $map, 'href="https://fc.example" rel="sponsored noopener" target="_blank"' ), 'the map shows the map badge, linked as sponsored' );
+
+		$board = do_shortcode( '[balloon_leaderboard race="' . $race . '"]' );
+		$check( false !== strpos( $board, 'vbr-leaderboard__presented' ) && false !== strpos( $board, 'Leaderboard brought to you by' ) && false !== strpos( $board, 'Smoke Books' ), 'the leaderboard shows "presented by" and the strip' );
+
+		$wall = do_shortcode( '[balloon_sponsors race="' . $race . '"]' );
+		$order = array_map(
+			static function ( $name ) use ( $wall ) {
+				return strpos( $wall, $name );
+			},
+			array( 'Smoke Pub', 'Smoke FC', 'Smoke Books', 'Smoke Café' )
+		);
+		$sorted = $order;
+		sort( $sorted );
+		$check( ! in_array( false, $order, true ) && $order === $sorted && false === strpos( $wall, 'Smoke Hidden' ), 'the sponsor wall lists sponsors by tier, leaving out those not on the wall' );
+		$check( false !== strpos( $wall, '<span>Smoke Café</span>' ), 'a sponsor without a website is shown without a link' );
+
+		$check( 'This race was made possible by Smoke Pub and Smoke FC.' === VBR_Sponsors::email_line( VBR_Races::get( $race ) ), 'the email line names the sponsors ticked for emails' );
+		foreach ( array( 'VBR_Email_Launched', 'VBR_Email_Results' ) as $class ) {
+			$mail           = WC()->mailer()->get_emails()[ $class ];
+			$mail->race     = VBR_Races::get( $race );
+			$mail->balloons = array();
+			$check( false !== strpos( $mail->get_content_html(), 'This race was made possible by Smoke Pub and Smoke FC.' ) && false !== strpos( $mail->get_content_plain(), 'This race was made possible by Smoke Pub and Smoke FC.' ), $class . ' carries the sponsor line' );
+		}
+
+		$product = VBR_Product_Type::all_products()[0];
+		$entries = new VBR_Race_Entries();
+		$field   = $render(
+			static function () use ( $entries, $product ) {
+				$entries->output_race_field( $product );
+			}
+		);
+		$check( false !== strpos( $field, 'vbr-race-presented' ) && false !== strpos( $field, 'Smoke Pub' ), 'the product page names the sponsor presenting the race being entered' );
+
+		$plain_map   = do_shortcode( '[balloon_map race="' . $plain . '"]' );
+		$plain_board = do_shortcode( '[balloon_leaderboard race="' . $plain . '"]' );
+		$check( false === strpos( $plain_map . $plain_board, 'vbr-presented-by' ) && false === strpos( $plain_map, 'vbr-map__badge' ) && false === strpos( $plain_board, 'vbr-leaderboard__strip' ) && '' === do_shortcode( '[balloon_sponsors race="' . $plain . '"]' ) && '' === VBR_Sponsors::email_line( VBR_Races::get( $plain ) ), 'a race without sponsors shows none of this' );
+
+		VBR_Races::delete( $race );
+		VBR_Races::delete( $plain );
+		break;
+
 	// Race sponsors: cleaned on save, one-per-race placements, kept with their race.
 	case 'sponsors':
 		global $wpdb;

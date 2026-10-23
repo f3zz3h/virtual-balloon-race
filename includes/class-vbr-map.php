@@ -322,7 +322,14 @@ class VBR_Map {
 		ob_start();
 		?>
 		<div class="vbr-map<?php echo 'no' === $atts['list'] ? ' vbr-map--no-list' : ''; ?>" id="<?php echo esc_attr( $id ); ?>" data-vbr-map>
-			<div class="vbr-map__canvas" style="height: <?php echo esc_attr( $height ); ?>"></div>
+			<?php $presented = VBR_Sponsors::presented_by( $race ); ?>
+			<?php if ( $presented ) : ?>
+				<p class="vbr-map__presented"><strong><?php echo esc_html( $race->name ); ?></strong> <?php echo wp_kses_post( $presented ); ?></p>
+			<?php endif; ?>
+			<div class="vbr-map__stage">
+				<div class="vbr-map__canvas" style="height: <?php echo esc_attr( $height ); ?>"></div>
+				<?php echo wp_kses_post( VBR_Sponsors::credit( $race, 'map_badge' ) ); ?>
+			</div>
 			<?php if ( 'no' !== $atts['list'] ) : ?>
 				<aside class="vbr-map__side" style="max-height: <?php echo esc_attr( $height ); ?>">
 					<?php if ( $config['mine'] ) : ?>

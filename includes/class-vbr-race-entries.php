@@ -364,6 +364,10 @@ class VBR_Race_Entries {
 				?>
 				<input type="hidden" name="vbr_race_id" value="<?php echo esc_attr( (string) $race->id ); ?>" />
 			</p>
+			<?php $presented = VBR_Sponsors::presented_by( $race ); ?>
+			<?php if ( $presented ) : ?>
+				<p class="vbr-race-presented"><?php echo wp_kses_post( $presented ); ?></p>
+			<?php endif; ?>
 			<?php self::places_left_notice( $race ); ?>
 			<?php VBR_Prizes::render_up_for_grabs( $race ); ?>
 			<?php

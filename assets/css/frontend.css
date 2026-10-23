@@ -995,3 +995,209 @@
 	margin: 0.5rem 0 1rem;
 	font-size: 0.95rem;
 }
+
+/* Sponsors: presented by, map badge, leaderboard strip, sponsor wall ([balloon_sponsors]). */
+.vbr-sponsor-logo {
+	display: inline-block;
+	width: auto;
+	max-width: 100%;
+	height: auto;
+	vertical-align: middle;
+}
+
+.vbr-presented-by {
+	display: inline-flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.4rem;
+	color: var(--vbr-muted, #4d6a80);
+}
+
+.vbr-presented-by__link {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	color: var(--vbr-ink, #12324a);
+	font-weight: 700;
+	text-decoration: none;
+}
+
+.vbr-presented-by__link:hover .vbr-presented-by__name,
+.vbr-presented-by__link:focus .vbr-presented-by__name {
+	text-decoration: underline;
+}
+
+.vbr-presented-by .vbr-sponsor-logo {
+	max-height: 1.8rem;
+	border-radius: 4px;
+}
+
+.vbr-map__presented {
+	grid-column: 1 / -1;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem;
+	margin: 0;
+	font-size: 1rem;
+}
+
+.vbr-map__stage {
+	position: relative;
+	min-width: 0;
+}
+
+/* Top right: the map's own credits (bottom) and zoom buttons (top left) must stay visible. */
+.vbr-map__badge {
+	position: absolute;
+	right: 0.6rem;
+	top: 0.6rem;
+	z-index: 1000;
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 0.15rem;
+	max-width: min(60%, 14rem);
+	margin: 0;
+	padding: 0.35rem 0.6rem;
+	border-radius: 10px;
+	background: rgba(255, 255, 255, 0.94);
+	box-shadow: 0 1px 4px rgba(18, 50, 74, 0.18);
+	font-size: 0.78rem;
+	color: var(--vbr-muted);
+}
+
+.vbr-map__badge a,
+.vbr-leaderboard__strip a {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	color: var(--vbr-ink);
+	text-decoration: none;
+}
+
+.vbr-map__badge-label {
+	font-size: 0.7rem;
+	white-space: nowrap;
+}
+
+.vbr-map__badge .vbr-sponsor-logo {
+	max-height: 1.6rem;
+}
+
+.vbr-map__badge strong {
+	overflow: hidden;
+	max-width: 100%;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.vbr-leaderboard__presented {
+	margin: 0.35rem 0 0;
+	font-size: 0.95rem;
+}
+
+.vbr-leaderboard__strip {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.4rem;
+	width: fit-content;
+	margin: 0 0 0.9rem;
+	padding: 0.45rem 0.9rem;
+	border-radius: 999px;
+	background: var(--vbr-sky, #e8f4ff);
+	font-size: 0.88rem;
+	color: var(--vbr-muted);
+}
+
+.vbr-leaderboard__strip .vbr-sponsor-logo {
+	max-height: 1.5rem;
+}
+
+.vbr-race-presented {
+	margin: 0.25rem 0 0.75rem;
+	font-size: 0.95rem;
+}
+
+.vbr-sponsors {
+	--vbr-ink: #12324a;
+	--vbr-muted: #3d5f78;
+	box-sizing: border-box;
+	max-width: 100%;
+	margin: 2rem 0;
+	padding: 1.4rem 1.5rem;
+	border: 1px solid #d6e5f2;
+	border-radius: 16px;
+	background: #f7fbff;
+	color: var(--vbr-ink);
+}
+
+.vbr-sponsors__title {
+	margin: 0 0 1rem;
+	font-size: clamp(1.25rem, 1.8vw, 1.6rem);
+}
+
+.vbr-sponsors__tier + .vbr-sponsors__tier {
+	margin-top: 1.1rem;
+}
+
+.vbr-sponsors__tier-name {
+	margin: 0 0 0.5rem;
+	font-size: 0.78rem;
+	font-weight: 800;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--vbr-muted);
+}
+
+.vbr-sponsors__list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.vbr-sponsors__card {
+	display: flex;
+	align-items: center;
+	gap: 0.7rem;
+	padding: 0.7rem 0.9rem;
+	border: 1px solid #d6e5f2;
+	border-radius: 12px;
+	background: #fff;
+	color: var(--vbr-ink);
+	font-weight: 700;
+	text-decoration: none;
+}
+
+a.vbr-sponsors__card:hover,
+a.vbr-sponsors__card:focus {
+	border-color: #9cc3e4;
+}
+
+.vbr-sponsors__card .vbr-sponsor-logo {
+	max-height: 3rem;
+}
+
+.vbr-sponsors__tier--headline .vbr-sponsors__card {
+	padding: 1rem 1.2rem;
+	font-size: 1.2rem;
+}
+
+.vbr-sponsors__tier--headline .vbr-sponsors__card .vbr-sponsor-logo {
+	max-height: 5rem;
+}
+
+.vbr-sponsors__names {
+	margin: 0;
+	line-height: 1.7;
+}
+
+.vbr-sponsors__names a {
+	color: var(--vbr-ink);
+}

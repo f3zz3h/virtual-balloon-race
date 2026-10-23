@@ -11,6 +11,7 @@
  * @var array[]        $balloons           The entrant's balloons.
  * @var string         $first_name         Entrant's first name.
  * @var string         $tracking_url       Race tracking page.
+ * @var string         $sponsors_line      "This race was made possible by …", or ''.
  * @var string         $additional_content Text from the email settings.
  * @var VBR_Email_Race $email              Email object.
  */
@@ -39,6 +40,10 @@ echo "\n";
 if ( $race->end_at ) {
 	/* translators: %s: date */
 	echo esc_html( sprintf( __( 'The race ends on %s. We’ll email you the final results.', 'virtual-balloon-race' ), VBR_Races::format_date( $race->end_at ) ) ) . "\n\n";
+}
+
+if ( ! empty( $sponsors_line ) ) {
+	echo esc_html( $sponsors_line ) . "\n\n";
 }
 
 if ( $tracking_url ) {
