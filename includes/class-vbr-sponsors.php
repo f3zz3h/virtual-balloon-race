@@ -19,6 +19,13 @@ class VBR_Sponsors {
 	const SUPPORTER = 'supporter';
 
 	/**
+	 * Register hooks.
+	 */
+	public function __construct() {
+		add_shortcode( 'balloon_sponsors', array( $this, 'render_wall' ) );
+	}
+
+	/**
 	 * Sponsors table name.
 	 *
 	 * @return string
@@ -118,6 +125,199 @@ class VBR_Sponsors {
 				}
 			)
 		);
+	}
+
+	/**
+	 * The sponsor holding a one-per-race placement, if any.
+	 *
+	 * @param int    $race_id   Race ID.
+	 * @param string $placement Placement key.
+	 * @return object|null
+	 */
+	public static function holder( $race_id, $placement ) {
+		$sponsors = self::with_placement( $race_id, $placement );
+
+		return $sponsors ? $sponsors[0] : null;
+	}
+
+	/**
+	 * Wrap HTML in a link to the sponsor's website (marked as sponsored, new tab), or a span without one.
+	 * Every sponsor link on the site goes through here.
+	 *
+	 * @param object $sponsor Sponsor row.
+	 * @param string $inner   Escaped inner HTML.
+	 * @param string $class   CSS class.
+	 * @return string
+	 */
+	public static function link( $sponsor, $inner, $class = '' ) {
+		$class = $class ? ' class="' . esc_attr( $class ) . '"' : '';
+
+		if ( ! $sponsor->url ) {
+			return '<span' . $class . '>' . $inner . '</span>';
+		}
+
+		return '<a' . $class . ' href="' . esc_url( $sponsor->url ) . '" rel="sponsored noopener" target="_blank">' . $inner . '</a>';
+	}
+
+	/**
+	 * The sponsor's logo (alt text: their name), or '' when they have none. Uses an uncropped size, so wide
+	 * logos keep their shape; CSS limits the height.
+	 *
+	 * @param object $sponsor Sponsor row.
+	 * @param string $size    Image size.
+	 * @return string
+	 */
+	public static function logo( $sponsor, $size = 'medium' ) {
+		if ( ! $sponsor->logo_id ) {
+			return '';
+		}
+
+		return (string) wp_get_attachment_image(
+			(int) $sponsor->logo_id,
+			$size,
+			false,
+			array(
+				'class'   => 'vbr-sponsor-logo',
+				'alt'     => $sponsor->name,
+				'loading' => 'lazy',
+			)
+		);
+	}
+
+	/**
+	 * "presented by [logo] Name" for a race, or ''.
+	 *
+	 * @param object|null $race Race.
+	 * @return string HTML.
+	 */
+	public static function presented_by( $race ) {
+		$sponsor = $race ? self::holder( (int) $race->id, 'presented_by' ) : null;
+
+		if ( ! $sponsor ) {
+			return '';
+		}
+
+		return '<span class="vbr-presented-by">' . esc_html__( 'presented by', 'virtual-balloon-race' ) . ' '
+			. self::link( $sponsor, self::logo( $sponsor ) . '<span class="vbr-presented-by__name">' . esc_html( $sponsor->name ) . '</span>', 'vbr-presented-by__link' )
+			. '</span>';
+	}
+
+	/**
+	 * A one-per-race credit line, e.g. "Leaderboard brought to you by [logo] Name", or ''.
+	 *
+	 * @param object|null $race      Race.
+	 * @param string      $placement leaderboard_strip or map_badge.
+	 * @return string HTML.
+	 */
+	public static function credit( $race, $placement ) {
+		$sponsor = $race ? self::holder( (int) $race->id, $placement ) : null;
+
+		if ( ! $sponsor ) {
+			return '';
+		}
+
+		if ( 'map_badge' === $placement ) {
+			// Kept small so it never covers the map's zoom buttons or credits: the logo alone (its alt text is the name), else the name.
+			$logo = self::logo( $sponsor );
+
+			return '<p class="vbr-map__badge"><span class="vbr-map__badge-label">' . esc_html__( 'Map supported by', 'virtual-balloon-race' ) . '</span> '
+				. self::link( $sponsor, $logo ? $logo : '<strong>' . esc_html( $sponsor->name ) . '</strong>' )
+				. '</p>';
+		}
+
+		return '<p class="vbr-leaderboard__strip">' . esc_html__( 'Leaderboard brought to you by', 'virtual-balloon-race' ) . ' '
+			. self::link( $sponsor, self::logo( $sponsor ) . '<strong>' . esc_html( $sponsor->name ) . '</strong>' )
+			. '</p>';
+	}
+
+	/**
+	 * "This race was made possible by A, B and C." for emails (plain text), or ''.
+	 *
+	 * @param object|null $race Race.
+	 * @return string
+	 */
+	public static function email_line( $race ) {
+		$names = $race ? wp_list_pluck( self::with_placement( (int) $race->id, 'emails' ), 'name' ) : array();
+
+		if ( ! $names ) {
+			return '';
+		}
+
+		/* translators: %s: sponsor names */
+		return sprintf( __( 'This race was made possible by %s.', 'virtual-balloon-race' ), wp_sprintf( '%l', $names ) );
+	}
+
+	/**
+	 * Render [balloon_sponsors]: the race's sponsor wall, by tier (nothing when there are none).
+	 *
+	 * @param array|string $atts Shortcode attributes (race).
+	 * @return string
+	 */
+	public function render_wall( $atts ) {
+		$race     = VBR_Races::resolve( VBR_Races::ref_from_shortcode( $atts ) );
+		$sponsors = $race ? self::with_placement( (int) $race->id, 'wall' ) : array();
+
+		if ( ! $sponsors ) {
+			return '';
+		}
+
+		wp_enqueue_style( 'vbr-frontend' );
+
+		$tiers  = self::tier_labels();
+		$groups = array_fill_keys( array_keys( $tiers ), array() );
+		foreach ( $sponsors as $sponsor ) {
+			$groups[ isset( $groups[ $sponsor->tier ] ) ? $sponsor->tier : self::SUPPORTER ][] = $sponsor;
+		}
+
+		$heading = array(
+			self::HEADLINE  => __( 'Headline sponsor', 'virtual-balloon-race' ),
+			self::GOLD      => __( 'Gold sponsors', 'virtual-balloon-race' ),
+			self::SILVER    => __( 'Silver sponsors', 'virtual-balloon-race' ),
+			self::SUPPORTER => __( 'Supporters', 'virtual-balloon-race' ),
+		);
+
+		ob_start();
+		?>
+		<section class="vbr-sponsors">
+			<h2 class="vbr-sponsors__title"><?php esc_html_e( 'Thank you to our sponsors', 'virtual-balloon-race' ); ?></h2>
+			<?php foreach ( $groups as $tier => $group ) : ?>
+				<?php
+				if ( ! $group ) {
+					continue;
+				}
+				?>
+				<div class="vbr-sponsors__tier vbr-sponsors__tier--<?php echo esc_attr( $tier ); ?>">
+					<h3 class="vbr-sponsors__tier-name"><?php echo esc_html( $heading[ $tier ] ); ?></h3>
+					<?php if ( self::SUPPORTER === $tier ) : ?>
+						<p class="vbr-sponsors__names">
+							<?php
+							echo wp_kses_post(
+								implode(
+									' · ',
+									array_map(
+										static function ( $sponsor ) {
+											return self::link( $sponsor, esc_html( $sponsor->name ) );
+										},
+										$group
+									)
+								)
+							);
+							?>
+						</p>
+					<?php else : ?>
+						<ul class="vbr-sponsors__list">
+							<?php foreach ( $group as $sponsor ) : ?>
+								<li class="vbr-sponsors__item">
+									<?php echo wp_kses_post( self::link( $sponsor, self::logo( $sponsor ) . '<span class="vbr-sponsors__name">' . esc_html( $sponsor->name ) . '</span>', 'vbr-sponsors__card' ) ); ?>
+								</li>
+							<?php endforeach; ?>
+						</ul>
+					<?php endif; ?>
+				</div>
+			<?php endforeach; ?>
+		</section>
+		<?php
+		return (string) ob_get_clean();
 	}
 
 	/**
@@ -263,7 +463,7 @@ class VBR_Sponsors {
 		$placements = self::placement_labels();
 		$card       = static function ( $index, $sponsor ) use ( $name, $tiers, $placements ) {
 			$prefix = $name . '[' . $index . ']';
-			$logo   = $sponsor['logo_id'] ? wp_get_attachment_image_url( (int) $sponsor['logo_id'], 'thumbnail' ) : '';
+			$logo   = $sponsor['logo_id'] ? wp_get_attachment_image_url( (int) $sponsor['logo_id'], 'medium' ) : '';
 			?>
 			<li class="vbr-sponsors-editor__card">
 				<input type="hidden" name="<?php echo esc_attr( $prefix ); ?>[id]" value="<?php echo esc_attr( (string) (int) $sponsor['id'] ); ?>" />

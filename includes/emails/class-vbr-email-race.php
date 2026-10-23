@@ -86,6 +86,7 @@ abstract class VBR_Email_Race extends WC_Email {
 			'first_name'         => $this->placeholders['{first_name}'],
 			'tracking_url'       => VBR_Pages::tracking_url( $this->race ),
 			'prizes'             => $this->race ? VBR_Prizes::results( $this->race ) : array(),
+			'sponsors_line'      => VBR_Sponsors::email_line( $this->race ),
 			'additional_content' => $this->get_additional_content(),
 			'sent_to_admin'      => false,
 			'plain_text'         => $plain_text,

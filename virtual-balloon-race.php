@@ -118,6 +118,7 @@ final class Virtual_Balloon_Race {
 		new VBR_Support();
 		new VBR_Demo();
 		new VBR_Prizes();
+		new VBR_Sponsors();
 
 		if ( $this->is_woocommerce_active() ) {
 			new VBR_Product_Type();

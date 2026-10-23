@@ -11,6 +11,7 @@
  * @var array[]          $balloons           The entrant's balloons.
  * @var string           $first_name         Entrant's first name.
  * @var string           $tracking_url       Race tracking page.
+ * @var string           $sponsors_line      "This race was made possible by …", or ''.
  * @var string           $additional_content Text from the email settings.
  * @var VBR_Email_Race   $email              Email object.
  */
@@ -63,6 +64,10 @@ do_action( 'woocommerce_email_header', $email_heading, $email ); ?>
 		echo esc_html( sprintf( __( 'The race ends on %s. We’ll email you the final results.', 'virtual-balloon-race' ), VBR_Races::format_date( $race->end_at ) ) );
 		?>
 	</p>
+<?php endif; ?>
+
+<?php if ( ! empty( $sponsors_line ) ) : ?>
+	<p><small><?php echo esc_html( $sponsors_line ); ?></small></p>
 <?php endif; ?>
 
 <?php if ( $tracking_url ) : ?>

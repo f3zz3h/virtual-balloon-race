@@ -78,6 +78,9 @@ wp eval-file "$CHECKS" prizes
 stage "Scenario A: race sponsors"
 wp eval-file "$CHECKS" sponsors
 
+stage "Scenario A: where sponsors appear"
+wp eval-file "$CHECKS" sponsor-placements
+
 stage "Scenario A: maps, weather and place search settings"
 wp eval-file "$CHECKS" services
 

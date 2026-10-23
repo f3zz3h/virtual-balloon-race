@@ -11,6 +11,7 @@
  * @var array[]          $balloons           The entrant's balloons, best first.
  * @var string           $first_name         Entrant's first name.
  * @var string           $tracking_url       Race tracking page.
+ * @var string           $sponsors_line      "This race was made possible by …", or ''.
  * @var array[]          $prizes             Prizes: title, description, donor, winner.
  * @var string           $additional_content Text from the email settings.
  * @var VBR_Email_Race   $email              Email object.
@@ -81,6 +82,10 @@ do_action( 'woocommerce_email_header', $email_heading, $email ); ?>
 			<?php endforeach; ?>
 		</tbody>
 	</table>
+<?php endif; ?>
+
+<?php if ( ! empty( $sponsors_line ) ) : ?>
+	<p><small><?php echo esc_html( $sponsors_line ); ?></small></p>
 <?php endif; ?>
 
 <?php if ( $tracking_url ) : ?>

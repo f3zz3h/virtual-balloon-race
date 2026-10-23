@@ -59,7 +59,7 @@ class VBR_Frontend {
 		$needs_leaderboard = false;
 		if ( is_singular() ) {
 			$post = get_post();
-			if ( $post && ( has_shortcode( $post->post_content, 'balloon_leaderboard' ) || has_shortcode( $post->post_content, 'balloon_races' ) || has_shortcode( $post->post_content, 'balloon_teams' ) || has_shortcode( $post->post_content, 'balloon_prizes' ) ) ) {
+			if ( $post && ( has_shortcode( $post->post_content, 'balloon_leaderboard' ) || has_shortcode( $post->post_content, 'balloon_races' ) || has_shortcode( $post->post_content, 'balloon_teams' ) || has_shortcode( $post->post_content, 'balloon_prizes' ) || has_shortcode( $post->post_content, 'balloon_sponsors' ) ) ) {
 				$needs_leaderboard = true;
 			}
 		}
@@ -220,6 +220,10 @@ class VBR_Frontend {
 					<?php if ( $subtitle ) : ?>
 						<p class="vbr-leaderboard__subtitle"><?php echo esc_html( $subtitle ); ?></p>
 					<?php endif; ?>
+					<?php $presented = VBR_Sponsors::presented_by( $race ); ?>
+					<?php if ( $presented ) : ?>
+						<p class="vbr-leaderboard__presented"><?php echo wp_kses_post( $presented ); ?></p>
+					<?php endif; ?>
 				</div>
 				<div class="vbr-leaderboard__tools">
 					<?php if ( $mine ) : ?>
@@ -275,6 +279,8 @@ class VBR_Frontend {
 					</ul>
 				</div>
 			<?php endif; ?>
+
+			<?php echo wp_kses_post( VBR_Sponsors::credit( $race, 'leaderboard_strip' ) ); ?>
 
 			<div class="vbr-leaderboard__table-wrap">
 				<table class="vbr-leaderboard__table">

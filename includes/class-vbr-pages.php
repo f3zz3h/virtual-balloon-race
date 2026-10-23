@@ -66,7 +66,7 @@ class VBR_Pages {
 	 * @return string
 	 */
 	public static function default_content() {
-		return self::shortcode_blocks( array( '[balloon_map]', '[balloon_prizes]', '[balloon_teams]', '[balloon_leaderboard]', '[balloon_races]' ) );
+		return self::shortcode_blocks( array( '[balloon_map]', '[balloon_prizes]', '[balloon_teams]', '[balloon_leaderboard]', '[balloon_sponsors]', '[balloon_races]' ) );
 	}
 
 	/**
