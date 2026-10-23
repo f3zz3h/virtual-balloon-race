@@ -5,7 +5,7 @@ Tags: fundraising, balloon race, charity, woocommerce, school
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.15.0
+Stable tag: 1.16.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -120,6 +120,9 @@ Used by the "search for a place" box when choosing a launch point (in Settings, 
 
 == Changelog ==
 
+= 1.16.0 =
+* New: sponsor views and clicks. Each sponsor's card shows how often they were shown on the race pages and how often their links were clicked, with a CSV download per race. Only totals are kept: no cookies or visitor data.
+
 = 1.15.0 =
 * New: sponsor hot-air balloons. A sponsor's own hot-air balloon flies with the race on the same live wind but is never ranked. Three styles: stripes with a name band, a logo panel, or the logo filling the balloon. Headline sponsors fly a large one.
 * New: a branded launch flag, labelled with the sponsor's name and linking to them.
@@ -187,6 +190,9 @@ Used by the "search for a place" box when choosing a launch point (in Settings, 
 * New: race schedules (entries open, launch, end) and per-race sales.
 
 == Upgrade Notice ==
+
+= 1.16.0 =
+Adds a views and clicks report for race sponsors (totals only, no cookies).
 
 = 1.15.0 =
 Adds sponsor hot-air balloons and a branded launch flag on the map. Tick them on a race's sponsors.
