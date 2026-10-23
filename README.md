@@ -147,7 +147,7 @@ On the map, clicking a balloon (or its name in the list or leaderboard) highligh
 
 #### What entrants see
 
-- **Their own balloon.** Logged-in entrants see their balloons marked **Yours**. The map opens on their best-placed balloon, the leaderboard pins **Your balloons** with each one's position, and both have an **All balloons / My balloons** toggle. A balloon counts as theirs if they bought it while logged in, or if the order's email matches their account email or billing email (so guest orders count once they register).
+- **Their own balloon.** Logged-in entrants see their balloons marked **Yours**. The map opens on their best-placed balloon, the leaderboard pins **Your balloons** with each one's position, and both have an **All balloons / My balloons** toggle. A balloon counts as theirs if they bought it while logged in, or if its order belongs to their account (the orders listed under My Account → Orders, including guest orders WooCommerce has linked to the account). Typed-in account or billing emails don't claim balloons, because WooCommerce doesn't verify them; sites that verify emails can turn that back on with the `vbr_match_balloons_by_email` filter.
 - **Guests** get **Track your balloon** links on the order confirmation page and in their order emails.
 - **Search.** The map list and the leaderboard both search by balloon name, owner or team. Leaderboard search covers every balloon in the race, not just the page being shown.
 - **Paging.** The leaderboard shows 10 balloons per page by default, with page links and a **Show … per page** dropdown (10, 25, 50, 100 or All). A visitor's choice is remembered on their device. Search and **My balloons** page their results too. The admin leaderboard pages the same way, with its own dropdown.
@@ -280,6 +280,7 @@ wp vbr demo --remove                     # remove demo races
 | `vbr_color_hex` | filter | Map colours for balloon colour names |
 | `vbr_default_entry_product` | filter | Name, price and descriptions of the product a fresh install creates (`array( name, price, short_description, description )`) |
 | `vbr_product_preview` | filter | Return false to keep the product images instead of the live balloon preview (`$show, $product`) |
+| `vbr_match_balloons_by_email` | filter | Return true to also give users the balloons whose order email matches their account or billing email (`$match, $user`). Off by default, as WooCommerce doesn't verify those emails |
 | `vbr_public_owner_name` | filter | Public owner name, after shortening to first name + initial (`$name, $balloon`) |
 | `vbr_after_tick` | action | Runs after a race moves (`$summary`) |
 
@@ -333,4 +334,3 @@ How it works and why: [docs/design.md](docs/design.md). Plans, bugs and ideas ar
 - Balloons can drift over sea; there's no land awareness
 - Wind is the 10 m wind speed and direction only (no gusts, rain or altitude bands)
 - The public leaderboard still sends every balloon in the race to the browser (so search can find any of them) and pages them there; very large races (thousands of entries) make a heavy page
-- Matching balloons by email trusts the account and billing emails, which WooCommerce doesn't verify. Someone who sets their email to another person's sees that person's balloons marked as theirs (balloon name and short owner name only)

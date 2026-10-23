@@ -160,7 +160,7 @@ A site can schedule several races (usually one at a time). Every balloon belongs
 - **My Account → My balloons** (WooCommerce endpoint `my-balloons`): the user's balloons in every race with rank, distance and a map link.
 
 **Participants see their own balloon.**
-- A balloon belongs to a logged-in user if `user_id` matches, or `owner_email` matches their account email or billing email (covers guest orders made before registering).
+- A balloon belongs to a logged-in user if `user_id` matches, or its order belongs to their account (WooCommerce's `customer_id`, which covers guest orders it links to an account). Matching `owner_email` against the account or billing email was dropped in 1.13.0, because those emails aren't verified; the `vbr_match_balloons_by_email` filter turns it back on.
 - Their balloon IDs are added to the page only for logged-in users (logged-in pages aren't page-cached); the public REST payload is unchanged.
 - Map: a **My balloons / All** toggle; with no `?balloon=` link, the map opens on the user's balloon. Leaderboard: the user's balloons pinned above the table with their rank, plus the same toggle.
 - Guests: order confirmation page and customer order emails get **Track your balloon** links (`?race=…&balloon=…` on the tracking page).
