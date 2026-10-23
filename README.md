@@ -80,6 +80,19 @@ With **Enable teams** ticked in Settings, each race has its own teams on its rac
 
 When a race has teams, buyers must pick one. Team standings appear on the tracking page, the leaderboard and map show each balloon's team, and the map can be filtered to one team. Scores: **average** and **total** use every balloon in the team (burst balloons count at the distance they reached); **best** is the team's furthest balloon. Switching teams off hides them everywhere but keeps them.
 
+#### Sponsors (optional)
+
+Each race can have its own sponsors (never site-wide), added on the race screen's **Sponsors** panel: name, website, logo (from the Media Library) and tier. Nothing is sold through the shop.
+
+| Tier | Ticks to start with |
+| --- | --- |
+| Headline | Presented by, hot-air balloon on the map, emails, sponsor wall |
+| Gold | Hot-air balloon on the map, emails, sponsor wall |
+| Silver | Sponsor wall |
+| Supporter | Sponsor wall |
+
+Change any sponsor's ticks (also: launch flag, map badge, leaderboard strip). **Presented by**, **launch flag**, **map badge** and **leaderboard strip** have one spot per race: on a clash the higher tier keeps it (between equal tiers, the one higher in the list), and the save notice says who lost it. Deleting a race removes its sponsors; their logos stay in the Media Library. Where sponsors appear on the site is being built (see the Race sponsorship milestone in Issues).
+
 ### 4. Set up the balloon product
 
 A fresh install creates a ready-to-sell **Balloon Race Entry** product (£3, published, any race taking entries) as soon as WooCommerce is active. It can only be bought while a race is taking entries, so it's safe to leave published. Change its name, price, description and picture like any product. Upgrades never add a product. **Settings → Pages and products** lists your entry products and offers **Create entry product** if there are none.

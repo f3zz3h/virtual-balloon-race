@@ -780,6 +780,72 @@ switch ( $stage ) {
 		wp_delete_user( $mallory );
 		break;
 
+	// Race sponsors: cleaned on save, one-per-race placements, kept with their race.
+	case 'sponsors':
+		global $wpdb;
+
+		$check( VBR_Sponsors::table() === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', VBR_Sponsors::table() ) ), 'the sponsors table exists' );
+
+		$race = VBR_Races::save( array( 'name' => 'Smoke Sponsored Race', 'launch_lat' => 51.4885, 'launch_lng' => -2.58, 'launch_at' => gmdate( 'Y-m-d H:i:s', time() + DAY_IN_SECONDS ) ) );
+		$logo = wp_insert_attachment( array( 'post_title' => 'Smoke logo', 'post_mime_type' => 'image/png', 'post_status' => 'inherit' ), 'smoke-logo.png' );
+		update_post_meta( $logo, '_wp_attached_file', 'smoke-logo.png' );
+		$page = wp_insert_post( array( 'post_title' => 'Not an image', 'post_type' => 'page', 'post_status' => 'draft' ) );
+
+		$rows = VBR_Sponsors::clean_rows(
+			array(
+				array( 'name' => 'Smoke Pub', 'url' => 'https://pub.example', 'logo_id' => $logo, 'tier' => 'headline', 'placements' => array( 'presented_by', 'map_badge', 'wall', 'made_up' ) ),
+				array( 'name' => 'Smoke Bowling', 'url' => 'javascript:alert(1)', 'logo_id' => $page, 'tier' => 'gold', 'placements' => array( 'map_badge', 'hot_air' ) ),
+				array( 'name' => '   ', 'tier' => 'silver' ),
+				array( 'name' => 'Smoke Café', 'tier' => 'nonsense' ),
+			)
+		);
+		$check( 3 === count( $rows ) && 'supporter' === $rows[2]['tier'], 'rows without a name are dropped and unknown tiers become Supporter' );
+		$check( '' === $rows[1]['url'] && 0 === $rows[1]['logo_id'] && $logo === $rows[0]['logo_id'], 'only http(s) links and image logos are kept' );
+		$check( array( 'presented_by', 'map_badge', 'wall' ) === $rows[0]['placements'], 'unknown placements are dropped' );
+
+		$messages = VBR_Sponsors::save_for_race( $race, $rows );
+		$saved    = VBR_Sponsors::for_race( $race );
+		$check( array( 'Smoke Pub', 'Smoke Bowling', 'Smoke Café' ) === wp_list_pluck( $saved, 'name' ), 'sponsors are saved in order' );
+		$check( array( 'hot_air' ) === $saved[1]->placements && 1 === count( $messages ) && false !== strpos( $messages[0], 'Smoke Pub keeps the “Map badge” spot' ), 'a one-per-race placement stays with one sponsor, and the organiser is told' );
+
+		// A lower tier listed first doesn't take a spot from a higher tier.
+		$clash = VBR_Sponsors::save_for_race(
+			$race,
+			VBR_Sponsors::clean_rows(
+				array(
+					array( 'name' => 'Smoke Silver', 'tier' => 'silver', 'placements' => array( 'presented_by' ) ),
+					array( 'name' => 'Smoke Headline', 'tier' => 'headline', 'placements' => array( 'presented_by' ) ),
+				)
+			)
+		);
+		$check( array( 'Smoke Headline' ) === wp_list_pluck( VBR_Sponsors::with_placement( $race, 'presented_by' ), 'name' ) && false !== strpos( $clash[0], 'Smoke Headline keeps' ), 'the higher tier keeps a one-per-race spot, even when listed second' );
+		VBR_Sponsors::save_for_race( $race, $rows );
+		$saved = VBR_Sponsors::for_race( $race );
+		$check( array( 'Smoke Bowling' ) === wp_list_pluck( VBR_Sponsors::with_placement( $race, 'hot_air' ), 'name' ), 'sponsors can be looked up by placement' );
+
+		// Reorder (Bowling first) and remove the café: ids are kept.
+		$ids = wp_list_pluck( $saved, 'id' );
+		VBR_Sponsors::save_for_race(
+			$race,
+			VBR_Sponsors::clean_rows(
+				array(
+					array( 'id' => $ids[1], 'name' => 'Smoke Bowling', 'tier' => 'gold', 'placements' => array( 'hot_air' ) ),
+					array( 'id' => $ids[0], 'name' => 'Smoke Pub', 'tier' => 'headline', 'placements' => array( 'presented_by', 'map_badge', 'wall' ) ),
+				)
+			)
+		);
+		$saved = VBR_Sponsors::for_race( $race );
+		$check( array( (int) $ids[1], (int) $ids[0] ) === array_map( 'intval', wp_list_pluck( $saved, 'id' ) ), 'reordering keeps each sponsor\'s id, and removed sponsors are deleted' );
+
+		$screen = $render_race_screen( VBR_Races::get( $race ) );
+		$check( false !== strpos( $screen, 'vbr-sponsors-editor' ) && false !== strpos( $screen, 'value="Smoke Bowling"' ), 'the race screen shows the Sponsors panel with its sponsors' );
+
+		VBR_Races::delete( $race );
+		$check( array() === VBR_Sponsors::for_race( $race ), 'deleting the race removes its sponsors' );
+		wp_delete_attachment( $logo, true );
+		wp_delete_post( $page, true );
+		break;
+
 	// Outside services: map tiles, place search and the weather API from Settings.
 	case 'services':
 		$saved = get_option( VBR_Settings::OPTION, null );

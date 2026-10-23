@@ -72,6 +72,9 @@ wp eval-file "$CHECKS" product-preview
 stage "Scenario A: whose balloons are whose"
 wp eval-file "$CHECKS" owners
 
+stage "Scenario A: race sponsors"
+wp eval-file "$CHECKS" sponsors
+
 stage "Scenario A: maps, weather and place search settings"
 wp eval-file "$CHECKS" services
 

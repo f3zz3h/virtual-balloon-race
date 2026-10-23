@@ -78,6 +78,8 @@ class VBR_Install {
 	public static function drop_site_table( $tables, $site_id ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
 		$tables[] = VBR_Balloons::table();
 		$tables[] = VBR_Races::table();
+		$tables[] = VBR_Teams::table();
+		$tables[] = VBR_Sponsors::table();
 
 		return $tables;
 	}
@@ -171,6 +173,23 @@ class VBR_Install {
 			race_id bigint(20) unsigned NOT NULL DEFAULT 0,
 			name varchar(100) NOT NULL DEFAULT '',
 			color varchar(7) NOT NULL DEFAULT '',
+			sort int(11) NOT NULL DEFAULT 0,
+			PRIMARY KEY  (id),
+			KEY race_id (race_id)
+		) {$charset_collate};"
+		);
+
+		$sponsors = VBR_Sponsors::table();
+
+		dbDelta(
+			"CREATE TABLE {$sponsors} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			race_id bigint(20) unsigned NOT NULL DEFAULT 0,
+			name varchar(100) NOT NULL DEFAULT '',
+			url varchar(255) NOT NULL DEFAULT '',
+			logo_id bigint(20) unsigned NOT NULL DEFAULT 0,
+			tier varchar(20) NOT NULL DEFAULT '',
+			placements varchar(255) NOT NULL DEFAULT '',
 			sort int(11) NOT NULL DEFAULT 0,
 			PRIMARY KEY  (id),
 			KEY race_id (race_id)

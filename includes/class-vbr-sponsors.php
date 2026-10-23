@@ -1,0 +1,345 @@
+<?php
+/**
+ * Race sponsors: per race, fixed tiers, and where each sponsor appears.
+ *
+ * @package Virtual_Balloon_Race
+ */
+
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Sponsors belong to one race and are added by admins on the race screen (nothing is sold).
+ * A tier ticks its usual placements; any sponsor's placements can then be changed.
+ */
+class VBR_Sponsors {
+
+	const HEADLINE  = 'headline';
+	const GOLD      = 'gold';
+	const SILVER    = 'silver';
+	const SUPPORTER = 'supporter';
+
+	/**
+	 * Sponsors table name.
+	 *
+	 * @return string
+	 */
+	public static function table() {
+		global $wpdb;
+
+		return $wpdb->prefix . 'vbr_sponsors';
+	}
+
+	/**
+	 * Tiers, highest first.
+	 *
+	 * @return array<string, string>
+	 */
+	public static function tier_labels() {
+		return array(
+			self::HEADLINE  => __( 'Headline', 'virtual-balloon-race' ),
+			self::GOLD      => __( 'Gold', 'virtual-balloon-race' ),
+			self::SILVER    => __( 'Silver', 'virtual-balloon-race' ),
+			self::SUPPORTER => __( 'Supporter', 'virtual-balloon-race' ),
+		);
+	}
+
+	/**
+	 * Where a sponsor can appear.
+	 *
+	 * @return array<string, string>
+	 */
+	public static function placement_labels() {
+		return array(
+			'presented_by'      => __( 'Presented by', 'virtual-balloon-race' ),
+			'hot_air'           => __( 'Hot-air balloon on the map', 'virtual-balloon-race' ),
+			'launch_flag'       => __( 'Launch flag', 'virtual-balloon-race' ),
+			'map_badge'         => __( 'Map badge', 'virtual-balloon-race' ),
+			'leaderboard_strip' => __( 'Leaderboard strip', 'virtual-balloon-race' ),
+			'emails'            => __( 'Emails', 'virtual-balloon-race' ),
+			'wall'              => __( 'Sponsor wall', 'virtual-balloon-race' ),
+		);
+	}
+
+	/**
+	 * Placements each race has only one of.
+	 *
+	 * @return string[]
+	 */
+	public static function single_placements() {
+		return array( 'presented_by', 'launch_flag', 'map_badge', 'leaderboard_strip' );
+	}
+
+	/**
+	 * The placements a tier ticks to start with.
+	 *
+	 * @return array<string, string[]>
+	 */
+	public static function tier_defaults() {
+		return array(
+			self::HEADLINE  => array( 'presented_by', 'hot_air', 'emails', 'wall' ),
+			self::GOLD      => array( 'hot_air', 'emails', 'wall' ),
+			self::SILVER    => array( 'wall' ),
+			self::SUPPORTER => array( 'wall' ),
+		);
+	}
+
+	/**
+	 * A race's sponsors, in their order.
+	 *
+	 * @param int $race_id Race ID.
+	 * @return object[] Rows, with `placements` as an array.
+	 */
+	public static function for_race( $race_id ) {
+		global $wpdb;
+
+		$table = self::table();
+		$rows  = (array) $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE race_id = %d ORDER BY sort ASC, id ASC", (int) $race_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		foreach ( $rows as $row ) {
+			$row->placements = array_values( array_filter( explode( ',', (string) $row->placements ) ) );
+		}
+
+		return $rows;
+	}
+
+	/**
+	 * A race's sponsors with a placement, in their order.
+	 *
+	 * @param int    $race_id   Race ID.
+	 * @param string $placement Placement key.
+	 * @return object[]
+	 */
+	public static function with_placement( $race_id, $placement ) {
+		return array_values(
+			array_filter(
+				self::for_race( $race_id ),
+				static function ( $sponsor ) use ( $placement ) {
+					return in_array( $placement, $sponsor->placements, true );
+				}
+			)
+		);
+	}
+
+	/**
+	 * Clean submitted editor rows. Rows without a name are dropped.
+	 *
+	 * @param mixed $rows Raw rows.
+	 * @return array[] Rows: id, name, url, logo_id, tier, placements.
+	 */
+	public static function clean_rows( $rows ) {
+		$clean = array();
+		$tiers = self::tier_labels();
+		$keys  = array_keys( self::placement_labels() );
+
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
+
+			$name = isset( $row['name'] ) ? sanitize_text_field( (string) $row['name'] ) : '';
+
+			if ( '' === $name ) {
+				continue;
+			}
+
+			$url     = isset( $row['url'] ) ? esc_url_raw( trim( (string) $row['url'] ), array( 'http', 'https' ) ) : '';
+			$logo_id = isset( $row['logo_id'] ) ? absint( $row['logo_id'] ) : 0;
+			$tier    = isset( $row['tier'] ) ? sanitize_key( (string) $row['tier'] ) : '';
+			$picked  = isset( $row['placements'] ) && is_array( $row['placements'] ) ? array_map( 'sanitize_key', $row['placements'] ) : array();
+
+			$clean[] = array(
+				'id'         => isset( $row['id'] ) ? absint( $row['id'] ) : 0,
+				'name'       => mb_substr( $name, 0, 100 ),
+				'url'        => mb_substr( $url, 0, 255 ),
+				'logo_id'    => $logo_id && wp_attachment_is_image( $logo_id ) ? $logo_id : 0,
+				'tier'       => isset( $tiers[ $tier ] ) ? $tier : self::SUPPORTER,
+				'placements' => array_values( array_intersect( $keys, $picked ) ),
+			);
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Replace a race's sponsors with the submitted rows. A one-per-race placement stays with the sponsor in
+	 * the highest tier that has it (the first in the list, between equal tiers); the others lose it.
+	 *
+	 * @param int     $race_id Race ID.
+	 * @param array[] $rows    Rows from clean_rows().
+	 * @return string[] Messages about placements that were taken away.
+	 */
+	public static function save_for_race( $race_id, $rows ) {
+		global $wpdb;
+
+		$table    = self::table();
+		$labels   = self::placement_labels();
+		$rows     = array_values( $rows );
+		$existing = array();
+		$kept     = array();
+		$messages = array();
+
+		foreach ( self::for_race( $race_id ) as $sponsor ) {
+			$existing[ (int) $sponsor->id ] = true;
+		}
+
+		// Who keeps each one-per-race placement: highest tier, then list order.
+		$rank  = array_flip( array_keys( self::tier_labels() ) );
+		$order = array_keys( $rows );
+		usort(
+			$order,
+			static function ( $a, $b ) use ( $rows, $rank ) {
+				return array( $rank[ $rows[ $a ]['tier'] ], $a ) <=> array( $rank[ $rows[ $b ]['tier'] ], $b );
+			}
+		);
+
+		foreach ( self::single_placements() as $single ) {
+			$holder = null;
+			foreach ( $order as $index ) {
+				if ( ! in_array( $single, $rows[ $index ]['placements'], true ) ) {
+					continue;
+				}
+				if ( null === $holder ) {
+					$holder = $index;
+					continue;
+				}
+				$rows[ $index ]['placements'] = array_values( array_diff( $rows[ $index ]['placements'], array( $single ) ) );
+				$messages[]                   = sprintf(
+					/* translators: 1: sponsor that keeps the spot, 2: placement, 3: sponsor that lost it */
+					__( '%1$s keeps the “%2$s” spot, so it was taken off %3$s.', 'virtual-balloon-race' ),
+					$rows[ $holder ]['name'],
+					$labels[ $single ],
+					$rows[ $index ]['name']
+				);
+			}
+		}
+
+		foreach ( $rows as $sort => $row ) {
+			$data = array(
+				'race_id'    => (int) $race_id,
+				'name'       => $row['name'],
+				'url'        => $row['url'],
+				'logo_id'    => $row['logo_id'],
+				'tier'       => $row['tier'],
+				'placements' => implode( ',', $row['placements'] ),
+				'sort'       => $sort,
+			);
+
+			if ( $row['id'] && isset( $existing[ $row['id'] ] ) ) {
+				$wpdb->update( $table, $data, array( 'id' => $row['id'] ) );
+				$kept[ $row['id'] ] = true;
+			} else {
+				$wpdb->insert( $table, $data );
+			}
+		}
+
+		foreach ( array_keys( $existing ) as $id ) {
+			if ( ! isset( $kept[ $id ] ) ) {
+				$wpdb->delete( $table, array( 'id' => $id ), array( '%d' ) );
+			}
+		}
+
+		return $messages;
+	}
+
+	/**
+	 * Remove a race's sponsors (when the race is deleted). Their logos stay in the Media Library.
+	 *
+	 * @param int $race_id Race ID.
+	 */
+	public static function delete_for_race( $race_id ) {
+		global $wpdb;
+
+		$wpdb->delete( self::table(), array( 'race_id' => (int) $race_id ), array( '%d' ) );
+	}
+
+	/**
+	 * Sponsor editor on the race screen: one card per sponsor, saved with the race.
+	 *
+	 * @param string   $name     Input name prefix, e.g. `vbr_race[sponsors]`.
+	 * @param object[] $sponsors Rows from for_race().
+	 */
+	public static function render_editor( $name, $sponsors ) {
+		$tiers      = self::tier_labels();
+		$placements = self::placement_labels();
+		$card       = static function ( $index, $sponsor ) use ( $name, $tiers, $placements ) {
+			$prefix = $name . '[' . $index . ']';
+			$logo   = $sponsor['logo_id'] ? wp_get_attachment_image_url( (int) $sponsor['logo_id'], 'thumbnail' ) : '';
+			?>
+			<li class="vbr-sponsors-editor__card">
+				<input type="hidden" name="<?php echo esc_attr( $prefix ); ?>[id]" value="<?php echo esc_attr( (string) (int) $sponsor['id'] ); ?>" />
+				<input type="hidden" class="vbr-sponsors-editor__logo-id" name="<?php echo esc_attr( $prefix ); ?>[logo_id]" value="<?php echo esc_attr( (string) (int) $sponsor['logo_id'] ); ?>" />
+				<div class="vbr-sponsors-editor__logo">
+					<img class="vbr-sponsors-editor__logo-img" src="<?php echo esc_url( $logo ); ?>" alt=""<?php echo $logo ? '' : ' hidden'; ?> />
+					<button type="button" class="button-link vbr-sponsors-editor__pick"><?php echo esc_html( $logo ? __( 'Change logo', 'virtual-balloon-race' ) : __( 'Add logo', 'virtual-balloon-race' ) ); ?></button>
+				</div>
+				<div class="vbr-sponsors-editor__fields">
+					<label>
+						<span><?php esc_html_e( 'Name', 'virtual-balloon-race' ); ?></span>
+						<input type="text" class="regular-text" name="<?php echo esc_attr( $prefix ); ?>[name]" value="<?php echo esc_attr( $sponsor['name'] ); ?>" maxlength="100" placeholder="<?php esc_attr_e( 'e.g. The Corner Café', 'virtual-balloon-race' ); ?>" />
+					</label>
+					<label>
+						<span><?php esc_html_e( 'Website', 'virtual-balloon-race' ); ?></span>
+						<input type="url" class="regular-text" name="<?php echo esc_attr( $prefix ); ?>[url]" value="<?php echo esc_attr( $sponsor['url'] ); ?>" placeholder="https://" />
+					</label>
+					<label>
+						<span><?php esc_html_e( 'Tier', 'virtual-balloon-race' ); ?></span>
+						<select class="vbr-sponsors-editor__tier" name="<?php echo esc_attr( $prefix ); ?>[tier]">
+							<?php foreach ( $tiers as $key => $label ) : ?>
+								<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $sponsor['tier'], $key ); ?>><?php echo esc_html( $label ); ?></option>
+							<?php endforeach; ?>
+						</select>
+					</label>
+					<fieldset class="vbr-sponsors-editor__placements">
+						<legend><?php esc_html_e( 'Shown in', 'virtual-balloon-race' ); ?></legend>
+						<?php foreach ( $placements as $key => $label ) : ?>
+							<label><input type="checkbox" name="<?php echo esc_attr( $prefix ); ?>[placements][]" value="<?php echo esc_attr( $key ); ?>" <?php checked( in_array( $key, $sponsor['placements'], true ) ); ?> /> <?php echo esc_html( $label ); ?></label>
+						<?php endforeach; ?>
+					</fieldset>
+				</div>
+				<div class="vbr-sponsors-editor__actions">
+					<button type="button" class="button-link vbr-sponsors-editor__up" aria-label="<?php esc_attr_e( 'Move up', 'virtual-balloon-race' ); ?>">↑</button>
+					<button type="button" class="button-link vbr-sponsors-editor__down" aria-label="<?php esc_attr_e( 'Move down', 'virtual-balloon-race' ); ?>">↓</button>
+					<button type="button" class="button-link button-link-delete vbr-sponsors-editor__remove"><?php esc_html_e( 'Remove', 'virtual-balloon-race' ); ?></button>
+				</div>
+			</li>
+			<?php
+		};
+		?>
+		<div class="vbr-sponsors-editor" data-tier-defaults="<?php echo esc_attr( wp_json_encode( self::tier_defaults() ) ); ?>" data-choose="<?php esc_attr_e( 'Choose a sponsor logo', 'virtual-balloon-race' ); ?>" data-use="<?php esc_attr_e( 'Use this logo', 'virtual-balloon-race' ); ?>" data-change="<?php esc_attr_e( 'Change logo', 'virtual-balloon-race' ); ?>">
+			<ol class="vbr-sponsors-editor__list">
+				<?php
+				foreach ( array_values( $sponsors ) as $index => $sponsor ) {
+					$card(
+						$index,
+						array(
+							'id'         => (int) $sponsor->id,
+							'name'       => $sponsor->name,
+							'url'        => $sponsor->url,
+							'logo_id'    => (int) $sponsor->logo_id,
+							'tier'       => $sponsor->tier,
+							'placements' => $sponsor->placements,
+						)
+					);
+				}
+				?>
+			</ol>
+			<template class="vbr-sponsors-editor__template">
+				<?php
+				$card(
+					'__i__',
+					array(
+						'id'         => 0,
+						'name'       => '',
+						'url'        => '',
+						'logo_id'    => 0,
+						'tier'       => self::SUPPORTER,
+						'placements' => self::tier_defaults()[ self::SUPPORTER ],
+					)
+				);
+				?>
+			</template>
+			<p><button type="button" class="button vbr-sponsors-editor__add"><?php esc_html_e( 'Add sponsor', 'virtual-balloon-race' ); ?></button></p>
+		</div>
+		<?php
+	}
+}

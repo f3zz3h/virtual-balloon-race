@@ -64,6 +64,8 @@ class VBR_Admin_Races {
 		if ( in_array( $action, array( 'new', 'edit' ), true ) ) {
 			wp_enqueue_script( 'vbr-admin-settings', VBR_PLUGIN_URL . 'assets/js/admin-settings.js', array( 'vbr-leaflet' ), VBR_Balloons::asset_version( 'assets/js/admin-settings.js' ), true );
 			wp_enqueue_script( 'vbr-admin-teams', VBR_PLUGIN_URL . 'assets/js/admin-teams.js', array(), VBR_Balloons::asset_version( 'assets/js/admin-teams.js' ), true );
+			wp_enqueue_media();
+			wp_enqueue_script( 'vbr-admin-sponsors', VBR_PLUGIN_URL . 'assets/js/admin-sponsors.js', array( 'media-editor' ), VBR_Balloons::asset_version( 'assets/js/admin-sponsors.js' ), true );
 		}
 	}
 
@@ -164,12 +166,21 @@ class VBR_Admin_Races {
 
 		$notice = $id ? 'updated' : 'created';
 
+		$messages = array();
+
 		if ( VBR_Teams::enabled() ) {
 			$blocked = VBR_Teams::save_for_race( $result, VBR_Teams::clean_rows( isset( $in['teams'] ) ? $in['teams'] : array() ) );
 			if ( $blocked ) {
 				/* translators: %s: team names */
-				$notice = sprintf( __( 'Race saved, but these teams have balloons so they were kept: %s', 'virtual-balloon-race' ), implode( ', ', $blocked ) );
+				$messages[] = sprintf( __( 'These teams have balloons so they were kept: %s.', 'virtual-balloon-race' ), implode( ', ', $blocked ) );
 			}
+		}
+
+		$messages = array_merge( $messages, VBR_Sponsors::save_for_race( $result, VBR_Sponsors::clean_rows( isset( $in['sponsors'] ) ? $in['sponsors'] : array() ) ) );
+
+		if ( $messages ) {
+			/* translators: %s: what couldn't be saved as asked */
+			$notice = sprintf( __( 'Race saved. %s', 'virtual-balloon-race' ), implode( ' ', $messages ) );
 		}
 
 		$this->redirect( array( 'action' => 'edit', 'race' => $result ), $notice );
@@ -643,6 +654,12 @@ class VBR_Admin_Races {
 			</section>
 
 			<?php $this->render_teams_panel( $race ); ?>
+
+			<section class="vbr-admin-panel" id="vbr-sponsors">
+				<h2><?php esc_html_e( 'Sponsors', 'virtual-balloon-race' ); ?></h2>
+				<p class="description"><?php esc_html_e( 'Sponsors belong to this race only. Choosing a tier ticks its usual places; change any you like. Presented by, launch flag, map badge and leaderboard strip have one spot per race.', 'virtual-balloon-race' ); ?></p>
+				<?php VBR_Sponsors::render_editor( 'vbr_race[sponsors]', $race ? VBR_Sponsors::for_race( (int) $race->id ) : array() ); ?>
+			</section>
 
 			<p class="submit">
 				<?php submit_button( $race ? __( 'Save race', 'virtual-balloon-race' ) : __( 'Create race', 'virtual-balloon-race' ), 'primary', 'submit', false ); ?>
