@@ -259,11 +259,7 @@ class VBR_Prizes {
 	 * @return string HTML.
 	 */
 	public static function sponsor_link( $sponsor ) {
-		if ( ! $sponsor->url ) {
-			return esc_html( $sponsor->name );
-		}
-
-		return '<a href="' . esc_url( $sponsor->url ) . '" rel="sponsored noopener" target="_blank">' . esc_html( $sponsor->name ) . '</a>';
+		return VBR_Sponsors::link( $sponsor, esc_html( $sponsor->name ), '', 'prize' );
 	}
 
 	/**

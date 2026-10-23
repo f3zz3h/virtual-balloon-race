@@ -87,6 +87,8 @@ Everything, unless you tick **Settings → Data → Delete all race data when th
 
 This plugin connects to the third-party services below. By default it uses free services that need no API keys or accounts; **Balloon Race → Settings → Maps, weather and place search** can switch to keyed providers for busier or commercial sites.
 
+Sponsor views and clicks are counted by your own site (totals only, no cookies or visitor data); nothing is sent to any other service.
+
 = Open-Meteo (weather) =
 
 Used to move balloons with the real wind. When a race is flying, your server requests the current wind speed and direction for the areas the balloons are in (rounded latitude and longitude) each time balloons move. No personal data is sent; requests identify the plugin and your site's address. With an Open-Meteo API key set, requests go to customer-api.open-meteo.com and include the key.

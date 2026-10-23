@@ -81,6 +81,7 @@ class VBR_Install {
 		$tables[] = VBR_Teams::table();
 		$tables[] = VBR_Sponsors::table();
 		$tables[] = VBR_Prizes::table();
+		$tables[] = VBR_Sponsor_Stats::table();
 
 		return $tables;
 	}
@@ -218,6 +219,18 @@ class VBR_Install {
 			sort int(11) NOT NULL DEFAULT 0,
 			PRIMARY KEY  (id),
 			KEY race_id (race_id)
+		) {$charset_collate};"
+		);
+
+		$sponsor_stats = VBR_Sponsor_Stats::table();
+
+		dbDelta(
+			"CREATE TABLE {$sponsor_stats} (
+			sponsor_id bigint(20) unsigned NOT NULL DEFAULT 0,
+			placement varchar(30) NOT NULL DEFAULT '',
+			views bigint(20) unsigned NOT NULL DEFAULT 0,
+			clicks bigint(20) unsigned NOT NULL DEFAULT 0,
+			PRIMARY KEY  (sponsor_id,placement)
 		) {$charset_collate};"
 		);
 

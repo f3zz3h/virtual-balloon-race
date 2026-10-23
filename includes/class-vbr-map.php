@@ -220,6 +220,7 @@ class VBR_Map {
 
 		if ( $flag ) {
 			$launch['sponsor'] = array(
+				'id'   => (int) $flag->id,
 				'name' => $flag->name,
 				'url'  => $flag->url,
 			);

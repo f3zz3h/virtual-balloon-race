@@ -827,7 +827,7 @@ switch ( $stage ) {
 		$check( array( '1st place', '2nd place', 'Random draw', 'Furthest Eco-Glide' ) === array_map( array( 'VBR_Prizes', 'title' ), $prizes ) && $prizes[0]->sponsor && 'Smoke Pub' === $prizes[0]->sponsor->name, 'prizes are saved in order, with their sponsor' );
 
 		$html = do_shortcode( '[balloon_prizes race="' . $race . '"]' );
-		$check( 4 === substr_count( $html, '<li class="vbr-prizes__card' ) && false !== strpos( $html, 'Donated by <a href="https://pub.example" rel="sponsored noopener" target="_blank">Smoke Pub</a>' ), '[balloon_prizes] shows the prizes, with a sponsored link to the donor' );
+		$check( 4 === substr_count( $html, '<li class="vbr-prizes__card' ) && 1 === preg_match( '#Donated by <a data-vbr-sponsor="\d+" data-vbr-placement="prize" href="https://pub.example" rel="sponsored noopener" target="_blank">Smoke Pub</a>#', $html ), '[balloon_prizes] shows the prizes, with a sponsored link to the donor' );
 		$check( '' === do_shortcode( '[balloon_prizes race="' . $other . '"]' ), '[balloon_prizes] shows nothing for a race without prizes' );
 		$check( 0 === strpos( VBR_Prizes::summary( $race ), '1st place: Sunday lunch for four · 2nd place: Two match tickets' ), 'the "Up for grabs" summary lists the prizes' );
 
@@ -894,7 +894,7 @@ switch ( $stage ) {
 		$sorted = $order;
 		sort( $sorted );
 		$check( ! in_array( false, $order, true ) && $order === $sorted && false === strpos( $wall, 'Smoke Hidden' ), 'the sponsor wall lists sponsors by tier, leaving out those not on the wall' );
-		$check( false !== strpos( $wall, '<span>Smoke Café</span>' ), 'a sponsor without a website is shown without a link' );
+		$check( 1 === preg_match( '#<span data-vbr-sponsor="\d+" data-vbr-placement="wall">Smoke Café</span>#', $wall ), 'a sponsor without a website is shown without a link' );
 
 		$check( 'This race was made possible by Smoke Pub and Smoke FC.' === VBR_Sponsors::email_line( VBR_Races::get( $race ) ), 'the email line names the sponsors ticked for emails' );
 		foreach ( array( 'VBR_Email_Launched', 'VBR_Email_Results' ) as $class ) {
@@ -966,6 +966,54 @@ switch ( $stage ) {
 		$wpdb->query( $wpdb->prepare( 'DELETE FROM ' . VBR_Balloons::table() . ' WHERE race_id = %d', $race ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		VBR_Races::delete( $race );
 		$settings( array( 'weather_enabled' => 1 ) );
+		break;
+
+	// Sponsor views and clicks: totals only, checked against what each sponsor really has.
+	case 'sponsor-stats':
+		global $wpdb;
+
+		$check( VBR_Sponsor_Stats::table() === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', VBR_Sponsor_Stats::table() ) ), 'the sponsor stats table exists' );
+
+		$race = VBR_Races::save( array( 'name' => 'Smoke Stats Race', 'launch_lat' => 51.4885, 'launch_lng' => -2.58, 'launch_at' => gmdate( 'Y-m-d H:i:s', time() + DAY_IN_SECONDS ) ) );
+		VBR_Sponsors::save_for_race(
+			$race,
+			VBR_Sponsors::clean_rows(
+				array(
+					array( 'name' => 'Smoke Pub', 'url' => 'https://pub.example', 'tier' => 'headline', 'placements' => array( 'presented_by', 'wall' ) ),
+					array( 'name' => 'Smoke FC', 'url' => 'https://fc.example', 'tier' => 'gold', 'placements' => array( 'wall' ) ),
+				)
+			)
+		);
+		list( $pub, $fc ) = array_map( 'intval', wp_list_pluck( VBR_Sponsors::for_race( $race ), 'id' ) );
+
+		$counted = VBR_Sponsor_Stats::record( 'view', array( "$pub:presented_by", "$pub:wall", "$pub:wall", "$fc:wall", "$fc:presented_by", "$fc:prize", '999999:wall', "$pub:made_up", 'junk' ) );
+		$check( 4 === $counted, 'views count once per placement per report, only for placements the sponsor has (prize credits always)' );
+
+		$request = new WP_REST_Request( 'POST', '/vbr/v1/sponsor-stats' );
+		$request->set_header( 'Content-Type', 'application/json' );
+		$request->set_body( wp_json_encode( array( 'type' => 'click', 'items' => array( "$pub:presented_by" ) ) ) );
+		$response = rest_do_request( $request );
+		$check( 200 === $response->get_status() && 1 === $response->get_data()['counted'], 'the browser reports clicks through the REST endpoint' );
+
+		$too_many = new WP_REST_Request( 'POST', '/vbr/v1/sponsor-stats' );
+		$too_many->set_header( 'Content-Type', 'application/json' );
+		$too_many->set_body( wp_json_encode( array( 'type' => 'view', 'items' => array_fill( 0, 51, "$pub:wall" ) ) ) );
+		$check( 400 === rest_do_request( $too_many )->get_status(), 'a report with more than 50 items is refused' );
+
+		$stats = VBR_Sponsor_Stats::for_race( $race );
+		$check( array( 'views' => 2, 'clicks' => 1 ) === VBR_Sponsor_Stats::totals( $stats[ $pub ] ) && array( 'views' => 1, 'clicks' => 1 ) === $stats[ $pub ]['presented_by'] && 1 === $stats[ $fc ]['prize']['views'], 'totals per sponsor and placement add up' );
+
+		$html = do_shortcode( '[balloon_sponsors race="' . $race . '"]' );
+		$check( false !== strpos( $html, 'data-vbr-sponsor="' . $pub . '" data-vbr-placement="wall"' ) && wp_script_is( 'vbr-sponsor-stats', 'enqueued' ), 'sponsor links carry their placement, and the counting script is loaded' );
+
+		$screen = $render_race_screen( VBR_Races::get( $race ) );
+		$check( false !== strpos( $screen, 'Shown 2 times · 1 clicks' ) && false !== strpos( $screen, 'action=vbr_sponsor_stats_csv' ), 'the Sponsors panel shows each sponsor\'s totals and the CSV download' );
+
+		VBR_Sponsors::save_for_race( $race, VBR_Sponsors::clean_rows( array( array( 'id' => $pub, 'name' => 'Smoke Pub', 'tier' => 'headline', 'placements' => array( 'wall' ) ) ) ) );
+		$check( ! isset( VBR_Sponsor_Stats::for_race( $race )[ $fc ] ) && 0 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . VBR_Sponsor_Stats::table() . ' WHERE sponsor_id = %d', $fc ) ), 'removing a sponsor removes its counts' ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+
+		VBR_Races::delete( $race );
+		$check( 0 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . VBR_Sponsor_Stats::table() . ' WHERE sponsor_id = %d', $pub ) ), 'deleting the race removes its sponsors\' counts' ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		break;
 
 	// Race sponsors: cleaned on save, one-per-race placements, kept with their race.
