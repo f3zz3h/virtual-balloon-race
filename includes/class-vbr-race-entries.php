@@ -27,6 +27,20 @@ class VBR_Race_Entries {
 	private static $taken = array();
 
 	/**
+	 * Entry products with no race planned, worked out once per request (null = not yet).
+	 *
+	 * @var int[]|null
+	 */
+	private static $hidden = null;
+
+	/**
+	 * True while working out $hidden, whose product query must not be filtered itself.
+	 *
+	 * @var bool
+	 */
+	private static $finding = false;
+
+	/**
 	 * Register hooks.
 	 */
 	public function __construct() {
@@ -34,8 +48,14 @@ class VBR_Race_Entries {
 		add_action( 'vbr_product_data_panel', array( $this, 'output_product_option' ) );
 		add_action( 'woocommerce_process_product_meta', array( $this, 'save_product_option' ), 20 );
 
-		// Only purchasable while a race is taking entries.
+		// Only purchasable while a race is taking entries, and only listed once a race is planned.
 		add_filter( 'woocommerce_is_purchasable', array( $this, 'is_purchasable' ), 20, 2 );
+		add_filter( 'woocommerce_product_is_visible', array( $this, 'is_visible' ), 20, 2 );
+		add_action( 'woocommerce_product_query', array( $this, 'hide_from_query' ) );
+		add_action( 'pre_get_posts', array( $this, 'hide_from_search' ) );
+		add_filter( 'woocommerce_shortcode_products_query', array( $this, 'hide_from_args' ) );
+		add_filter( 'query_loop_block_query_vars', array( $this, 'hide_from_args' ) );
+		add_filter( 'wp_sitemaps_posts_query_args', array( $this, 'hide_from_sitemap' ), 10, 2 );
 		add_action( 'woocommerce_single_product_summary', array( $this, 'closed_message' ), 31 );
 		add_filter( 'woocommerce_loop_add_to_cart_link', array( $this, 'loop_button' ), 20, 2 );
 
@@ -69,6 +89,131 @@ class VBR_Race_Entries {
 		}
 
 		return (int) get_post_meta( $product_id, self::PRODUCT_META, true );
+	}
+
+	/**
+	 * Whether a race is planned for a product: upcoming or taking entries (sold out counts, it's still shown).
+	 * A product locked to one race depends on that race only.
+	 *
+	 * @param int $product_id Product ID.
+	 * @return bool
+	 */
+	public static function planned_for( $product_id ) {
+		$locked = self::product_race( $product_id );
+		$races  = $locked ? array_filter( array( VBR_Races::get( $locked ) ) ) : VBR_Races::all();
+
+		foreach ( $races as $race ) {
+			if ( in_array( VBR_Races::status( $race ), array( VBR_Races::UPCOMING, VBR_Races::ON_SALE ), true ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Entry products to keep out of the shop because no race is planned for them.
+	 *
+	 * @return int[]
+	 */
+	public static function hidden_product_ids() {
+		if ( null !== self::$hidden ) {
+			return self::$hidden;
+		}
+
+		if ( self::$finding ) {
+			return array();
+		}
+
+		self::$finding = true;
+		$hidden        = array();
+
+		foreach ( VBR_Product_Type::all_products() as $product ) {
+			if ( ! self::planned_for( $product->get_id() ) ) {
+				$hidden[] = (int) $product->get_id();
+			}
+		}
+
+		self::$finding = false;
+		self::$hidden  = $hidden;
+
+		return $hidden;
+	}
+
+	/**
+	 * Forget which products are hidden (races changed during this request).
+	 */
+	public static function flush_hidden() {
+		self::$hidden = null;
+	}
+
+	/**
+	 * Not listed in the shop, related products and the like until a race is planned.
+	 *
+	 * @param bool $visible    Visible so far.
+	 * @param int  $product_id Product ID.
+	 * @return bool
+	 */
+	public function is_visible( $visible, $product_id ) {
+		return $visible && ! in_array( (int) $product_id, self::hidden_product_ids(), true );
+	}
+
+	/**
+	 * Keep unplanned entry products out of the places that list products to visitors: the shop, category and
+	 * tag pages (`woocommerce_product_query`), search results, the [products] shortcode, Query Loop and product
+	 * collection blocks, and the sitemap. Related products and upsells use is_visible(). The product's own page
+	 * still opens (with "no races taking entries" and nothing to buy), so a link shared early still works.
+	 * Other product queries (the plugin's own, WooCommerce's, the admin) are left alone.
+	 *
+	 * @param WP_Query $query The shop's product query.
+	 */
+	public function hide_from_query( $query ) {
+		$hidden = self::hidden_product_ids();
+
+		if ( $hidden ) {
+			$query->set( 'post__not_in', array_merge( (array) $query->get( 'post__not_in' ), $hidden ) );
+		}
+	}
+
+	/**
+	 * Site search results (the main query of a search page).
+	 *
+	 * @param WP_Query $query Query.
+	 */
+	public function hide_from_search( $query ) {
+		if ( ! is_admin() && $query->is_main_query() && $query->is_search() ) {
+			$this->hide_from_query( $query );
+		}
+	}
+
+	/**
+	 * Query arguments for product listings ([products] shortcode, Query Loop / product collection blocks).
+	 *
+	 * @param array $args WP_Query arguments.
+	 * @return array
+	 */
+	public function hide_from_args( $args ) {
+		$types = isset( $args['post_type'] ) ? (array) $args['post_type'] : array();
+
+		if ( in_array( 'product', $types, true ) ) {
+			$hidden = self::hidden_product_ids();
+			if ( $hidden ) {
+				$args['post__not_in'] = array_merge( isset( $args['post__not_in'] ) ? (array) $args['post__not_in'] : array(), $hidden );
+			}
+		}
+
+		return $args;
+	}
+
+	/**
+	 * The products sitemap.
+	 *
+	 * @param array  $args      WP_Query arguments.
+	 * @param string $post_type Post type.
+	 * @return array
+	 */
+	public function hide_from_sitemap( $args, $post_type ) {
+		return 'product' === $post_type ? $this->hide_from_args( array_merge( $args, array( 'post_type' => 'product' ) ) ) : $args;
 	}
 
 	/**

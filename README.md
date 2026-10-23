@@ -117,7 +117,7 @@ Every sponsor link opens their website in a new tab and is marked `rel="sponsore
 
 ### 4. Set up the balloon product
 
-A fresh install creates a ready-to-sell **Balloon Race Entry** product (£3, published, any race taking entries) as soon as WooCommerce is active. It can only be bought while a race is taking entries, so it's safe to leave published. Change its name, price, description and picture like any product. Upgrades never add a product. **Settings → Pages and products** lists your entry products and offers **Create entry product** if there are none.
+A fresh install creates a ready-to-sell **Balloon Race Entry** product (£3, published, any race taking entries) as soon as WooCommerce is active. It can only be bought while a race is taking entries, and it isn't **listed** in the shop, categories, search, product blocks, the `[products]` shortcode or the sitemap until a race is planned for it (upcoming or taking entries; for a product locked to one race, that race), so it's safe to leave published. Its own page still opens, saying no race is taking entries yet (or when entries open), so a link shared early still works. Change its name, price, description and picture like any product. Upgrades never add a product. **Settings → Pages and products** lists your entry products and offers **Create entry product** if there are none.
 
 To sell a particular race separately: open the race (**Balloon Race → Races → Edit**) and click **Create entry product**. This makes a draft product locked to that race and opens it so you can set the price and publish.
 
