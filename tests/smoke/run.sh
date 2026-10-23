@@ -72,6 +72,9 @@ wp eval-file "$CHECKS" product-preview
 stage "Scenario A: whose balloons are whose"
 wp eval-file "$CHECKS" owners
 
+stage "Scenario A: race prizes"
+wp eval-file "$CHECKS" prizes
+
 stage "Scenario A: race sponsors"
 wp eval-file "$CHECKS" sponsors
 

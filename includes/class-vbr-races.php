@@ -557,6 +557,7 @@ class VBR_Races {
 		$wpdb->delete( self::table(), array( 'id' => (int) $id ), array( '%d' ) );
 		VBR_Teams::delete_for_race( $id );
 		VBR_Sponsors::delete_for_race( $id );
+		VBR_Prizes::delete_for_race( $id );
 		self::flush();
 
 		return true;

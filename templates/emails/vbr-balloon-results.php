@@ -11,6 +11,7 @@
  * @var array[]          $balloons           The entrant's balloons, best first.
  * @var string           $first_name         Entrant's first name.
  * @var string           $tracking_url       Race tracking page.
+ * @var array[]          $prizes             Prizes: title, description, donor, winner.
  * @var string           $additional_content Text from the email settings.
  * @var VBR_Email_Race   $email              Email object.
  */
@@ -56,6 +57,31 @@ do_action( 'woocommerce_email_header', $email_heading, $email ); ?>
 		<?php endforeach; ?>
 	</tbody>
 </table>
+
+<?php if ( ! empty( $prizes ) ) : ?>
+	<h2><?php esc_html_e( 'Prizes', 'virtual-balloon-race' ); ?></h2>
+	<table class="td" cellspacing="0" cellpadding="6" border="1" style="width: 100%; margin-bottom: 24px;">
+		<tbody>
+			<?php foreach ( $prizes as $prize ) : ?>
+				<tr>
+					<td class="td" style="text-align: left;">
+						<strong><?php echo esc_html( $prize['title'] ); ?></strong><br />
+						<?php echo esc_html( $prize['description'] ); ?>
+						<?php if ( $prize['donor'] ) : ?>
+							<br /><small>
+							<?php
+							/* translators: %s: sponsor name */
+							echo esc_html( sprintf( __( 'Donated by %s', 'virtual-balloon-race' ), $prize['donor'] ) );
+							?>
+							</small>
+						<?php endif; ?>
+					</td>
+					<td class="td" style="text-align: left;"><?php echo esc_html( $prize['winner'] ? $prize['winner'] : __( 'To be announced', 'virtual-balloon-race' ) ); ?></td>
+				</tr>
+			<?php endforeach; ?>
+		</tbody>
+	</table>
+<?php endif; ?>
 
 <?php if ( $tracking_url ) : ?>
 	<p><a href="<?php echo esc_url( $tracking_url ); ?>"><?php esc_html_e( 'See the final leaderboard', 'virtual-balloon-race' ); ?></a></p>

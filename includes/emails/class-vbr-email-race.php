@@ -85,6 +85,7 @@ abstract class VBR_Email_Race extends WC_Email {
 			'balloons'           => $this->balloons,
 			'first_name'         => $this->placeholders['{first_name}'],
 			'tracking_url'       => VBR_Pages::tracking_url( $this->race ),
+			'prizes'             => $this->race ? VBR_Prizes::results( $this->race ) : array(),
 			'additional_content' => $this->get_additional_content(),
 			'sent_to_admin'      => false,
 			'plain_text'         => $plain_text,

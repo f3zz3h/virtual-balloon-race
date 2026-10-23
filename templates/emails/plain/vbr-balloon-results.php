@@ -11,6 +11,7 @@
  * @var array[]        $balloons           The entrant's balloons, best first.
  * @var string         $first_name         Entrant's first name.
  * @var string         $tracking_url       Race tracking page.
+ * @var array[]        $prizes             Prizes: title, description, donor, winner.
  * @var string         $additional_content Text from the email settings.
  * @var VBR_Email_Race $email              Email object.
  */
@@ -36,6 +37,19 @@ foreach ( $balloons as $balloon ) {
 	}
 }
 echo "\n";
+
+if ( ! empty( $prizes ) ) {
+	echo esc_html__( 'Prizes', 'virtual-balloon-race' ) . "\n";
+	foreach ( $prizes as $prize ) {
+		echo '- ' . esc_html( $prize['title'] . ': ' . $prize['description'] );
+		if ( $prize['donor'] ) {
+			/* translators: %s: sponsor name */
+			echo ' (' . esc_html( sprintf( __( 'donated by %s', 'virtual-balloon-race' ), $prize['donor'] ) ) . ')';
+		}
+		echo "\n  " . esc_html( $prize['winner'] ? $prize['winner'] : __( 'To be announced', 'virtual-balloon-race' ) ) . "\n";
+	}
+	echo "\n";
+}
 
 if ( $tracking_url ) {
 	echo esc_html__( 'See the final leaderboard:', 'virtual-balloon-race' ) . ' ' . esc_url_raw( $tracking_url ) . "\n\n";

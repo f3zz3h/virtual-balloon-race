@@ -31,6 +31,7 @@ require_once VBR_PLUGIN_DIR . 'includes/class-vbr-balloons.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-races.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-teams.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-sponsors.php';
+require_once VBR_PLUGIN_DIR . 'includes/class-vbr-prizes.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-flight-modes.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-install.php';
 require_once VBR_PLUGIN_DIR . 'includes/class-vbr-settings.php';
@@ -116,6 +117,7 @@ final class Virtual_Balloon_Race {
 		new VBR_Housekeeping();
 		new VBR_Support();
 		new VBR_Demo();
+		new VBR_Prizes();
 
 		if ( $this->is_woocommerce_active() ) {
 			new VBR_Product_Type();

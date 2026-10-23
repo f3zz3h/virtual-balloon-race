@@ -59,7 +59,7 @@ class VBR_Frontend {
 		$needs_leaderboard = false;
 		if ( is_singular() ) {
 			$post = get_post();
-			if ( $post && ( has_shortcode( $post->post_content, 'balloon_leaderboard' ) || has_shortcode( $post->post_content, 'balloon_races' ) || has_shortcode( $post->post_content, 'balloon_teams' ) ) ) {
+			if ( $post && ( has_shortcode( $post->post_content, 'balloon_leaderboard' ) || has_shortcode( $post->post_content, 'balloon_races' ) || has_shortcode( $post->post_content, 'balloon_teams' ) || has_shortcode( $post->post_content, 'balloon_prizes' ) ) ) {
 				$needs_leaderboard = true;
 			}
 		}
