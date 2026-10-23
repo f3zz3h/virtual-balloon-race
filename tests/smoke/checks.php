@@ -642,6 +642,21 @@ switch ( $stage ) {
 		$check( 0 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . VBR_Balloons::table() . ' WHERE race_id = %d', $renewed ) ), 'demo balloons removed' ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		break;
 
+	// The product editor: entry products get their tabs without hiding anything from other product types.
+	case 'product-editor':
+		require_once WC_ABSPATH . 'includes/admin/meta-boxes/class-wc-meta-box-product-data.php';
+		$method = new ReflectionMethod( 'WC_Meta_Box_Product_Data', 'get_product_data_tabs' );
+		$method->setAccessible( true );
+		$tabs  = $method->invoke( null );
+		$class = static function ( $tab ) use ( $tabs ) {
+			return isset( $tabs[ $tab ]['class'] ) ? (array) $tabs[ $tab ]['class'] : array();
+		};
+		$check( ! array_filter( $class( 'general' ), static function ( $c ) { return 0 === strpos( $c, 'show_if_' ); } ), 'the General tab (prices) still shows for every product type' );
+		$check( in_array( 'show_if_simple', $class( 'inventory' ), true ) && in_array( 'show_if_balloon_entry', $class( 'inventory' ), true ), 'the Inventory tab shows for simple products and entries' );
+		$check( in_array( 'hide_if_balloon_entry', $class( 'shipping' ), true ) && ! in_array( 'show_if_simple', $class( 'shipping' ), true ), 'Shipping is hidden for entries only' );
+		$check( isset( $tabs['vbr_balloon_race'] ) && array( 'show_if_balloon_entry' ) === $class( 'vbr_balloon_race' ), 'the Balloon race tab shows for entries only' );
+		break;
+
 	// The entry product only shows in the shop once a race is planned for it.
 	case 'planned-visibility':
 		global $wpdb;
