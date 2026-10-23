@@ -77,6 +77,19 @@ class VBR_Sponsors {
 	}
 
 	/**
+	 * Hot-air balloon envelope styles.
+	 *
+	 * @return array<string, string>
+	 */
+	public static function style_labels() {
+		return array(
+			'stripes' => __( 'Stripes and name band', 'virtual-balloon-race' ),
+			'panel'   => __( 'Logo panel', 'virtual-balloon-race' ),
+			'full'    => __( 'Logo fills the balloon', 'virtual-balloon-race' ),
+		);
+	}
+
+	/**
 	 * The placements a tier ticks to start with.
 	 *
 	 * @return array<string, string[]>
@@ -182,6 +195,46 @@ class VBR_Sponsors {
 				'loading' => 'lazy',
 			)
 		);
+	}
+
+	/**
+	 * Sponsor hot-air balloons for the map: look, position (the launch point until the race moves) and trail.
+	 * Headline sponsors fly a large balloon.
+	 *
+	 * @param object $race Race.
+	 * @return array[]
+	 */
+	public static function hot_air_payload( $race ) {
+		$launch = VBR_Races::launch_point( $race );
+		$out    = array();
+
+		foreach ( self::with_placement( (int) $race->id, 'hot_air' ) as $sponsor ) {
+			$lat   = null !== $sponsor->latitude ? (float) $sponsor->latitude : (float) $launch['lat'];
+			$lng   = null !== $sponsor->longitude ? (float) $sponsor->longitude : (float) $launch['lng'];
+			$trail = VBR_Balloons::decode_trail( (string) $sponsor->trail_json );
+			$src   = $sponsor->logo_id ? wp_get_attachment_image_src( (int) $sponsor->logo_id, 'medium' ) : false;
+			$style = in_array( $sponsor->balloon_style, array( 'panel', 'full' ), true ) && $src ? $sponsor->balloon_style : 'stripes';
+			$band  = '' !== (string) $sponsor->band_text ? $sponsor->band_text : mb_strtoupper( (string) strtok( $sponsor->name, ' ' ) );
+
+			$out[] = array(
+				'id'     => (int) $sponsor->id,
+				'name'   => $sponsor->name,
+				'url'    => $sponsor->url,
+				'size'   => self::HEADLINE === $sponsor->tier ? 'large' : 'normal',
+				'style'  => $style,
+				'color1' => $sponsor->color1 ? $sponsor->color1 : '#2b6cb0',
+				'color2' => $sponsor->color2 ? $sponsor->color2 : '#ffffff',
+				'band'   => mb_substr( $band, 0, 12 ),
+				'logo'   => $src ? $src[0] : '',
+				// A logo much wider or taller than the envelope is shown whole rather than cropped (as on racing balloons).
+				'fit'    => $src && $src[2] && ( $src[1] / $src[2] > 1.6 || $src[1] / $src[2] < 0.6 ) ? 'contain' : 'cover',
+				'lat'    => $lat,
+				'lng'    => $lng,
+				'trail'  => $trail ? $trail : array( array( $lat, $lng ) ),
+			);
+		}
+
+		return $out;
 	}
 
 	/**
@@ -352,13 +405,22 @@ class VBR_Sponsors {
 			$tier    = isset( $row['tier'] ) ? sanitize_key( (string) $row['tier'] ) : '';
 			$picked  = isset( $row['placements'] ) && is_array( $row['placements'] ) ? array_map( 'sanitize_key', $row['placements'] ) : array();
 
+			$style   = isset( $row['balloon_style'] ) ? sanitize_key( (string) $row['balloon_style'] ) : '';
+			$color1  = isset( $row['color1'] ) ? sanitize_hex_color( (string) $row['color1'] ) : '';
+			$color2  = isset( $row['color2'] ) ? sanitize_hex_color( (string) $row['color2'] ) : '';
+			$band    = isset( $row['band_text'] ) ? sanitize_text_field( (string) $row['band_text'] ) : '';
+
 			$clean[] = array(
-				'id'         => isset( $row['id'] ) ? absint( $row['id'] ) : 0,
-				'name'       => mb_substr( $name, 0, 100 ),
-				'url'        => mb_substr( $url, 0, 255 ),
-				'logo_id'    => $logo_id && wp_attachment_is_image( $logo_id ) ? $logo_id : 0,
-				'tier'       => isset( $tiers[ $tier ] ) ? $tier : self::SUPPORTER,
-				'placements' => array_values( array_intersect( $keys, $picked ) ),
+				'id'            => isset( $row['id'] ) ? absint( $row['id'] ) : 0,
+				'name'          => mb_substr( $name, 0, 100 ),
+				'url'           => mb_substr( $url, 0, 255 ),
+				'logo_id'       => $logo_id && wp_attachment_is_image( $logo_id ) ? $logo_id : 0,
+				'tier'          => isset( $tiers[ $tier ] ) ? $tier : self::SUPPORTER,
+				'placements'    => array_values( array_intersect( $keys, $picked ) ),
+				'balloon_style' => isset( self::style_labels()[ $style ] ) ? $style : 'stripes',
+				'color1'        => $color1 ? $color1 : '#2b6cb0',
+				'color2'        => $color2 ? $color2 : '#ffffff',
+				'band_text'     => mb_substr( $band, 0, 12 ),
 			);
 		}
 
@@ -420,13 +482,17 @@ class VBR_Sponsors {
 
 		foreach ( $rows as $sort => $row ) {
 			$data = array(
-				'race_id'    => (int) $race_id,
-				'name'       => $row['name'],
-				'url'        => $row['url'],
-				'logo_id'    => $row['logo_id'],
-				'tier'       => $row['tier'],
-				'placements' => implode( ',', $row['placements'] ),
-				'sort'       => $sort,
+				'race_id'       => (int) $race_id,
+				'name'          => $row['name'],
+				'url'           => $row['url'],
+				'logo_id'       => $row['logo_id'],
+				'tier'          => $row['tier'],
+				'placements'    => implode( ',', $row['placements'] ),
+				'balloon_style' => $row['balloon_style'],
+				'color1'        => $row['color1'],
+				'color2'        => $row['color2'],
+				'band_text'     => $row['band_text'],
+				'sort'          => $sort,
 			);
 
 			if ( $row['id'] && isset( $existing[ $row['id'] ] ) ) {
@@ -494,6 +560,29 @@ class VBR_Sponsors {
 							<?php endforeach; ?>
 						</select>
 					</label>
+					<fieldset class="vbr-sponsors-editor__hot-air"<?php echo in_array( 'hot_air', $sponsor['placements'], true ) ? '' : ' hidden'; ?>>
+						<legend><?php esc_html_e( 'Hot-air balloon', 'virtual-balloon-race' ); ?></legend>
+						<label>
+							<span><?php esc_html_e( 'Style', 'virtual-balloon-race' ); ?></span>
+							<select name="<?php echo esc_attr( $prefix ); ?>[balloon_style]">
+								<?php foreach ( self::style_labels() as $key => $label ) : ?>
+									<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $sponsor['balloon_style'], $key ); ?>><?php echo esc_html( $label ); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</label>
+						<label>
+							<span><?php esc_html_e( 'Colours', 'virtual-balloon-race' ); ?></span>
+							<span class="vbr-sponsors-editor__colours">
+								<input type="color" name="<?php echo esc_attr( $prefix ); ?>[color1]" value="<?php echo esc_attr( $sponsor['color1'] ); ?>" aria-label="<?php esc_attr_e( 'Main colour', 'virtual-balloon-race' ); ?>" />
+								<input type="color" name="<?php echo esc_attr( $prefix ); ?>[color2]" value="<?php echo esc_attr( $sponsor['color2'] ); ?>" aria-label="<?php esc_attr_e( 'Second colour', 'virtual-balloon-race' ); ?>" />
+							</span>
+						</label>
+						<label>
+							<span><?php esc_html_e( 'Name band', 'virtual-balloon-race' ); ?></span>
+							<input type="text" name="<?php echo esc_attr( $prefix ); ?>[band_text]" value="<?php echo esc_attr( $sponsor['band_text'] ); ?>" maxlength="12" placeholder="<?php esc_attr_e( 'Short name, e.g. BRAMBLE', 'virtual-balloon-race' ); ?>" />
+						</label>
+						<p class="description"><?php esc_html_e( 'Flies with the race on the same wind, never ranked. The logo styles need a logo; without one, stripes are used.', 'virtual-balloon-race' ); ?></p>
+					</fieldset>
 					<fieldset class="vbr-sponsors-editor__placements">
 						<legend><?php esc_html_e( 'Shown in', 'virtual-balloon-race' ); ?></legend>
 						<?php foreach ( $placements as $key => $label ) : ?>
@@ -517,12 +606,16 @@ class VBR_Sponsors {
 					$card(
 						$index,
 						array(
-							'id'         => (int) $sponsor->id,
-							'name'       => $sponsor->name,
-							'url'        => $sponsor->url,
-							'logo_id'    => (int) $sponsor->logo_id,
-							'tier'       => $sponsor->tier,
-							'placements' => $sponsor->placements,
+							'id'            => (int) $sponsor->id,
+							'name'          => $sponsor->name,
+							'url'           => $sponsor->url,
+							'logo_id'       => (int) $sponsor->logo_id,
+							'tier'          => $sponsor->tier,
+							'placements'    => $sponsor->placements,
+							'balloon_style' => $sponsor->balloon_style,
+							'color1'        => $sponsor->color1 ? $sponsor->color1 : '#2b6cb0',
+							'color2'        => $sponsor->color2 ? $sponsor->color2 : '#ffffff',
+							'band_text'     => $sponsor->band_text,
 						)
 					);
 				}
@@ -533,12 +626,16 @@ class VBR_Sponsors {
 				$card(
 					'__i__',
 					array(
-						'id'         => 0,
-						'name'       => '',
-						'url'        => '',
-						'logo_id'    => 0,
-						'tier'       => self::SUPPORTER,
-						'placements' => self::tier_defaults()[ self::SUPPORTER ],
+						'id'            => 0,
+						'name'          => '',
+						'url'           => '',
+						'logo_id'       => 0,
+						'tier'          => self::SUPPORTER,
+						'placements'    => self::tier_defaults()[ self::SUPPORTER ],
+						'balloon_style' => 'stripes',
+						'color1'        => '#2b6cb0',
+						'color2'        => '#ffffff',
+						'band_text'     => '',
 					)
 				);
 				?>

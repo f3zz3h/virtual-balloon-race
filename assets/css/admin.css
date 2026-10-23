@@ -383,3 +383,42 @@
 .vbr-prizes-editor__remove {
 	margin-bottom: 6px;
 }
+
+.vbr-sponsors-editor__hot-air {
+	grid-column: 1 / -1;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: 10px 16px;
+	margin: 0;
+	padding: 10px 12px;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	background: #f6f7f7;
+}
+
+.vbr-sponsors-editor__hot-air[hidden] {
+	display: none;
+}
+
+.vbr-sponsors-editor__hot-air legend {
+	padding: 0 4px;
+	font-weight: 600;
+}
+
+.vbr-sponsors-editor__hot-air label {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	font-weight: 600;
+}
+
+.vbr-sponsors-editor__hot-air .description {
+	flex-basis: 100%;
+	margin: 0;
+}
+
+.vbr-sponsors-editor__colours {
+	display: flex;
+	gap: 6px;
+}

@@ -16,15 +16,25 @@
 			card.querySelector('input[type="text"]').focus();
 		});
 
+		// The hot-air balloon's look only matters when it's ticked.
+		function syncHotAir(card) {
+			var box = card.querySelector('.vbr-sponsors-editor__placements input[value="hot_air"]');
+			card.querySelector('.vbr-sponsors-editor__hot-air').hidden = !(box && box.checked);
+		}
+
 		// Choosing a tier ticks its usual placements.
 		list.addEventListener('change', function (e) {
-			if (!e.target.classList.contains('vbr-sponsors-editor__tier')) {
+			var card = e.target.closest('.vbr-sponsors-editor__card');
+			if (!card) {
 				return;
 			}
-			var picked = defaults[e.target.value] || [];
-			e.target.closest('.vbr-sponsors-editor__card').querySelectorAll('.vbr-sponsors-editor__placements input').forEach(function (box) {
-				box.checked = picked.indexOf(box.value) !== -1;
-			});
+			if (e.target.classList.contains('vbr-sponsors-editor__tier')) {
+				var picked = defaults[e.target.value] || [];
+				card.querySelectorAll('.vbr-sponsors-editor__placements input').forEach(function (box) {
+					box.checked = picked.indexOf(box.value) !== -1;
+				});
+			}
+			syncHotAir(card);
 		});
 
 		list.addEventListener('click', function (e) {

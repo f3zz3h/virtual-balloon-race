@@ -251,6 +251,21 @@ class VBR_Cron {
 			$launch   = VBR_Races::launch_point( $race );
 			$balloons = $wpdb->get_results( $wpdb->prepare( "SELECT id, helium_level, latitude, longitude, start_lat, start_lng, trail_json, flight_hours FROM {$table} WHERE is_burst = 0 AND withdrawn_at IS NULL AND race_id = %d", (int) $race->id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
+			// Sponsor hot-air balloons fly with the race on the same wind; they never burst and aren't ranked.
+			foreach ( VBR_Sponsors::with_placement( (int) $race->id, 'hot_air' ) as $sponsor ) {
+				$balloons[] = (object) array(
+					'id'           => (int) $sponsor->id,
+					'sponsor'      => true,
+					'helium_level' => 'Balanced',
+					'latitude'     => $sponsor->latitude,
+					'longitude'    => $sponsor->longitude,
+					'start_lat'    => null,
+					'start_lng'    => null,
+					'trail_json'   => $sponsor->trail_json,
+					'flight_hours' => $sponsor->flight_hours,
+				);
+			}
+
 			$use_weather = ! empty( $s['weather_enabled'] );
 			$per_balloon = $use_weather && ! empty( $s['per_balloon_wind'] );
 
@@ -332,6 +347,20 @@ class VBR_Cron {
 				$trail   = VBR_Balloons::decode_trail( $b->trail_json );
 				$trail   = $trail ? $trail : array( array( $b->latitude, $b->longitude ) );
 				$trail[] = array( $lat, $lng );
+
+				if ( ! empty( $b->sponsor ) ) {
+					$wpdb->update(
+						VBR_Sponsors::table(),
+						array(
+							'latitude'     => $lat,
+							'longitude'    => $lng,
+							'trail_json'   => VBR_Balloons::encode_trail( $trail ),
+							'flight_hours' => (float) $b->flight_hours + (float) $hours,
+						),
+						array( 'id' => (int) $b->id )
+					);
+					continue;
+				}
 
 				// Burst rolls (after moving, so the balloon pops where it ended up).
 				$burst = false;
