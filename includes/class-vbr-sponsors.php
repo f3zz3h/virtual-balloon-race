@@ -264,9 +264,19 @@ class VBR_Sponsors {
 		wp_enqueue_style( 'vbr-frontend' );
 
 		$tiers  = self::tier_labels();
-		$groups = array_fill_keys( array_keys( $tiers ), array() );
-		foreach ( $sponsors as $sponsor ) {
-			$groups[ isset( $groups[ $sponsor->tier ] ) ? $sponsor->tier : self::SUPPORTER ][] = $sponsor;
+		$groups = array();
+		foreach ( array_keys( $tiers ) as $tier ) {
+			$group = array_values(
+				array_filter(
+					$sponsors,
+					static function ( $sponsor ) use ( $tier, $tiers ) {
+						return $tier === ( isset( $tiers[ $sponsor->tier ] ) ? $sponsor->tier : self::SUPPORTER );
+					}
+				)
+			);
+			if ( $group ) {
+				$groups[ $tier ] = $group;
+			}
 		}
 
 		$heading = array(
@@ -280,7 +290,7 @@ class VBR_Sponsors {
 		?>
 		<section class="vbr-sponsors">
 			<h2 class="vbr-sponsors__title"><?php esc_html_e( 'Thank you to our sponsors', 'virtual-balloon-race' ); ?></h2>
-			<?php foreach ( array_filter( $groups ) as $tier => $group ) : ?>
+			<?php foreach ( $groups as $tier => $group ) : ?>
 				<div class="vbr-sponsors__tier vbr-sponsors__tier--<?php echo esc_attr( $tier ); ?>">
 					<h3 class="vbr-sponsors__tier-name"><?php echo esc_html( $heading[ $tier ] ); ?></h3>
 					<?php if ( self::SUPPORTER === $tier ) : ?>
