@@ -15,6 +15,11 @@ class VBR_Map {
 	const REST_NS = 'vbr/v1';
 
 	/**
+	 * Big races: trails are sent only for the leaders and the balloons asked for; others load on demand.
+	 */
+	const TOP_TRAILS = 25;
+
+	/**
 	 * Register hooks.
 	 */
 	public function __construct() {
@@ -53,11 +58,39 @@ class VBR_Map {
 				'callback'            => array( $this, 'rest_balloons' ),
 				'permission_callback' => '__return_true',
 				'args'                => array(
-					'race' => array(
+					'race'   => array(
 						'description'       => __( 'Race ID, slug or "current".', 'virtual-balloon-race' ),
 						'type'              => 'string',
 						'default'           => 'current',
 						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'trails' => array(
+						'description'       => __( 'Big races: balloon IDs (comma-separated, up to 50) whose trails to include besides the leaders\'.', 'virtual-balloon-race' ),
+						'type'              => 'string',
+						'default'           => '',
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::REST_NS,
+			'/trail',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'rest_trail' ),
+				'permission_callback' => '__return_true',
+				'args'                => array(
+					'race' => array(
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'id'   => array(
+						'type'     => 'integer',
+						'required' => true,
+						'minimum'  => 1,
 					),
 				),
 			)
@@ -149,9 +182,16 @@ class VBR_Map {
 			return new WP_Error( 'vbr_race_not_found', __( 'Race not found.', 'virtual-balloon-race' ), array( 'status' => 404 ) );
 		}
 
-		$response = rest_ensure_response( self::public_payload( $race ) );
+		$trails = array_slice( array_filter( array_map( 'absint', explode( ',', (string) $request->get_param( 'trails' ) ) ) ), 0, 50 );
+		$data   = self::public_payload( $race, $trails );
 
-		// Positions change every tick: keep page/edge caches from serving stale data.
+		// Positions only change on each tick, but maps refresh every minute: answer "not modified" until they do.
+		$etag     = '"' . md5( (string) wp_json_encode( $data ) ) . '"';
+		$match    = (string) $request->get_header( 'if_none_match' );
+		$response = in_array( $etag, array_map( 'trim', explode( ',', $match ) ), true ) ? new WP_REST_Response( null, 304 ) : rest_ensure_response( $data );
+
+		$response->header( 'ETag', $etag );
+		// Positions change every tick: keep page/edge caches from serving stale data (browsers revalidate with the ETag).
 		$response->header( 'Cache-Control', 'no-cache, must-revalidate, max-age=0' );
 		do_action( 'litespeed_control_set_nocache', 'vbr live balloon positions' );
 
@@ -159,12 +199,51 @@ class VBR_Map {
 	}
 
 	/**
+	 * GET /vbr/v1/trail?race=…&id=… — one balloon's trail, for big races where the map loads trails on demand.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function rest_trail( $request ) {
+		global $wpdb;
+
+		$race  = VBR_Races::resolve( $request->get_param( 'race' ) );
+		$table = VBR_Balloons::table();
+		$row   = $race ? $wpdb->get_row( $wpdb->prepare( "SELECT id, trail_json FROM {$table} WHERE id = %d AND race_id = %d AND withdrawn_at IS NULL", (int) $request->get_param( 'id' ), (int) $race->id ) ) : null; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		if ( ! $row ) {
+			return new WP_Error( 'vbr_balloon_not_found', __( 'Balloon not found.', 'virtual-balloon-race' ), array( 'status' => 404 ) );
+		}
+
+		$response = rest_ensure_response(
+			array(
+				'id'    => (int) $row->id,
+				'trail' => VBR_Balloons::decode_trail( $row->trail_json ),
+			)
+		);
+		$response->header( 'Cache-Control', 'no-cache, must-revalidate, max-age=0' );
+		do_action( 'litespeed_control_set_nocache', 'vbr balloon trail' );
+
+		return $response;
+	}
+
+	/**
+	 * Up to how many balloons every trail is sent (filter `vbr_map_all_trails_up_to`, default 300).
+	 *
+	 * @return int
+	 */
+	public static function all_trails_up_to() {
+		return max( 0, (int) apply_filters( 'vbr_map_all_trails_up_to', 300 ) );
+	}
+
+	/**
 	 * Public data for one race.
 	 *
-	 * @param object|null $race Race (null → no balloons).
+	 * @param object|null $race   Race (null → no balloons).
+	 * @param int[]       $trails Big races: balloon IDs whose trails to include besides the leaders'.
 	 * @return array
 	 */
-	public static function public_payload( $race ) {
+	public static function public_payload( $race, $trails = array() ) {
 		global $wpdb;
 
 		$table = VBR_Balloons::table();
@@ -174,9 +253,11 @@ class VBR_Map {
 		$last  = $race ? VBR_Cron::last_summary( $race->id ) : array();
 		$next  = $race && VBR_Races::FLYING === VBR_Races::status( $race ) ? VBR_Cron::next_run() : 0;
 
-		$balloons = array();
-		$rank     = 0;
-		$teams    = VBR_Teams::by_id( $race );
+		$balloons  = array();
+		$rank      = 0;
+		$teams     = VBR_Teams::by_id( $race );
+		$all_trail = count( (array) $rows ) <= self::all_trails_up_to();
+		$wanted    = array_flip( array_map( 'intval', $trails ) );
 
 		foreach ( (array) $rows as $row ) {
 			if ( null === $row->latitude || null === $row->longitude ) {
@@ -193,9 +274,10 @@ class VBR_Map {
 				$fit   = $ratio > 1.6 || $ratio < 0.6 ? 'contain' : 'cover';
 			}
 
-			$balloons[] = array(
+			$balloon_rank = $row->is_burst ? null : ++$rank;
+			$balloon      = array(
 				'id'         => (int) $row->id,
-				'rank'       => $row->is_burst ? null : ++$rank,
+				'rank'       => $balloon_rank,
 				'name'       => $row->balloon_name,
 				'owner'      => VBR_Balloons::public_owner_name( $row ),
 				'color'      => $row->balloon_color,
@@ -206,13 +288,19 @@ class VBR_Map {
 				'from_start' => round( (float) $row->from_start_km, 2 ),
 				'travelled'  => round( (float) $row->distance_km, 2 ),
 				'burst'      => (bool) $row->is_burst,
-				'lat'        => (float) $row->latitude,
-				'lng'        => (float) $row->longitude,
+				'lat'        => round( (float) $row->latitude, 5 ),
+				'lng'        => round( (float) $row->longitude, 5 ),
 				'logo'       => $logo,
 				'logo_fit'   => $fit,
 				'team'       => isset( $teams[ (int) $row->team_id ] ) ? (int) $row->team_id : null,
-				'trail'      => VBR_Balloons::decode_trail( $row->trail_json ),
 			);
+
+			// Big races: trails for the leaders and the balloons asked for (the viewer's, the selected one); the map loads others on demand.
+			if ( $all_trail || ( $balloon_rank && $balloon_rank <= self::TOP_TRAILS ) || isset( $wanted[ (int) $row->id ] ) ) {
+				$balloon['trail'] = VBR_Balloons::decode_trail( $row->trail_json );
+			}
+
+			$balloons[] = $balloon;
 		}
 
 		$launch = VBR_Races::launch_point( $race );
@@ -233,6 +321,8 @@ class VBR_Map {
 			'updated_at' => ! empty( $last['time'] ) ? gmdate( 'c', (int) $last['time'] ) : null,
 			'next_at'    => $next ? gmdate( 'c', $next ) : null,
 			'ranking'    => VBR_Races::ranking( $race ),
+			// "all": every balloon has its trail; "some": a balloon without one has it loaded on demand.
+			'trails'     => $all_trail ? 'all' : 'some',
 			'balloons'   => $balloons,
 			'teams'      => $teams ? VBR_Teams::standings( $race ) : array(),
 			'scoring'    => $teams ? VBR_Teams::scoring( $race ) : null,
@@ -291,13 +381,15 @@ class VBR_Map {
 			return current_user_can( 'manage_options' ) ? '<p>' . esc_html__( 'Balloon map: race not found.', 'virtual-balloon-race' ) . '</p>' : '';
 		}
 
+		$mine   = $race && is_user_logged_in() ? array_map( 'intval', wp_list_pluck( VBR_Balloons::owned_by( get_current_user_id(), (int) $race->id ), 'id' ) ) : array();
 		$config = array(
 			'endpoint' => esc_url_raw( add_query_arg( 'race', $race ? (int) $race->id : 'current', rest_url( self::REST_NS . '/balloons' ) ) ),
 			'zoom'     => (int) VBR_Settings::get( 'map_zoom' ),
 			'refresh'  => (int) VBR_Settings::get( 'map_refresh' ),
-			'initial'  => self::public_payload( $race ),
 			// Page caches normally skip logged-in visitors, so the viewer's own balloons can go in the HTML.
-			'mine'     => $race && is_user_logged_in() ? array_map( 'intval', wp_list_pluck( VBR_Balloons::owned_by( get_current_user_id(), (int) $race->id ), 'id' ) ) : array(),
+			'mine'     => $mine,
+			'initial'  => self::public_payload( $race, $mine ),
+			'trailUrl' => esc_url_raw( add_query_arg( 'race', $race ? (int) $race->id : 'current', rest_url( self::REST_NS . '/trail' ) ) ),
 			'i18n' => array(
 				'owner'    => __( 'Owner', 'virtual-balloon-race' ),
 				'distance'  => __( 'Distance', 'virtual-balloon-race' ),
