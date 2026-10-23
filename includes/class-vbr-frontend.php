@@ -137,21 +137,29 @@ class VBR_Frontend {
 
 		global $wpdb;
 		$table    = VBR_Balloons::table();
-		$balloons = array();
+		$rows     = array();
 		$stage    = $race ? VBR_Races::status( $race ) : '';
 
 		$order    = VBR_Races::ranking_column( $race );
 		$by_start = VBR_Races::FROM_START === VBR_Races::ranking( $race );
 
-		if ( $race ) {
+		$ranks  = $race ? self::ranked_ids( $race ) : array();
+		$remote = $race && count( $ranks ) > self::server_paging_from();
+
+		if ( $remote ) {
+			// Big race: only the first page goes in the HTML; paging and search ask the server (GET /vbr/v1/leaderboard).
+			$per_page = $per_page ? min( $per_page, 100 ) : 100;
+			$rows     = self::leaderboard_page( $race, 1, $per_page, '' )['rows'];
+		} elseif ( $race ) {
 			// Every flying balloon is rendered so search covers the whole race; the script pages them (rows past the first page start hidden).
-			$balloons = $wpdb->get_results(
+			$rows = $wpdb->get_results(
 				$wpdb->prepare(
 					"SELECT * FROM {$table} WHERE is_burst = 0 AND withdrawn_at IS NULL AND race_id = %d ORDER BY {$order} DESC, id ASC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 					(int) $race->id
 				)
 			);
 		}
+		$balloons = $remote ? array_keys( $ranks ) : $rows;
 
 		// Two distance columns, the one that decides the race first.
 		$distance_columns = array(
@@ -163,11 +171,7 @@ class VBR_Frontend {
 		}
 
 		// Page caches normally skip logged-in visitors, so the viewer's own balloons can go in the HTML.
-		$mine  = $race && is_user_logged_in() ? VBR_Balloons::owned_by( get_current_user_id(), (int) $race->id ) : array();
-		$ranks = array();
-		foreach ( $balloons as $index => $balloon ) {
-			$ranks[ (int) $balloon->id ] = $index + 1;
-		}
+		$mine = $race && is_user_logged_in() ? VBR_Balloons::owned_by( get_current_user_id(), (int) $race->id ) : array();
 
 		$pill = array(
 			VBR_Races::UPCOMING => array( 'waiting', __( 'Waiting', 'virtual-balloon-race' ) ),
@@ -196,10 +200,20 @@ class VBR_Frontend {
 
 		$waiting = in_array( $stage, array( VBR_Races::UPCOMING, VBR_Races::ON_SALE ), true );
 		$teams   = VBR_Teams::by_id( $race );
+		$context = $race ? self::row_context( $race, $map_url, wp_list_pluck( $mine, 'id' ) ) : array();
 
 		ob_start();
 		?>
-		<div class="vbr-leaderboard" data-vbr-leaderboard data-vbr-per-page="<?php echo esc_attr( (string) $per_page ); ?>">
+		<div class="vbr-leaderboard" data-vbr-leaderboard data-vbr-per-page="<?php echo esc_attr( (string) $per_page ); ?>"
+			<?php if ( $remote ) : ?>
+				data-vbr-remote="<?php echo esc_url( rest_url( VBR_Map::REST_NS . '/leaderboard' ) ); ?>"
+				data-vbr-race="<?php echo esc_attr( (string) $race->id ); ?>"
+				data-vbr-map-url="<?php echo esc_url( $map_url ); ?>"
+				data-vbr-total="<?php echo esc_attr( (string) count( $ranks ) ); ?>"
+				<?php if ( is_user_logged_in() ) : ?>
+					data-vbr-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>"
+				<?php endif; ?>
+			<?php endif; ?>>
 			<div class="vbr-leaderboard__header">
 				<div>
 					<h2 class="vbr-leaderboard__title"><?php echo esc_html( $race ? $race->name : __( 'Balloon Race Leaderboard', 'virtual-balloon-race' ) ); ?></h2>
@@ -280,7 +294,7 @@ class VBR_Frontend {
 						</tr>
 					</thead>
 					<tbody>
-						<?php if ( empty( $balloons ) ) : ?>
+						<?php if ( empty( $rows ) ) : ?>
 							<tr class="vbr-leaderboard__empty">
 								<td colspan="<?php echo esc_attr( (string) ( $teams ? 8 : 7 ) ); ?>">
 									<?php
@@ -292,55 +306,17 @@ class VBR_Frontend {
 								</td>
 							</tr>
 						<?php else : ?>
-							<?php $mine_ids = array_map( 'intval', wp_list_pluck( $mine, 'id' ) ); ?>
-							<?php foreach ( $balloons as $index => $balloon ) : ?>
-								<?php
-								$owner           = VBR_Balloons::public_owner_name( $balloon );
-								$team            = isset( $teams[ (int) $balloon->team_id ] ) ? $teams[ (int) $balloon->team_id ] : null;
-								$search_haystack = mb_strtolower( $balloon->balloon_name . ' ' . $owner . ( $team ? ' ' . $team->name : '' ) );
-								$color_slug      = sanitize_html_class( strtolower( $balloon->balloon_color ) );
-								$is_mine         = in_array( (int) $balloon->id, $mine_ids, true );
-								$beyond          = $per_page && $index >= $per_page;
-								?>
-								<tr data-vbr-search="<?php echo esc_attr( $search_haystack ); ?>" data-vbr-balloon="<?php echo esc_attr( (string) $balloon->id ); ?>"<?php echo $is_mine ? ' class="is-mine" data-vbr-mine' : ''; ?><?php echo $beyond ? ' hidden' : ''; ?>>
-									<td data-label="<?php esc_attr_e( 'Rank', 'virtual-balloon-race' ); ?>"><?php echo esc_html( (string) ( $index + 1 ) ); ?></td>
-									<td data-label="<?php esc_attr_e( 'Balloon Name', 'virtual-balloon-race' ); ?>">
-										<?php if ( $map_url ) : ?>
-											<a class="vbr-leaderboard__link" href="<?php echo esc_url( add_query_arg( 'balloon', (int) $balloon->id, $map_url ) ); ?>"><?php echo esc_html( $balloon->balloon_name ); ?></a>
-										<?php else : ?>
-											<?php echo esc_html( $balloon->balloon_name ); ?>
-										<?php endif; ?>
-										<?php if ( $is_mine ) : ?>
-											<span class="vbr-leaderboard__yours"><?php esc_html_e( 'Yours', 'virtual-balloon-race' ); ?></span>
-										<?php endif; ?>
-									</td>
-									<td data-label="<?php esc_attr_e( 'Owner', 'virtual-balloon-race' ); ?>"><?php echo esc_html( $owner ); ?></td>
-									<?php if ( $teams ) : ?>
-										<td data-label="<?php esc_attr_e( 'Team', 'virtual-balloon-race' ); ?>">
-											<?php if ( $team ) : ?>
-												<?php self::team_badge( $team->name, $team->color ); ?>
-											<?php endif; ?>
-										</td>
-									<?php endif; ?>
-									<td data-label="<?php esc_attr_e( 'Color', 'virtual-balloon-race' ); ?>">
-										<span class="vbr-color vbr-color--<?php echo esc_attr( $color_slug ); ?>">
-											<?php echo esc_html( $balloon->balloon_color ); ?>
-										</span>
-									</td>
-									<?php foreach ( $distance_columns as $column => $label ) : ?>
-										<td data-label="<?php echo esc_attr( $label ); ?>"><?php echo esc_html( number_format_i18n( (float) $balloon->{$column}, 1 ) ); ?></td>
-									<?php endforeach; ?>
-									<td data-label="<?php esc_attr_e( 'Status', 'virtual-balloon-race' ); ?>">
-										<span class="vbr-pill vbr-pill--<?php echo esc_attr( $pill[0] ); ?>"><?php echo esc_html( $pill[1] ); ?></span>
-									</td>
-								</tr>
-							<?php endforeach; ?>
+							<?php
+							foreach ( $rows as $index => $balloon ) {
+								self::render_row( $balloon, $remote ? $ranks[ (int) $balloon->id ] : $index + 1, $context, ! $remote && $per_page && $index >= $per_page );
+							}
+							?>
 						<?php endif; ?>
 					</tbody>
 				</table>
 			</div>
-			<?php if ( $balloons ) : ?>
-				<?php self::render_pager( $per_page, count( $balloons ) ); ?>
+			<?php if ( $rows ) : ?>
+				<?php self::render_pager( $per_page, count( $balloons ), $remote ); ?>
 			<?php endif; ?>
 			<p class="vbr-leaderboard__empty-search" hidden><?php esc_html_e( 'No balloons match that search.', 'virtual-balloon-race' ); ?></p>
 		</div>
@@ -349,18 +325,242 @@ class VBR_Frontend {
 	}
 
 	/**
+	 * GET /vbr/v1/leaderboard: one page of a big race's leaderboard, as rendered rows.
+	 *
+	 * @param WP_REST_Request $request Request (race, page, per_page, search, mine, map_url).
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public static function rest_leaderboard( $request ) {
+		$race = VBR_Races::resolve( $request->get_param( 'race' ) );
+
+		if ( ! $race ) {
+			return new WP_Error( 'vbr_race_not_found', __( 'Race not found.', 'virtual-balloon-race' ), array( 'status' => 404 ) );
+		}
+
+		$mine     = is_user_logged_in() ? array_map( 'intval', wp_list_pluck( VBR_Balloons::owned_by( get_current_user_id(), (int) $race->id ), 'id' ) ) : array();
+		$map_url  = (string) $request->get_param( 'map_url' );
+		$map_url  = $map_url && wp_http_validate_url( $map_url ) ? $map_url : VBR_Pages::tracking_url( $race );
+		$per_page = min( 100, max( 1, (int) $request->get_param( 'per_page' ) ) );
+		$result   = self::leaderboard_page( $race, (int) $request->get_param( 'page' ), $per_page, (string) $request->get_param( 'search' ), $request->get_param( 'mine' ) ? $mine : null );
+		$context  = self::row_context( $race, $map_url, $mine );
+
+		ob_start();
+		foreach ( $result['rows'] as $balloon ) {
+			self::render_row( $balloon, $result['ranks'][ (int) $balloon->id ], $context );
+		}
+
+		$response = rest_ensure_response(
+			array(
+				'html'     => ob_get_clean(),
+				'total'    => $result['total'],
+				'page'     => $result['page'],
+				'pages'    => $result['pages'],
+				'per_page' => $per_page,
+			)
+		);
+		$response->header( 'Cache-Control', 'no-cache, must-revalidate, max-age=0' );
+		do_action( 'litespeed_control_set_nocache', 'vbr leaderboard page' );
+
+		return $response;
+	}
+
+	/**
+	 * From how many balloons a leaderboard is paged and searched on the server instead of in the browser
+	 * (filter `vbr_leaderboard_server_paging_from`, default 500).
+	 *
+	 * @return int
+	 */
+	public static function server_paging_from() {
+		return max( 1, (int) apply_filters( 'vbr_leaderboard_server_paging_from', 500 ) );
+	}
+
+	/**
+	 * Every ranked balloon in a race (flying or landed, not burst or withdrawn), best first: id => rank.
+	 *
+	 * @param object $race Race.
+	 * @return array<int, int>
+	 */
+	public static function ranked_ids( $race ) {
+		global $wpdb;
+
+		$table = VBR_Balloons::table();
+		$order = VBR_Races::ranking_column( $race );
+		$ids   = array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare( "SELECT id FROM {$table} WHERE is_burst = 0 AND withdrawn_at IS NULL AND race_id = %d ORDER BY {$order} DESC, id ASC", (int) $race->id ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		return $ids ? array_combine( $ids, range( 1, count( $ids ) ) ) : array();
+	}
+
+	/**
+	 * One page of a race's leaderboard, optionally searched (balloon name, public owner name, team: as the
+	 * browser search does, so surnames stay private) or limited to some balloons ("My balloons").
+	 *
+	 * @param object     $race     Race.
+	 * @param int        $page     Page, from 1.
+	 * @param int        $per_page Rows per page.
+	 * @param string     $search   Search text.
+	 * @param int[]|null $only     Only these balloon IDs.
+	 * @return array{rows: object[], ranks: array<int, int>, total: int, page: int, pages: int}
+	 */
+	public static function leaderboard_page( $race, $page, $per_page, $search = '', $only = null ) {
+		global $wpdb;
+
+		$table = VBR_Balloons::table();
+		$ranks = self::ranked_ids( $race );
+		$ids   = array_keys( $ranks );
+
+		if ( null !== $only ) {
+			$ids = array_values( array_intersect( $ids, array_map( 'intval', $only ) ) );
+		}
+
+		$query = mb_strtolower( trim( (string) $search ) );
+
+		if ( '' !== $query && $ids ) {
+			$teams = VBR_Teams::by_id( $race );
+			$light = $wpdb->get_results( $wpdb->prepare( "SELECT id, race_id, balloon_name, owner_name, team_id FROM {$table} WHERE race_id = %d", (int) $race->id ), OBJECT_K ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$ids   = array_values(
+				array_filter(
+					$ids,
+					static function ( $id ) use ( $light, $teams, $query ) {
+						if ( ! isset( $light[ $id ] ) ) {
+							return false;
+						}
+						$row  = $light[ $id ];
+						$team = isset( $teams[ (int) $row->team_id ] ) ? ' ' . $teams[ (int) $row->team_id ]->name : '';
+						return false !== mb_strpos( mb_strtolower( $row->balloon_name . ' ' . VBR_Balloons::public_owner_name( $row ) . $team ), $query );
+					}
+				)
+			);
+		}
+
+		$per_page = max( 1, (int) $per_page );
+		$total    = count( $ids );
+		$pages    = max( 1, (int) ceil( $total / $per_page ) );
+		$page     = min( max( 1, (int) $page ), $pages );
+		$slice    = array_slice( $ids, ( $page - 1 ) * $per_page, $per_page );
+		$rows     = array();
+
+		if ( $slice ) {
+			$found = $wpdb->get_results( "SELECT * FROM {$table} WHERE id IN (" . implode( ',', $slice ) . ')', OBJECT_K ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- integer IDs.
+			foreach ( $slice as $id ) {
+				if ( isset( $found[ $id ] ) ) {
+					$rows[] = $found[ $id ];
+				}
+			}
+		}
+
+		return array(
+			'rows'  => $rows,
+			'ranks' => $ranks,
+			'total' => $total,
+			'page'  => $page,
+			'pages' => $pages,
+		);
+	}
+
+	/**
+	 * What every leaderboard row needs: teams, map link, the viewer's balloons, distance columns, status pill.
+	 *
+	 * @param object $race    Race.
+	 * @param string $map_url Map page URL ('' = no links).
+	 * @param int[]  $mine    The viewer's balloon IDs.
+	 * @return array
+	 */
+	public static function row_context( $race, $map_url, $mine ) {
+		$columns = array(
+			'from_start_km' => __( 'From launch (km)', 'virtual-balloon-race' ),
+			'distance_km'   => __( 'Travelled (km)', 'virtual-balloon-race' ),
+		);
+		if ( VBR_Races::FROM_START !== VBR_Races::ranking( $race ) ) {
+			$columns = array_reverse( $columns, true );
+		}
+
+		$pills = array(
+			VBR_Races::UPCOMING => array( 'waiting', __( 'Waiting', 'virtual-balloon-race' ) ),
+			VBR_Races::ON_SALE  => array( 'waiting', __( 'Waiting', 'virtual-balloon-race' ) ),
+			VBR_Races::FLYING   => array( 'active', __( 'Flying', 'virtual-balloon-race' ) ),
+			VBR_Races::FINISHED => array( 'finished', __( 'Finished', 'virtual-balloon-race' ) ),
+		);
+		$stage = VBR_Races::status( $race );
+
+		return array(
+			'teams'    => VBR_Teams::by_id( $race ),
+			'map_url'  => $map_url,
+			'mine_ids' => array_map( 'intval', $mine ),
+			'columns'  => $columns,
+			'pill'     => isset( $pills[ $stage ] ) ? $pills[ $stage ] : $pills[ VBR_Races::FLYING ],
+		);
+	}
+
+	/**
+	 * One leaderboard row (also used for the server-paged rows of big races).
+	 *
+	 * @param object $balloon Balloon row.
+	 * @param int    $rank    Position in the race.
+	 * @param array  $context From row_context(): teams, map_url, mine_ids, columns, pill.
+	 * @param bool   $hidden  Start hidden (beyond the first page, for the browser to page).
+	 */
+	public static function render_row( $balloon, $rank, $context, $hidden = false ) {
+		$owner           = VBR_Balloons::public_owner_name( $balloon );
+		$team            = isset( $context['teams'][ (int) $balloon->team_id ] ) ? $context['teams'][ (int) $balloon->team_id ] : null;
+		$search_haystack = mb_strtolower( $balloon->balloon_name . ' ' . $owner . ( $team ? ' ' . $team->name : '' ) );
+		$color_slug      = sanitize_html_class( strtolower( $balloon->balloon_color ) );
+		$is_mine         = in_array( (int) $balloon->id, $context['mine_ids'], true );
+		$map_url         = $context['map_url'];
+		?>
+		<tr data-vbr-search="<?php echo esc_attr( $search_haystack ); ?>" data-vbr-balloon="<?php echo esc_attr( (string) $balloon->id ); ?>"<?php echo $is_mine ? ' class="is-mine" data-vbr-mine' : ''; ?><?php echo $hidden ? ' hidden' : ''; ?>>
+			<td data-label="<?php esc_attr_e( 'Rank', 'virtual-balloon-race' ); ?>"><?php echo esc_html( number_format_i18n( $rank ) ); ?></td>
+			<td data-label="<?php esc_attr_e( 'Balloon Name', 'virtual-balloon-race' ); ?>">
+				<?php if ( $map_url ) : ?>
+					<a class="vbr-leaderboard__link" href="<?php echo esc_url( add_query_arg( 'balloon', (int) $balloon->id, $map_url ) ); ?>"><?php echo esc_html( $balloon->balloon_name ); ?></a>
+				<?php else : ?>
+					<?php echo esc_html( $balloon->balloon_name ); ?>
+				<?php endif; ?>
+				<?php if ( $is_mine ) : ?>
+					<span class="vbr-leaderboard__yours"><?php esc_html_e( 'Yours', 'virtual-balloon-race' ); ?></span>
+				<?php endif; ?>
+			</td>
+			<td data-label="<?php esc_attr_e( 'Owner', 'virtual-balloon-race' ); ?>"><?php echo esc_html( $owner ); ?></td>
+			<?php if ( $context['teams'] ) : ?>
+				<td data-label="<?php esc_attr_e( 'Team', 'virtual-balloon-race' ); ?>">
+					<?php if ( $team ) : ?>
+						<?php self::team_badge( $team->name, $team->color ); ?>
+					<?php endif; ?>
+				</td>
+			<?php endif; ?>
+			<td data-label="<?php esc_attr_e( 'Color', 'virtual-balloon-race' ); ?>">
+				<span class="vbr-color vbr-color--<?php echo esc_attr( $color_slug ); ?>">
+					<?php echo esc_html( $balloon->balloon_color ); ?>
+				</span>
+			</td>
+			<?php foreach ( $context['columns'] as $column => $label ) : ?>
+				<td data-label="<?php echo esc_attr( $label ); ?>"><?php echo esc_html( number_format_i18n( (float) $balloon->{$column}, 1 ) ); ?></td>
+			<?php endforeach; ?>
+			<td data-label="<?php esc_attr_e( 'Status', 'virtual-balloon-race' ); ?>">
+				<span class="vbr-pill vbr-pill--<?php echo esc_attr( $context['pill'][0] ); ?>"><?php echo esc_html( $context['pill'][1] ); ?></span>
+			</td>
+		</tr>
+		<?php
+	}
+
+	/**
 	 * Paging controls under a leaderboard: entries per page, a summary and page links (filled in by frontend.js).
 	 *
-	 * @param int $per_page Entries per page (0 = all).
-	 * @param int $total    Number of rows.
+	 * @param int  $per_page Entries per page (0 = all).
+	 * @param int  $total    Number of rows.
+	 * @param bool $remote   Paged on the server (no "All": that would send the whole race).
 	 */
-	private static function render_pager( $per_page, $total ) {
+	private static function render_pager( $per_page, $total, $remote = false ) {
 		?>
 		<div class="vbr-pager" data-vbr-pager>
 			<label class="vbr-pager__size">
 				<?php esc_html_e( 'Show', 'virtual-balloon-race' ); ?>
 				<select class="vbr-pager__select">
 					<?php foreach ( self::per_page_options() as $option ) : ?>
+						<?php
+						if ( $remote && ! $option ) {
+							continue;
+						}
+						?>
 						<option value="<?php echo esc_attr( (string) $option ); ?>" <?php selected( $per_page, $option ); ?>><?php echo esc_html( $option ? number_format_i18n( $option ) : __( 'All', 'virtual-balloon-race' ) ); ?></option>
 					<?php endforeach; ?>
 					<?php if ( ! in_array( $per_page, self::per_page_options(), true ) ) : ?>

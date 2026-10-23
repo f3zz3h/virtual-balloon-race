@@ -45,14 +45,80 @@
 		var page = 1;
 		var perPage = parseInt(root.getAttribute('data-vbr-per-page'), 10);
 		var stored = storedPerPage();
+		// Big races: the server pages and searches (GET /vbr/v1/leaderboard); only page 1 is in the HTML.
+		var remote = root.getAttribute('data-vbr-remote');
+		var tbody = root.querySelector('tbody');
+		var requestId = 0;
+		var searchTimer = null;
 
 		if (isNaN(perPage)) {
 			perPage = 10;
 		}
 
+		var serverPerPage = perPage;
+
 		if (select && stored !== null && !isNaN(stored) && select.querySelector('option[value="' + stored + '"]')) {
 			perPage = stored;
 			select.value = String(stored);
+		}
+
+		function showSummary(total, start, end) {
+			if (summary) {
+				summary.textContent = total
+					? format(i18n.showing || 'Showing %1$s–%2$s of %3$s', number(start + 1), number(Math.min(end, total)), number(total))
+					: (i18n.none || 'No balloons to show');
+			}
+		}
+
+		// Ask the server for the current page, search and "My balloons" choice.
+		function fetchPage(fromPager) {
+			var id = ++requestId;
+			var query = input ? input.value.trim() : '';
+			var url = remote + (remote.indexOf('?') === -1 ? '?' : '&') + [
+				'race=' + encodeURIComponent(root.getAttribute('data-vbr-race')),
+				'page=' + page,
+				'per_page=' + (perPage || 100),
+				'search=' + encodeURIComponent(query),
+				'mine=' + (onlyMine ? 1 : 0),
+				'map_url=' + encodeURIComponent(root.getAttribute('data-vbr-map-url') || '')
+			].join('&');
+			var headers = { 'Accept': 'application/json' };
+
+			if (root.getAttribute('data-vbr-nonce')) {
+				headers['X-WP-Nonce'] = root.getAttribute('data-vbr-nonce');
+			}
+			root.setAttribute('aria-busy', 'true');
+
+			fetch(url, { headers: headers, credentials: 'same-origin' })
+				.then(function (r) {
+					if (!r.ok) {
+						throw new Error('HTTP ' + r.status);
+					}
+					return r.json();
+				})
+				.then(function (data) {
+					if (id !== requestId) {
+						return; // A newer request has been sent.
+					}
+					page = data.page;
+					tbody.innerHTML = data.html;
+					if (empty) {
+						empty.hidden = data.total !== 0 || !(query || onlyMine);
+					}
+					showSummary(data.total, (data.page - 1) * data.per_page, data.page * data.per_page);
+					if (nav) {
+						renderPages(data.pages);
+					}
+					if (fromPager && root.getBoundingClientRect().top < 0 && root.scrollIntoView) {
+						root.scrollIntoView({ block: 'start' });
+					}
+				})
+				.catch(function () { /* Keep showing the last page. */ })
+				.then(function () {
+					if (id === requestId) {
+						root.removeAttribute('aria-busy');
+					}
+				});
 		}
 
 		function matches(row) {
@@ -113,6 +179,11 @@
 
 		// Filter (search, My balloons), then show one page of the matches.
 		function apply(fromPager) {
+			if (remote) {
+				fetchPage(fromPager);
+				return;
+			}
+
 			var list = rows.filter(matches);
 			var pages = perPage ? Math.max(1, Math.ceil(list.length / perPage)) : 1;
 
@@ -132,11 +203,7 @@
 				empty.hidden = list.length !== 0 || rows.length === 0;
 			}
 
-			if (summary) {
-				summary.textContent = list.length
-					? format(i18n.showing || 'Showing %1$s–%2$s of %3$s', number(start + 1), number(Math.min(end, list.length)), number(list.length))
-					: (i18n.none || 'No balloons to show');
-			}
+			showSummary(list.length, start, end);
 
 			if (nav) {
 				renderPages(pages);
@@ -151,7 +218,12 @@
 		if (input) {
 			input.addEventListener('input', function () {
 				page = 1;
-				apply(false);
+				if (remote) {
+					clearTimeout(searchTimer);
+					searchTimer = setTimeout(function () { apply(false); }, 250);
+				} else {
+					apply(false);
+				}
 			});
 		}
 
@@ -174,6 +246,17 @@
 				apply(false);
 			});
 		});
+
+		if (remote) {
+			// Page 1 came with the HTML: draw the page links, and only ask the server if a remembered size differs.
+			var total = parseInt(root.getAttribute('data-vbr-total'), 10) || 0;
+			if (perPage !== serverPerPage) {
+				apply(false);
+			} else if (nav) {
+				renderPages(Math.max(1, Math.ceil(total / (perPage || 100))));
+			}
+			return;
+		}
 
 		apply(false);
 	}
