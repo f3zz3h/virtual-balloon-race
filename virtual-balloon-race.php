@@ -3,7 +3,7 @@
  * Plugin Name:       Virtual Balloon Race
  * Plugin URI:        https://www.lumaha.uk/balloonrace/
  * Description:       Run a virtual balloon race fundraiser: sell entries through WooCommerce and watch the balloons drift across a live map on real winds.
- * Version:           1.13.0
+ * Version:           1.14.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Luke Hart
@@ -20,7 +20,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'VBR_VERSION', '1.13.0' );
+define( 'VBR_VERSION', '1.14.0' );
 define( 'VBR_DB_VERSION', '1.14.0' );
 define( 'VBR_PLUGIN_FILE', __FILE__ );
 define( 'VBR_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
