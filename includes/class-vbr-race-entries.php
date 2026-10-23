@@ -198,7 +198,8 @@ class VBR_Race_Entries {
 		if ( in_array( 'product', $types, true ) ) {
 			$hidden = self::hidden_product_ids();
 			if ( $hidden ) {
-				$args['post__not_in'] = array_merge( isset( $args['post__not_in'] ) ? (array) $args['post__not_in'] : array(), $hidden );
+				// A handful of entry product IDs at most, only while no race is planned for them.
+				$args['post__not_in'] = array_merge( isset( $args['post__not_in'] ) ? (array) $args['post__not_in'] : array(), $hidden ); // phpcs:ignore WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_post__not_in
 			}
 		}
 
