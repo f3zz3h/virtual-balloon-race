@@ -807,6 +807,37 @@ switch ( $stage ) {
 		wp_reset_query(); // phpcs:ignore WordPress.WP.DiscouragedFunctions.wp_reset_query_wp_reset_query
 		break;
 
+	// A logo the page says was chosen but that never arrived (themes that add to the basket with AJAX).
+	case 'logo-upload':
+		$before = get_option( VBR_Settings::OPTION, array() );
+		$settings( array( 'enable_logo' => 1 ) );
+		$check_upload = new ReflectionMethod( 'VBR_Monetization', 'check_logo_upload' );
+		$check_upload->setAccessible( true );
+		$monetization = new VBR_Monetization();
+
+		ob_start();
+		$monetization->output_fields();
+		$fields = ob_get_clean();
+		$check( false !== strpos( $fields, 'name="vbr_logo_chosen"' ), 'the logo field comes with the "picture chosen" flag' );
+
+		$_FILES = array();
+		$_POST  = array();
+		$check( null === $check_upload->invoke( $monetization ), 'no picture chosen and none sent: nothing to check' );
+		$_POST  = array( 'vbr_logo_chosen' => '1' );
+		$result = $check_upload->invoke( $monetization );
+		$check( is_wp_error( $result ) && 'vbr_logo_missing' === $result->get_error_code(), 'a picture chosen but not sent stops the add to cart with a message' );
+		$_FILES = array( 'vbr_logo' => array( 'name' => '', 'type' => '', 'tmp_name' => '', 'error' => UPLOAD_ERR_NO_FILE, 'size' => 0 ) );
+		$check( is_wp_error( $check_upload->invoke( $monetization ) ), 'the same when the file field is sent empty' );
+
+		$settings( array( 'enable_logo' => 0 ) );
+		$check( null === $check_upload->invoke( $monetization ), 'logos switched off: the flag is ignored' );
+
+		$_FILES = array();
+		$_POST  = array();
+		update_option( VBR_Settings::OPTION, $before );
+		VBR_Settings::flush_cache();
+		break;
+
 	// Whose balloons are whose: logged-in purchases and orders on the account, not typed-in emails.
 	case 'owners':
 		global $wpdb;
