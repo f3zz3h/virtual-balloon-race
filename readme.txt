@@ -5,7 +5,7 @@ Tags: fundraising, balloon race, charity, woocommerce, school
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.17.1
+Stable tag: 1.18.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -124,6 +124,10 @@ Used by the "search for a place" box when choosing a launch point (in Settings, 
 
 == Changelog ==
 
+= 1.18.0 =
+* New: each race can have its own movement settings (update interval, speed, helium multipliers, variance and burst chances) under Movement on its race screen. Blank boxes use the Settings value, so a short demo and a week-long race can run side by side.
+* Changed: automatic updates run as often as the most frequent race needs, and each race moves on its own interval. Without race settings, nothing changes.
+
 = 1.17.1 =
 * Fix: on themes that add products to the basket in the background (AJAX), a chosen logo was silently left out. The form now posts normally when a logo is chosen, and if the logo still doesn't arrive the buyer is told instead of losing it.
 * Changed: coding-standards tidy-up; every direct database query is on the plugin's own tables and now says so.
@@ -211,6 +215,9 @@ Used by the "search for a place" box when choosing a launch point (in Settings, 
 * New: race schedules (entries open, launch, end) and per-race sales.
 
 == Upgrade Notice ==
+
+= 1.18.0 =
+Races can now have their own update interval, speed and burst settings. Adds a database column (done automatically).
 
 = 1.17.1 =
 Fixes logos being lost on themes that add to the basket without reloading the page.
