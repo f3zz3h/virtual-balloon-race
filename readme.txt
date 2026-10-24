@@ -5,7 +5,7 @@ Tags: fundraising, balloon race, charity, woocommerce, school
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.17.0
+Stable tag: 1.17.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -124,6 +124,10 @@ Used by the "search for a place" box when choosing a launch point (in Settings, 
 
 == Changelog ==
 
+= 1.17.1 =
+* Fix: on themes that add products to the basket in the background (AJAX), a chosen logo was silently left out. The form now posts normally when a logo is chosen, and if the logo still doesn't arrive the buyer is told instead of losing it.
+* Changed: coding-standards tidy-up; every direct database query is on the plugin's own tables and now says so.
+
 = 1.17.0 =
 * New: big races (over 300 balloons) load a much lighter map: only the leaders' trails, the viewer's own and the selected balloon's, with other trails loaded when a balloon is clicked. A 5,000-balloon race drops from about 2.3 MB to 150 KB.
 * New: map refreshes that find nothing new are answered "not modified", saving data on every poll.
@@ -207,6 +211,9 @@ Used by the "search for a place" box when choosing a launch point (in Settings, 
 * New: race schedules (entries open, launch, end) and per-race sales.
 
 == Upgrade Notice ==
+
+= 1.17.1 =
+Fixes logos being lost on themes that add to the basket without reloading the page.
 
 = 1.17.0 =
 Much faster maps for races with hundreds or thousands of balloons.
