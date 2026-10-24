@@ -336,7 +336,7 @@ class VBR_Install {
 		global $wpdb;
 
 		$table    = VBR_Balloons::table();
-		$orphans  = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} WHERE race_id = 0" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$orphans  = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} WHERE race_id = 0" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- the plugin's own table.
 		$races    = VBR_Races::all();
 
 		if ( ! $orphans ) {
@@ -348,7 +348,7 @@ class VBR_Install {
 		} else {
 			$settings = get_option( VBR_Settings::OPTION, array() );
 			$launch   = VBR_Balloons::launch_point();
-			$first    = $wpdb->get_var( "SELECT MIN(created_at) FROM {$table}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$first    = $wpdb->get_var( "SELECT MIN(created_at) FROM {$table}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- the plugin's own table.
 			$first_ts = $first ? strtotime( get_gmt_from_date( $first ) . ' UTC' ) : time();
 			$end_gmt  = ! empty( $settings['race_end'] ) ? VBR_Races::local_input_to_gmt( $settings['race_end'] ) : null;
 
@@ -378,7 +378,7 @@ class VBR_Install {
 			}
 		}
 
-		$wpdb->query( $wpdb->prepare( "UPDATE {$table} SET race_id = %d WHERE race_id = 0", $race_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$wpdb->query( $wpdb->prepare( "UPDATE {$table} SET race_id = %d WHERE race_id = 0", $race_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- the plugin's own table.
 	}
 
 	/**
@@ -391,7 +391,7 @@ class VBR_Install {
 		$launch = VBR_Balloons::launch_point();
 
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$wpdb->query(
+		$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- the plugin's own table.
 			$wpdb->prepare(
 				"UPDATE {$table} SET start_lat = %f, start_lng = %f WHERE start_lat IS NULL OR start_lng IS NULL",
 				$launch['lat'],
@@ -399,14 +399,14 @@ class VBR_Install {
 			)
 		);
 
-		$rows = $wpdb->get_results( "SELECT id, start_lat, start_lng FROM {$table} WHERE latitude IS NULL OR longitude IS NULL" );
+		$rows = $wpdb->get_results( "SELECT id, start_lat, start_lng FROM {$table} WHERE latitude IS NULL OR longitude IS NULL" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- the plugin's own table.
 		// phpcs:enable
 
 		foreach ( (array) $rows as $row ) {
 			$lat = (float) $row->start_lat;
 			$lng = (float) $row->start_lng;
 
-			$wpdb->update(
+			$wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- the plugin's own table.
 				$table,
 				array(
 					'latitude'   => $lat,

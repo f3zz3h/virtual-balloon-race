@@ -111,7 +111,7 @@ class VBR_Races {
 
 		if ( ! array_key_exists( $id, self::$cache ) ) {
 			$table              = self::table();
-			self::$cache[ $id ] = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", $id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			self::$cache[ $id ] = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- the plugin's own table.
 		}
 
 		return self::$cache[ $id ];
@@ -126,7 +126,7 @@ class VBR_Races {
 		global $wpdb;
 
 		$table = self::table();
-		$rows  = (array) $wpdb->get_results( "SELECT * FROM {$table} ORDER BY launch_at DESC, id DESC" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$rows  = (array) $wpdb->get_results( "SELECT * FROM {$table} ORDER BY launch_at DESC, id DESC" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- the plugin's own table.
 
 		foreach ( $rows as $row ) {
 			self::$cache[ (int) $row->id ] = $row;
@@ -155,7 +155,7 @@ class VBR_Races {
 		}
 
 		$table = self::table();
-		$id    = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE slug = %s", sanitize_title( $ref ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$id    = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE slug = %s", sanitize_title( $ref ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- the plugin's own table.
 
 		return $id ? self::get( $id ) : null;
 	}
@@ -393,7 +393,7 @@ class VBR_Races {
 
 		$table = VBR_Balloons::table();
 
-		return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE race_id = %d", (int) $race_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE race_id = %d", (int) $race_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- the plugin's own table.
 	}
 
 	/**
@@ -460,10 +460,10 @@ class VBR_Races {
 		}
 
 		if ( $id ) {
-			$ok = $wpdb->update( self::table(), $row, array( 'id' => (int) $id ) );
+			$ok = $wpdb->update( self::table(), $row, array( 'id' => (int) $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- the plugin's own table.
 		} else {
 			$row['created_at'] = current_time( 'mysql', true );
-			$ok                = $wpdb->insert( self::table(), $row );
+			$ok                = $wpdb->insert( self::table(), $row ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- the plugin's own table.
 			$id                = (int) $wpdb->insert_id;
 		}
 
@@ -494,10 +494,10 @@ class VBR_Races {
 		}
 
 		$table = VBR_Balloons::table();
-		$ids   = $wpdb->get_col( $wpdb->prepare( "SELECT id FROM {$table} WHERE race_id = %d AND has_custom_start = 0", $race_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$ids   = $wpdb->get_col( $wpdb->prepare( "SELECT id FROM {$table} WHERE race_id = %d AND has_custom_start = 0", $race_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- the plugin's own table.
 
 		foreach ( $ids as $balloon_id ) {
-			$wpdb->update( $table, VBR_Balloons::start_columns( $race->launch_lat, $race->launch_lng ), array( 'id' => (int) $balloon_id ) );
+			$wpdb->update( $table, VBR_Balloons::start_columns( $race->launch_lat, $race->launch_lng ), array( 'id' => (int) $balloon_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- the plugin's own table.
 		}
 	}
 
@@ -517,7 +517,7 @@ class VBR_Races {
 		$slug  = $base;
 		$n     = 2;
 
-		while ( (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE slug = %s AND id <> %d", $slug, $id ) ) ) { // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		while ( (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$table} WHERE slug = %s AND id <> %d", $slug, $id ) ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- the plugin's own table.
 			$slug = $base . '-' . $n++;
 		}
 
@@ -538,7 +538,7 @@ class VBR_Races {
 			return;
 		}
 
-		$wpdb->update( self::table(), array( $column => gmdate( 'Y-m-d H:i:s', (int) $ts ) ), array( 'id' => (int) $id ) );
+		$wpdb->update( self::table(), array( $column => gmdate( 'Y-m-d H:i:s', (int) $ts ) ), array( 'id' => (int) $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- the plugin's own table.
 		self::flush();
 	}
 
@@ -555,7 +555,7 @@ class VBR_Races {
 			return new WP_Error( 'vbr_race_has_balloons', __( 'This race has balloons, so it can’t be deleted.', 'virtual-balloon-race' ) );
 		}
 
-		$wpdb->delete( self::table(), array( 'id' => (int) $id ), array( '%d' ) );
+		$wpdb->delete( self::table(), array( 'id' => (int) $id ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- the plugin's own table.
 		VBR_Teams::delete_for_race( $id );
 		VBR_Sponsors::delete_for_race( $id );
 		VBR_Prizes::delete_for_race( $id );

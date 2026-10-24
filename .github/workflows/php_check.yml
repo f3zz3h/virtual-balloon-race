@@ -44,14 +44,25 @@ jobs:
       - name: Check out repository code
         uses: actions/checkout@v7
 
-      # Errors fail the check; warnings (e.g. direct queries on the plugin's own tables) are reported only.
-      - name: WPCS
-        uses: arraystory/action-wpcs@9045bb523f173750aaa52ed08b7f0f932ee4a23b # v1
+      - name: Set up PHP 8.3
+        uses: shivammathur/setup-php@v2
         with:
-          php_version: 8.2
-          text_domain: virtual-balloon-race
-          minimum_php: 7.4
-          paths: .
+          php-version: '8.3'
+          coverage: none
+          tools: composer
+
+      - name: Cache Composer packages
+        uses: actions/cache@v6
+        with:
+          path: vendor
+          key: composer-${{ hashFiles('composer.lock') }}
+
+      - name: Install PHPCS and the WordPress standards
+        run: composer install --no-interaction --no-progress
+
+      # Rules are in phpcs.xml.dist. Errors and warnings both fail the check.
+      - name: WPCS
+        run: vendor/bin/phpcs
 
   phpstan:
     name: PHPStan

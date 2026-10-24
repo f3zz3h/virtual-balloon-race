@@ -35,7 +35,7 @@ function vbr_uninstall_site() {
 	}
 
 	foreach ( array( 'vbr_balloons', 'vbr_races', 'vbr_teams', 'vbr_sponsors', 'vbr_prizes', 'vbr_sponsor_stats' ) as $table ) {
-		$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}{$table}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.SchemaChange -- uninstall.
+		$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}{$table}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.SchemaChange -- uninstall.
 	}
 
 	// The plugin's options and cached wind data all start with vbr_; its two WooCommerce emails' settings with woocommerce_vbr_.

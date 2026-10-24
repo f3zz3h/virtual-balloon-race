@@ -97,7 +97,7 @@ class VBR_Teams {
 
 		$table = self::table();
 
-		return (array) $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE race_id = %d ORDER BY sort ASC, id ASC", (int) $race_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		return (array) $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE race_id = %d ORDER BY sort ASC, id ASC", (int) $race_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- the plugin's own table.
 	}
 
 	/**
@@ -129,7 +129,7 @@ class VBR_Teams {
 
 		$table = self::table();
 
-		return $id ? $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", (int) $id ) ) : null; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		return $id ? $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", (int) $id ) ) : null; // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- the plugin's own table.
 	}
 
 	/**
@@ -183,10 +183,10 @@ class VBR_Teams {
 			);
 
 			if ( $row['id'] && isset( $existing[ $row['id'] ] ) ) {
-				$wpdb->update( $table, $data, array( 'id' => $row['id'] ) );
+				$wpdb->update( $table, $data, array( 'id' => $row['id'] ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- the plugin's own table.
 				$kept[ $row['id'] ] = true;
 			} else {
-				$wpdb->insert( $table, $data );
+				$wpdb->insert( $table, $data ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- the plugin's own table.
 			}
 		}
 
@@ -200,7 +200,7 @@ class VBR_Teams {
 				$blocked[] = $team->name;
 				continue;
 			}
-			$wpdb->delete( $table, array( 'id' => $id ), array( '%d' ) );
+			$wpdb->delete( $table, array( 'id' => $id ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- the plugin's own table.
 		}
 
 		return $blocked;
@@ -223,7 +223,7 @@ class VBR_Teams {
 	public static function delete_for_race( $race_id ) {
 		global $wpdb;
 
-		$wpdb->delete( self::table(), array( 'race_id' => (int) $race_id ), array( '%d' ) );
+		$wpdb->delete( self::table(), array( 'race_id' => (int) $race_id ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- the plugin's own table.
 	}
 
 	/**
@@ -237,7 +237,7 @@ class VBR_Teams {
 
 		$table = VBR_Balloons::table();
 
-		return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE team_id = %d", (int) $team_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE team_id = %d", (int) $team_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- the plugin's own table.
 	}
 
 	/**
@@ -258,12 +258,12 @@ class VBR_Teams {
 		$method   = self::scoring( $race );
 		$column   = VBR_Races::ranking_column( $race );
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$rows = (array) $wpdb->get_results( $wpdb->prepare( "SELECT t.id, t.name, t.color, COUNT(b.id) AS balloons, COALESCE(SUM(b.{$column}), 0) AS total, COALESCE(AVG(b.{$column}), 0) AS average, COALESCE(MAX(b.{$column}), 0) AS best FROM {$teams} t LEFT JOIN {$balloons} b ON b.team_id = t.id AND b.race_id = t.race_id AND b.withdrawn_at IS NULL WHERE t.race_id = %d GROUP BY t.id, t.name, t.color, t.sort ORDER BY t.sort ASC, t.id ASC", (int) $race->id ) );
 
 		// Furthest balloon per team, for the "leading balloon" column.
 		$leaders = array();
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		foreach ( (array) $wpdb->get_results( $wpdb->prepare( "SELECT team_id, balloon_name FROM {$balloons} WHERE race_id = %d AND team_id > 0 AND withdrawn_at IS NULL ORDER BY {$column} DESC, id ASC", (int) $race->id ) ) as $b ) {
 			if ( ! isset( $leaders[ (int) $b->team_id ] ) ) {
 				$leaders[ (int) $b->team_id ] = $b->balloon_name;

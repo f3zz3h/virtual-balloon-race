@@ -237,7 +237,7 @@ class VBR_Balloons {
 		$race  = $race_id ? $wpdb->prepare( ' AND b.race_id = %d', $race_id ) : '';
 		$race .= $include_withdrawn ? '' : ' AND ' . self::active_sql( 'b' );
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- parts prepared above.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- parts prepared above.
 		return (array) $wpdb->get_results( "SELECT b.* FROM {$table} b LEFT JOIN {$races} r ON r.id = b.race_id WHERE {$where}{$race} ORDER BY r.launch_at DESC, b.id ASC" );
 	}
 
@@ -259,7 +259,7 @@ class VBR_Balloons {
 		$column = VBR_Races::ranking_column( $race );
 		$value  = self::ranked_distance( $balloon, $race );
 
-		return 1 + (int) $wpdb->get_var(
+		return 1 + (int) $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- the plugin's own table.
 			$wpdb->prepare(
 				"SELECT COUNT(*) FROM {$table} WHERE race_id = %d AND is_burst = 0 AND withdrawn_at IS NULL AND ( {$column} > %f OR ( {$column} = %f AND id < %d ) )", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				(int) $balloon->race_id,
@@ -301,7 +301,7 @@ class VBR_Balloons {
 
 		$table = self::table();
 
-		return (array) $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE order_id = %d ORDER BY id ASC", (int) $order_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		return (array) $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE order_id = %d ORDER BY id ASC", (int) $order_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- the plugin's own table.
 	}
 
 	/**
@@ -327,12 +327,12 @@ class VBR_Balloons {
 		global $wpdb;
 
 		$table = self::table();
-		$rows  = (array) $wpdb->get_results( "SELECT id, race_id, latitude, longitude, start_lat, start_lng FROM {$table} WHERE latitude IS NOT NULL AND longitude IS NOT NULL" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$rows  = (array) $wpdb->get_results( "SELECT id, race_id, latitude, longitude, start_lat, start_lng FROM {$table} WHERE latitude IS NOT NULL AND longitude IS NOT NULL" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- the plugin's own table.
 
 		foreach ( $rows as $row ) {
 			list( $lat, $lng ) = self::start_point( $row );
 
-			$wpdb->update(
+			$wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- the plugin's own table.
 				$table,
 				array( 'from_start_km' => round( VBR_Geo::distance_km( $lat, $lng, (float) $row->latitude, (float) $row->longitude ), 2 ) ),
 				array( 'id' => (int) $row->id ),
@@ -367,7 +367,7 @@ class VBR_Balloons {
 			$hours  = $launch && $end > $launch ? ( $end - $launch ) / HOUR_IN_SECONDS : 0;
 
 			if ( $hours > 0 ) {
-				$wpdb->query( $wpdb->prepare( "UPDATE {$table} SET flight_hours = %f WHERE race_id = %d AND distance_km > 0", $hours, (int) $race->id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$wpdb->query( $wpdb->prepare( "UPDATE {$table} SET flight_hours = %f WHERE race_id = %d AND distance_km > 0", $hours, (int) $race->id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- the plugin's own table.
 			}
 		}
 	}
@@ -420,7 +420,7 @@ class VBR_Balloons {
 
 		VBR_Race_Entries::flush_counts();
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $in is a list of integers.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $in is a list of integers.
 		return (int) $wpdb->query( $wpdb->prepare( "UPDATE {$table} SET withdrawn_at = %s, withdrawn_reason = %s WHERE id IN ({$in}) AND withdrawn_at IS NULL", current_time( 'mysql', true ), sanitize_key( $reason ) ) );
 	}
 
@@ -444,7 +444,7 @@ class VBR_Balloons {
 
 		VBR_Race_Entries::flush_counts();
 
-		return (int) $wpdb->query( "UPDATE {$table} SET withdrawn_at = NULL, withdrawn_reason = '' WHERE id IN ({$in}) AND withdrawn_at IS NOT NULL" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		return (int) $wpdb->query( "UPDATE {$table} SET withdrawn_at = NULL, withdrawn_reason = '' WHERE id IN ({$in}) AND withdrawn_at IS NOT NULL" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- the plugin's own table.
 	}
 
 	/**
@@ -456,11 +456,11 @@ class VBR_Balloons {
 		$table    = self::table();
 		$itemmeta = $wpdb->prefix . 'woocommerce_order_itemmeta';
 
-		if ( $itemmeta !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $itemmeta ) ) ) {
+		if ( $itemmeta !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $itemmeta ) ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- checks WooCommerce's order item table exists (one-off upgrade).
 			return;
 		}
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names only.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names only.
 		$wpdb->query( "UPDATE {$table} b INNER JOIN {$itemmeta} m ON m.meta_key = '_vbr_balloon_id' AND m.meta_value = b.id SET b.order_item_id = m.order_item_id WHERE b.order_item_id = 0" );
 	}
 }

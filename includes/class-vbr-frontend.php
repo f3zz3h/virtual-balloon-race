@@ -152,7 +152,7 @@ class VBR_Frontend {
 			$rows     = self::leaderboard_page( $race, 1, $per_page, '' )['rows'];
 		} elseif ( $race ) {
 			// Every flying balloon is rendered so search covers the whole race; the script pages them (rows past the first page start hidden).
-			$rows = $wpdb->get_results(
+			$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- the plugin's own table.
 				$wpdb->prepare(
 					"SELECT * FROM {$table} WHERE is_burst = 0 AND withdrawn_at IS NULL AND race_id = %d ORDER BY {$order} DESC, id ASC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 					(int) $race->id
@@ -391,7 +391,7 @@ class VBR_Frontend {
 
 		$table = VBR_Balloons::table();
 		$order = VBR_Races::ranking_column( $race );
-		$ids   = array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare( "SELECT id FROM {$table} WHERE is_burst = 0 AND withdrawn_at IS NULL AND race_id = %d ORDER BY {$order} DESC, id ASC", (int) $race->id ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$ids   = array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare( "SELECT id FROM {$table} WHERE is_burst = 0 AND withdrawn_at IS NULL AND race_id = %d ORDER BY {$order} DESC, id ASC", (int) $race->id ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- the plugin's own table.
 
 		return $ids ? array_combine( $ids, range( 1, count( $ids ) ) ) : array();
 	}
@@ -422,7 +422,7 @@ class VBR_Frontend {
 
 		if ( '' !== $query && $ids ) {
 			$teams = VBR_Teams::by_id( $race );
-			$light = $wpdb->get_results( $wpdb->prepare( "SELECT id, race_id, balloon_name, owner_name, team_id FROM {$table} WHERE race_id = %d", (int) $race->id ), OBJECT_K ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$light = $wpdb->get_results( $wpdb->prepare( "SELECT id, race_id, balloon_name, owner_name, team_id FROM {$table} WHERE race_id = %d", (int) $race->id ), OBJECT_K ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- the plugin's own table.
 			$ids   = array_values(
 				array_filter(
 					$ids,
@@ -446,7 +446,7 @@ class VBR_Frontend {
 		$rows     = array();
 
 		if ( $slice ) {
-			$found = $wpdb->get_results( "SELECT * FROM {$table} WHERE id IN (" . implode( ',', $slice ) . ')', OBJECT_K ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- integer IDs.
+			$found = $wpdb->get_results( "SELECT * FROM {$table} WHERE id IN (" . implode( ',', $slice ) . ')', OBJECT_K ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- integer IDs.
 			foreach ( $slice as $id ) {
 				if ( isset( $found[ $id ] ) ) {
 					$rows[] = $found[ $id ];

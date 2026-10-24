@@ -252,7 +252,7 @@ class VBR_Race_Entries {
 		}
 
 		$table = VBR_Balloons::table();
-		$taken = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE race_id = %d AND withdrawn_at IS NULL", $id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$taken = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE race_id = %d AND withdrawn_at IS NULL", $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- the plugin's own table.
 
 		if ( function_exists( 'wc_get_orders' ) ) {
 			// This visitor's own order awaiting payment is already their basket: don't count it twice.

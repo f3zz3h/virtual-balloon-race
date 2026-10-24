@@ -379,7 +379,7 @@ class VBR_WooCommerce {
 				 */
 				$row = apply_filters( 'vbr_new_balloon_row', $row, $item, $order );
 
-				$inserted = $wpdb->insert( $table, $row );
+				$inserted = $wpdb->insert( $table, $row ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- the plugin's own table.
 
 				if ( false !== $inserted && 0 === $i ) {
 					wc_add_order_item_meta( $item_id, '_vbr_balloon_id', (int) $wpdb->insert_id, true );

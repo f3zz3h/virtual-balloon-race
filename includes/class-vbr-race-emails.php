@@ -130,7 +130,7 @@ class VBR_Race_Emails {
 		global $wpdb;
 
 		$table = VBR_Balloons::table();
-		$rows  = (array) $wpdb->get_col( $wpdb->prepare( "SELECT DISTINCT LOWER(owner_email) FROM {$table} WHERE race_id = %d AND withdrawn_at IS NULL AND owner_email <> ''", $race_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$rows  = (array) $wpdb->get_col( $wpdb->prepare( "SELECT DISTINCT LOWER(owner_email) FROM {$table} WHERE race_id = %d AND withdrawn_at IS NULL AND owner_email <> ''", $race_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- the plugin's own table.
 
 		return array_values( array_filter( $rows, 'is_email' ) );
 	}
@@ -175,10 +175,10 @@ class VBR_Race_Emails {
 
 		$table   = VBR_Balloons::table();
 		$order   = VBR_Races::ranking_column( $race );
-		$rows    = (array) $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE race_id = %d AND withdrawn_at IS NULL AND LOWER(owner_email) = %s ORDER BY {$order} DESC, id ASC", (int) $race->id, strtolower( $email ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$rows    = (array) $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE race_id = %d AND withdrawn_at IS NULL AND LOWER(owner_email) = %s ORDER BY {$order} DESC, id ASC", (int) $race->id, strtolower( $email ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- the plugin's own table.
 		$teams   = VBR_Teams::by_id( $race );
 		$ranks   = array();
-		$entries = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE race_id = %d AND withdrawn_at IS NULL AND is_burst = 0", (int) $race->id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$entries = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE race_id = %d AND withdrawn_at IS NULL AND is_burst = 0", (int) $race->id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- the plugin's own table.
 
 		if ( $teams ) {
 			foreach ( VBR_Teams::standings( $race ) as $standing ) {
@@ -249,8 +249,8 @@ class VBR_Race_Emails {
 		$now   = gmdate( 'Y-m-d H:i:s' );
 
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name only.
-		$wpdb->query( $wpdb->prepare( "UPDATE {$table} SET launch_email_sent_at = %s WHERE launch_email_sent_at IS NULL AND launch_at <= %s", $now, $now ) );
-		$wpdb->query( $wpdb->prepare( "UPDATE {$table} SET results_email_sent_at = %s WHERE results_email_sent_at IS NULL AND end_at IS NOT NULL AND end_at <= %s", $now, $now ) );
+		$wpdb->query( $wpdb->prepare( "UPDATE {$table} SET launch_email_sent_at = %s WHERE launch_email_sent_at IS NULL AND launch_at <= %s", $now, $now ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- the plugin's own table.
+		$wpdb->query( $wpdb->prepare( "UPDATE {$table} SET results_email_sent_at = %s WHERE results_email_sent_at IS NULL AND end_at IS NOT NULL AND end_at <= %s", $now, $now ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- the plugin's own table.
 		// phpcs:enable
 		VBR_Races::flush();
 	}

@@ -139,7 +139,7 @@ class VBR_Sponsor_Stats {
 
 		$ids      = array_unique( wp_list_pluck( $pairs, 0 ) );
 		$table    = VBR_Sponsors::table();
-		$sponsors = $wpdb->get_results( "SELECT id, placements FROM {$table} WHERE id IN (" . implode( ',', array_map( 'intval', $ids ) ) . ')', OBJECT_K ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- integer IDs.
+		$sponsors = $wpdb->get_results( "SELECT id, placements FROM {$table} WHERE id IN (" . implode( ',', array_map( 'intval', $ids ) ) . ')', OBJECT_K ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- integer IDs.
 		$stats    = self::table();
 		$counted  = 0;
 
@@ -154,7 +154,7 @@ class VBR_Sponsor_Stats {
 				continue;
 			}
 
-			$wpdb->query( $wpdb->prepare( "INSERT INTO {$stats} (sponsor_id, placement, {$column}) VALUES (%d, %s, 1) ON DUPLICATE KEY UPDATE {$column} = {$column} + 1", $id, $placement ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$wpdb->query( $wpdb->prepare( "INSERT INTO {$stats} (sponsor_id, placement, {$column}) VALUES (%d, %s, 1) ON DUPLICATE KEY UPDATE {$column} = {$column} + 1", $id, $placement ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- the plugin's own table.
 			++$counted;
 		}
 
@@ -172,7 +172,7 @@ class VBR_Sponsor_Stats {
 
 		$stats    = self::table();
 		$sponsors = VBR_Sponsors::table();
-		$rows     = (array) $wpdb->get_results( $wpdb->prepare( "SELECT s.sponsor_id, s.placement, s.views, s.clicks FROM {$stats} s INNER JOIN {$sponsors} p ON p.id = s.sponsor_id WHERE p.race_id = %d", (int) $race_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$rows     = (array) $wpdb->get_results( $wpdb->prepare( "SELECT s.sponsor_id, s.placement, s.views, s.clicks FROM {$stats} s INNER JOIN {$sponsors} p ON p.id = s.sponsor_id WHERE p.race_id = %d", (int) $race_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- the plugin's own table.
 		$out      = array();
 
 		foreach ( $rows as $row ) {
@@ -209,7 +209,7 @@ class VBR_Sponsor_Stats {
 		$ids = array_filter( array_map( 'intval', (array) $sponsor_ids ) );
 
 		if ( $ids ) {
-			$wpdb->query( 'DELETE FROM ' . self::table() . ' WHERE sponsor_id IN (' . implode( ',', $ids ) . ')' ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- integer IDs.
+			$wpdb->query( 'DELETE FROM ' . self::table() . ' WHERE sponsor_id IN (' . implode( ',', $ids ) . ')' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- integer IDs.
 		}
 	}
 
