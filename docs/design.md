@@ -44,7 +44,7 @@ Help text notes that WP-Cron needs site traffic (or a real system cron) for 5-mi
 
 **Burst chance scales with interval.** Rates are stored per day and converted per tick: `p_tick = 1 - (1 - daily_rate) ^ (interval_seconds / 86400)` (≈ `daily_rate * interval/86400` for small values). Five-minute ticks no longer wipe out Max Height balloons.
 
-**Scheduling.** Custom WP-Cron schedules `vbr_5min`, `vbr_30min`, `vbr_6hours` (plus core `hourly`, `daily`). Prefer WooCommerce **Action Scheduler** when `as_schedule_recurring_action` exists; otherwise WP-Cron. On settings save: unschedule both, reschedule at the new interval. On deactivation: unschedule. A transient lock stops overlapping ticks.
+**Scheduling.** Custom WP-Cron schedules `vbr_5min`, `vbr_30min`, `vbr_6hours` (plus core `hourly`, `daily`). Prefer WooCommerce **Action Scheduler** when `as_schedule_recurring_action` exists; otherwise WP-Cron. Races can override the interval and other movement settings (a `movement` JSON column; blank = Settings). The job runs at the shortest interval of any unfinished race (else the Settings interval), and each race ticks only when its own interval is due (half a run early counts; the end time is always caught up). On settings save, race save or delete: unschedule both, reschedule at that interval. On deactivation: unschedule. A transient lock stops overlapping ticks.
 
 **Manual Advance** on the leaderboard page stays and calls the same tick, simulating N hours [the current interval, or 1 hour if Off]. An optional **min/max km override** remains for event-day control.
 

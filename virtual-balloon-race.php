@@ -21,7 +21,7 @@
 defined( 'ABSPATH' ) || exit;
 
 define( 'VBR_VERSION', '1.17.1' );
-define( 'VBR_DB_VERSION', '1.16.0' );
+define( 'VBR_DB_VERSION', '1.17.0' );
 define( 'VBR_PLUGIN_FILE', __FILE__ );
 define( 'VBR_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'VBR_PLUGIN_URL', plugin_dir_url( __FILE__ ) );

@@ -370,7 +370,7 @@ class VBR_Admin {
 
 				<?php if ( VBR_Races::FLYING === $status ) : ?>
 					<?php
-					$interval      = VBR_Settings::interval_seconds();
+					$interval      = VBR_Races::interval_seconds( $race );
 					$default_hours = $interval ? round( $interval / HOUR_IN_SECONDS, 2 ) : 1;
 					?>
 					<p><?php esc_html_e( 'Move every active balloon in this race now, using the same wind and speed rules as automatic updates. Burst chances scale with the hours simulated.', 'virtual-balloon-race' ); ?></p>
@@ -526,8 +526,9 @@ class VBR_Admin {
 	 */
 	private function render_schedule_summary( $race ) {
 		$labels  = VBR_Settings::interval_labels();
-		$slug    = (string) VBR_Settings::get( 'interval' );
-		$next    = VBR_Cron::next_run();
+		$own     = VBR_Races::movement_overrides( $race );
+		$slug    = (string) VBR_Races::movement( $race )['interval'];
+		$next    = VBR_Cron::next_for_race( $race );
 		$last    = VBR_Cron::last_summary( $race->id );
 		$format  = get_option( 'date_format' ) . ' ' . get_option( 'time_format' );
 		$setting = admin_url( 'admin.php?page=' . VBR_Settings::PAGE );
@@ -535,7 +536,12 @@ class VBR_Admin {
 		echo '<ul class="vbr-schedule-summary">';
 
 		echo '<li><strong>' . esc_html__( 'Automatic updates:', 'virtual-balloon-race' ) . '</strong> ' . esc_html( isset( $labels[ $slug ] ) ? $labels[ $slug ] : $slug );
-		echo ' &middot; <a href="' . esc_url( $setting ) . '">' . esc_html__( 'Change', 'virtual-balloon-race' ) . '</a></li>';
+		if ( isset( $own['interval'] ) ) {
+			echo ' ' . esc_html__( '(this race)', 'virtual-balloon-race' );
+		} else {
+			echo ' ' . esc_html__( '(site default)', 'virtual-balloon-race' ) . ' &middot; <a href="' . esc_url( $setting ) . '">' . esc_html__( 'Change', 'virtual-balloon-race' ) . '</a>';
+		}
+		echo '</li>';
 
 		if ( $next && VBR_Races::FLYING === VBR_Races::status( $race ) ) {
 			echo '<li><strong>' . esc_html__( 'Next update:', 'virtual-balloon-race' ) . '</strong> ' . esc_html( wp_date( $format, $next ) ) . '</li>';

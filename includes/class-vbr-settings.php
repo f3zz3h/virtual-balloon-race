@@ -76,7 +76,7 @@ class VBR_Settings {
 		return array(
 			// Race movement.
 			'flight_mode'       => array( 'section' => 'race', 'type' => 'modes', 'default' => 'soar', 'label' => __( 'Flight mode', 'virtual-balloon-race' ), 'help' => __( 'How quickly balloons lose lift, and so how far a race goes. Each race can choose its own.', 'virtual-balloon-race' ) ),
-			'interval'          => array( 'section' => 'race', 'type' => 'select', 'default' => 'off', 'label' => __( 'Auto-update interval', 'virtual-balloon-race' ), 'options' => self::interval_labels(), 'help' => __( 'How often balloons move. Scheduled updates run via WooCommerce Action Scheduler (or WP-Cron), which only fires when the site gets traffic. For accurate 5-minute updates, set up a real system cron.', 'virtual-balloon-race' ) ),
+			'interval'          => array( 'section' => 'race', 'type' => 'select', 'default' => 'off', 'label' => __( 'Auto-update interval', 'virtual-balloon-race' ), 'options' => self::interval_labels(), 'help' => __( 'How often balloons move. Scheduled updates run via WooCommerce Action Scheduler (or WP-Cron), which only fires when the site gets traffic. For accurate 5-minute updates, set up a real system cron. This and the settings below are defaults: each race can change them on its race screen, under Movement.', 'virtual-balloon-race' ) ),
 			'base_kmh'          => array( 'section' => 'race', 'type' => 'number', 'default' => 35, 'min' => 0, 'max' => 300, 'step' => 0.1, 'label' => __( 'Base speed (km/h)', 'virtual-balloon-race' ), 'help' => __( 'Average drift speed. Distance per update = speed × hours since the last update × helium × wind × variance.', 'virtual-balloon-race' ) ),
 			'mult_eco'          => array( 'section' => 'race', 'type' => 'number', 'default' => 0.7, 'min' => 0, 'max' => 5, 'step' => 0.01, 'label' => __( 'Eco-Glide multiplier', 'virtual-balloon-race' ) ),
 			'mult_balanced'     => array( 'section' => 'race', 'type' => 'number', 'default' => 1.0, 'min' => 0, 'max' => 5, 'step' => 0.01, 'label' => __( 'Balanced multiplier', 'virtual-balloon-race' ) ),
@@ -194,6 +194,55 @@ class VBR_Settings {
 		$slug      = self::get( 'interval' );
 
 		return isset( $intervals[ $slug ] ) ? (int) $intervals[ $slug ] : 0;
+	}
+
+	/**
+	 * Settings each race can override: Race movement and Bursts (flight mode has its own race field).
+	 *
+	 * @return string[]
+	 */
+	public static function movement_keys() {
+		$keys = array();
+
+		foreach ( self::fields() as $key => $field ) {
+			if ( in_array( $field['section'], array( 'race', 'burst' ), true ) && 'flight_mode' !== $key ) {
+				$keys[] = $key;
+			}
+		}
+
+		return $keys;
+	}
+
+	/**
+	 * Clean a race's movement overrides: blank or invalid values are dropped (they use the site setting).
+	 *
+	 * @param mixed $input Key => value.
+	 * @return array
+	 */
+	public static function clean_movement( $input ) {
+		$input  = is_array( $input ) ? $input : array();
+		$fields = self::fields();
+		$output = array();
+
+		foreach ( self::movement_keys() as $key ) {
+			if ( ! isset( $input[ $key ] ) || '' === $input[ $key ] ) {
+				continue;
+			}
+
+			$field = $fields[ $key ];
+			$raw   = $input[ $key ];
+
+			if ( 'select' === $field['type'] ) {
+				$raw = sanitize_key( (string) $raw );
+				if ( array_key_exists( $raw, $field['options'] ) ) {
+					$output[ $key ] = $raw;
+				}
+			} elseif ( is_numeric( $raw ) ) {
+				$output[ $key ] = min( (float) $field['max'], max( (float) $field['min'], (float) $raw ) );
+			}
+		}
+
+		return $output;
 	}
 
 	/**

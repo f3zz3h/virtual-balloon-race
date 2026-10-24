@@ -105,6 +105,9 @@ wp eval-file "$CHECKS" big-leaderboard
 stage "Scenario A: big races send the map lighter data"
 wp eval-file "$CHECKS" light-map
 
+stage "Scenario A: each race's own movement settings"
+wp eval-file "$CHECKS" race-movement
+
 stage "Scenario A: updates from GitHub releases"
 wp eval-file "$CHECKS" github-updates
 

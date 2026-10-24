@@ -131,6 +131,56 @@ class VBR_Admin_Races {
 	}
 
 	/**
+	 * Movement settings this race can change: blank uses the site setting, shown as the placeholder.
+	 *
+	 * @param array $movement The race's own values (key => value).
+	 */
+	private static function render_movement_panel( $movement ) {
+		$fields = VBR_Settings::fields();
+		$site   = VBR_Settings::all();
+		?>
+		<section class="vbr-admin-panel vbr-race-movement">
+			<details<?php echo $movement ? ' open' : ''; ?>>
+				<summary><h2><?php esc_html_e( 'Movement', 'virtual-balloon-race' ); ?></h2></summary>
+				<p class="description">
+					<?php esc_html_e( 'How often this race updates, how fast its balloons fly and how often they burst. Leave a box blank to use the site setting (shown in grey), so a short demo and a week-long race can run side by side.', 'virtual-balloon-race' ); ?>
+					<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . VBR_Settings::PAGE ) ); ?>"><?php esc_html_e( 'Site settings', 'virtual-balloon-race' ); ?></a>
+				</p>
+				<table class="form-table" role="presentation">
+					<?php
+					foreach ( VBR_Settings::movement_keys() as $key ) :
+						$field = $fields[ $key ];
+						$id    = 'vbr_race_movement_' . $key;
+						$value = isset( $movement[ $key ] ) ? (string) $movement[ $key ] : '';
+						?>
+						<tr>
+							<th scope="row"><label for="<?php echo esc_attr( $id ); ?>"><?php echo esc_html( $field['label'] ); ?></label></th>
+							<td>
+								<?php if ( 'select' === $field['type'] ) : ?>
+									<select id="<?php echo esc_attr( $id ); ?>" name="vbr_race[movement][<?php echo esc_attr( $key ); ?>]">
+										<option value="">
+											<?php
+											/* translators: %s: the site setting */
+											echo esc_html( sprintf( __( 'Default (%s)', 'virtual-balloon-race' ), $field['options'][ $site[ $key ] ] ?? $site[ $key ] ) );
+											?>
+										</option>
+										<?php foreach ( $field['options'] as $option => $label ) : ?>
+											<option value="<?php echo esc_attr( $option ); ?>" <?php selected( $value, (string) $option ); ?>><?php echo esc_html( $label ); ?></option>
+										<?php endforeach; ?>
+									</select>
+								<?php else : ?>
+									<input type="number" class="small-text" id="<?php echo esc_attr( $id ); ?>" name="vbr_race[movement][<?php echo esc_attr( $key ); ?>]" value="<?php echo esc_attr( $value ); ?>" min="<?php echo esc_attr( (string) $field['min'] ); ?>" max="<?php echo esc_attr( (string) $field['max'] ); ?>" step="<?php echo esc_attr( (string) $field['step'] ); ?>" placeholder="<?php echo esc_attr( (string) $site[ $key ] ); ?>" />
+								<?php endif; ?>
+							</td>
+						</tr>
+					<?php endforeach; ?>
+				</table>
+			</details>
+		</section>
+		<?php
+	}
+
+	/**
 	 * Save the add/edit form.
 	 *
 	 * @param int $id Race ID (0 = new).
@@ -151,6 +201,7 @@ class VBR_Admin_Races {
 			'ranking'       => isset( $in['ranking'] ) ? sanitize_key( $in['ranking'] ) : VBR_Races::FROM_START,
 			'flight_mode'   => isset( $in['flight_mode'] ) ? sanitize_key( $in['flight_mode'] ) : '',
 			'entry_limit'   => isset( $in['entry_limit'] ) ? absint( $in['entry_limit'] ) : 0,
+			'movement'      => isset( $in['movement'] ) && is_array( $in['movement'] ) ? array_map( 'sanitize_text_field', $in['movement'] ) : array(),
 		);
 
 		if ( VBR_Teams::enabled() ) {
@@ -530,11 +581,15 @@ class VBR_Admin_Races {
 		);
 
 		// Re-fill after a validation error.
+		$typed = null;
 		$saved = get_transient( 'vbr_race_form_' . get_current_user_id() );
 		if ( is_array( $saved ) ) {
 			delete_transient( 'vbr_race_form_' . get_current_user_id() );
 			$values = array_merge( $values, array_map( 'sanitize_text_field', array_intersect_key( $saved, $values ) ) );
+			$typed  = isset( $saved['movement'] ) && is_array( $saved['movement'] ) ? $saved['movement'] : array();
 		}
+
+		$movement = is_array( $typed ) ? array_map( 'sanitize_text_field', $typed ) : VBR_Races::movement_overrides( $race );
 
 		$count = $id ? VBR_Races::balloon_count( $id ) : 0;
 		?>
@@ -624,6 +679,8 @@ class VBR_Admin_Races {
 					</tr>
 				</table>
 			</section>
+
+			<?php self::render_movement_panel( $movement ); ?>
 
 			<section class="vbr-admin-panel">
 				<h2><?php esc_html_e( 'Launch point', 'virtual-balloon-race' ); ?></h2>
