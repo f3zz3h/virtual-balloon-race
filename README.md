@@ -372,6 +372,5 @@ wp vbr demo --balloons=10
 How it works and why: [docs/design.md](docs/design.md). Before a real race: [docs/race-day-checklist.md](docs/race-day-checklist.md). Plans, bugs and ideas are tracked in [GitHub Issues](https://github.com/f3zz3h/virtual-balloon-race/issues) (milestones: **Ready for wider use**, **WordPress.org listing**). Not built yet:
 
 - Movement settings (speed, interval, bursts) apply to all races, not per race
-- Logo upload needs the standard product form (themes using AJAX add-to-cart on single products won't send the file)
 - Balloons can drift over sea; there's no land awareness
 - Wind is the 10 m wind speed and direction only (no gusts, rain or altitude bands)

@@ -105,7 +105,7 @@ On balloon products, alongside the existing name / colour / strategy fields:
 
 - Add-on prices come from Settings and are applied in `woocommerce_before_calculate_totals`; cart lines show each add-on with its price.
 - Custom launch lat/lng is validated (range, numeric) and stored on the cart item → order item meta → `start_lat/start_lng`.
-- **Logo:** PNG/JPG/WebP, max 1 MB. Handled on add-to-cart with `media_handle_upload` (`test_form => false`, restricted `mimes`), real type checked with `wp_check_filetype_and_ext` / `getimagesize` — never trust the browser's MIME. Attachment ID flows cart item → order item meta → `logo_attachment_id`. Uploads are tagged `_vbr_logo_upload`; ones never ordered are deleted after 7 days. Needs the standard (non-AJAX) product form, which WooCommerce sends as `multipart/form-data`.
+- **Logo:** PNG/JPG/WebP, max 1 MB. Handled on add-to-cart with `media_handle_upload` (`test_form => false`, restricted `mimes`), real type checked with `wp_check_filetype_and_ext` / `getimagesize` — never trust the browser's MIME. Attachment ID flows cart item → order item meta → `logo_attachment_id`. Uploads are tagged `_vbr_logo_upload`; ones never ordered are deleted after 7 days. Needs the standard product form, sent as `multipart/form-data`: AJAX add to cart can't send files, so once a picture is chosen `product.js` stops click and submit events at the window (capture phase) before a theme's AJAX handlers see them, and the form posts normally. A hidden `vbr_logo_chosen` flag catches anything that still sends the form without the file: add to cart is refused with a message instead of dropping the logo.
 - Each upsell can be switched off in Settings.
 
 ## 7. Multisite

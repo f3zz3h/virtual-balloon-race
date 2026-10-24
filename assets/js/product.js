@@ -169,7 +169,40 @@
 
 	function initLogo(input) {
 		var preview = input.parentNode.querySelector('.vbr-addon__preview');
+		var chosen = input.parentNode.querySelector('input[name="vbr_logo_chosen"]');
 		var allowed = ['image/png', 'image/jpeg', 'image/webp'];
+		var form = input.form;
+
+		function hasFile() {
+			return !!(input.files && input.files.length);
+		}
+
+		// Tells the server a picture should be arriving, so a lost file is reported, not silently dropped.
+		function mark() {
+			if (chosen) {
+				chosen.value = hasFile() ? '1' : '';
+			}
+		}
+
+		// Some themes add to the basket in the background (AJAX), which can't send files. With a
+		// picture chosen, keep their handlers out of the way so the form posts normally.
+		if (form) {
+			form.setAttribute('method', 'post');
+			form.setAttribute('enctype', 'multipart/form-data');
+
+			window.addEventListener('click', function (e) {
+				var button = e.target && e.target.closest ? e.target.closest('button, input[type="submit"]') : null;
+				if (hasFile() && button && button.form === form && button.type === 'submit') {
+					e.stopImmediatePropagation();
+				}
+			}, true);
+			window.addEventListener('submit', function (e) {
+				if (hasFile() && e.target === form) {
+					e.stopImmediatePropagation();
+				}
+			}, true);
+		}
+		mark();
 
 		// Without the big preview, draw the picture on a small balloon under the upload field.
 		if (preview && !document.querySelector('[data-vbr-preview]')) {
@@ -186,6 +219,7 @@
 		input.addEventListener('change', function () {
 			var file = input.files && input.files[0];
 
+			mark();
 			input.setCustomValidity('');
 			if (look.logo && window.URL && URL.revokeObjectURL) {
 				URL.revokeObjectURL(look.logo);

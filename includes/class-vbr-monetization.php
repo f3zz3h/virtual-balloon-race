@@ -13,6 +13,7 @@ defined( 'ABSPATH' ) || exit;
 class VBR_Monetization {
 
 	const LOGO_FIELD     = 'vbr_logo';
+	const LOGO_CHOSEN    = 'vbr_logo_chosen';
 	const LOGO_MAX_BYTES = 1048576; // 1 MB.
 
 	/**
@@ -201,6 +202,7 @@ class VBR_Monetization {
 					<?php endif; ?>
 				</label>
 				<input type="file" id="vbr_logo" name="<?php echo esc_attr( self::LOGO_FIELD ); ?>" accept="image/png,image/jpeg,image/webp" />
+				<input type="hidden" name="<?php echo esc_attr( self::LOGO_CHOSEN ); ?>" value="" />
 				<p class="vbr-addon__help"><?php esc_html_e( 'Shown on your balloon on the race map. PNG, JPG or WebP, up to 1 MB.', 'virtual-balloon-race' ); ?></p>
 				<span class="vbr-addon__preview" role="img" aria-label="<?php esc_attr_e( 'Preview of your balloon', 'virtual-balloon-race' ); ?>" hidden></span>
 			</div>
@@ -248,14 +250,19 @@ class VBR_Monetization {
 	 * @return true|null|WP_Error True if valid, null if none uploaded.
 	 */
 	private function check_logo_upload() {
-		if ( ! VBR_Settings::get( 'enable_logo' ) || empty( $_FILES[ self::LOGO_FIELD ] ) || ! is_array( $_FILES[ self::LOGO_FIELD ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( ! VBR_Settings::get( 'enable_logo' ) ) {
 			return null;
 		}
 
-		$file  = $_FILES[ self::LOGO_FIELD ]; // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$file  = isset( $_FILES[ self::LOGO_FIELD ] ) && is_array( $_FILES[ self::LOGO_FIELD ] ) ? $_FILES[ self::LOGO_FIELD ] : array(); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 		$error = isset( $file['error'] ) ? (int) $file['error'] : UPLOAD_ERR_NO_FILE;
 
 		if ( UPLOAD_ERR_NO_FILE === $error ) {
+			// The page said a picture was chosen but no file came: something (usually a theme's
+			// background add to cart) sent the form without it. Say so rather than drop the logo.
+			if ( ! empty( $_POST[ self::LOGO_CHOSEN ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+				return new WP_Error( 'vbr_logo_missing', __( 'Your logo didn’t come through, so the balloon wasn’t added. Please try again, or remove the picture to continue without one.', 'virtual-balloon-race' ) );
+			}
 			return null;
 		}
 
