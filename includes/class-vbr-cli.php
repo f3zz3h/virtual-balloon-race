@@ -51,8 +51,8 @@ class VBR_CLI {
 				),
 			);
 		} else {
-			if ( ! VBR_Settings::interval_seconds() ) {
-				WP_CLI::warning( 'Automatic updates are off in Settings, so nothing moved. Use --race and --hours to move a race by hand.' );
+			if ( ! VBR_Cron::schedule_seconds() ) {
+				WP_CLI::warning( 'Automatic updates are off in Settings and for every race, so nothing moved. Use --race and --hours to move a race by hand.' );
 				return;
 			}
 			$results = VBR_Cron::run_scheduled();
@@ -102,12 +102,13 @@ class VBR_CLI {
 	public function status() {
 		$next = VBR_Cron::next_run();
 
-		WP_CLI::line( 'Interval:    ' . VBR_Settings::get( 'interval' ) );
+		WP_CLI::line( 'Interval:    ' . VBR_Settings::get( 'interval' ) . ' (site default; runs every ' . (int) ( VBR_Cron::schedule_seconds() / MINUTE_IN_SECONDS ) . ' min for the races)' );
 		WP_CLI::line( 'Next run:    ' . ( $next ? wp_date( 'Y-m-d H:i:s', $next ) : 'not scheduled' ) );
 		WP_CLI::line( 'Scheduler:   ' . ( function_exists( 'as_schedule_recurring_action' ) ? 'Action Scheduler' : 'WP-Cron' ) );
 
 		foreach ( VBR_Races::all() as $race ) {
-			WP_CLI::line( sprintf( 'Race %d (%s, %s): last tick %s', $race->id, $race->name, VBR_Races::status_label( $race ), wp_json_encode( VBR_Cron::last_summary( $race->id ) ) ) );
+			$own = VBR_Races::movement_overrides( $race );
+			WP_CLI::line( sprintf( 'Race %d (%s, %s): interval %s, own settings %s, last tick %s', $race->id, $race->name, VBR_Races::status_label( $race ), VBR_Races::movement( $race )['interval'], $own ? wp_json_encode( $own ) : 'none', wp_json_encode( VBR_Cron::last_summary( $race->id ) ) ) );
 		}
 	}
 

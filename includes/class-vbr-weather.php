@@ -45,7 +45,7 @@ class VBR_Weather {
 	 * @return int
 	 */
 	private static function ttl() {
-		$interval = VBR_Settings::interval_seconds();
+		$interval = VBR_Cron::schedule_seconds();
 
 		return (int) min( HOUR_IN_SECONDS, max( 10 * MINUTE_IN_SECONDS, $interval / 2 ) );
 	}

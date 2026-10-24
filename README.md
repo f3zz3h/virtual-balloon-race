@@ -31,7 +31,7 @@ A WordPress + WooCommerce plugin for running virtual balloon races as fundraiser
 | Setting | What it does |
 | --- | --- |
 | Flight mode | How quickly balloons lose lift, and so how far a race goes (each race can choose its own): **Drift** (true to life: fast on launch day, then lands within about a day and a half), **Soar** (default: slows gradually, speed halves every 36 hours of flight), **Jetstream** (never slows, today's long-distance behaviour). The Settings cards estimate the leader's distance after 1 day, 3 days and a week at the current base speed |
-| Auto-update interval | How often balloons move: off, 5 min, 30 min, hourly, 6-hourly or daily |
+| Auto-update interval | How often balloons move: off, 5 min, 30 min, hourly, 6-hourly or daily. This, speed and bursts are defaults: each race can change them under **Movement** on its race screen |
 | Base speed, helium multipliers, random variance | How far balloons travel per hour. Max Height is faster, Eco-Glide slower |
 | Default launch point | Pre-filled when you create a race. Search a place or click the map |
 | Live wind / per-balloon wind / wind influence | Real wind from Open-Meteo (free, no key). Per-balloon wind makes paths split apart as balloons spread |
@@ -59,6 +59,7 @@ A WordPress + WooCommerce plugin for running virtual balloon races as fundraiser
 | Launch point | Where balloons start. Search or click the map |
 | Entry limit | Optional. The most balloons the race can have. Paid balloons take places, and so do unpaid orders still in progress (bank transfer on hold, or awaiting payment from the last day). When full, the shop shows "Sorry, … is sold out", and baskets can't hold more entries than there are places left. With 10 or fewer left, the product page shows "Only N places left!". Refunded or cancelled entries free their places. Blank means no limit |
 | Flight mode | Use the default from Settings, or pick Drift, Soar or Jetstream for this race |
+| Movement | Optional, folded away: this race's own update interval, base speed, helium multipliers, variance and burst chances. Blank boxes use the Settings value (shown in grey), so a short demo and a week-long race can run side by side |
 | Winner decided by | **Distance from launch** (default): straight-line distance from where the balloon started, as in real balloon races. **Distance travelled**: the whole trail added up, so wandering balloons score more. Team scores use the same measure |
 
 A race goes through four stages on its own:
@@ -277,7 +278,7 @@ assets/js/admin-teams.js        Team list editor (Settings and race form)
 
 ### How a tick works
 
-For each **Flying** race, a scheduled tick simulates the time since that race's last tick, counting from launch, stopping at the end time, and capped at 3× the interval. For each balloon still flying:
+For each **Flying** race, a scheduled tick simulates the time since that race's last tick, counting from launch, stopping at the end time, and capped at 3× the interval. Each race uses its own interval and movement settings where it has them: the job runs at the shortest interval any unfinished race needs, and a race only moves when its own interval is due (races left on "Off" are manual only). For each balloon still flying:
 
 1. Look up the wind for the balloon's grid cell. If that fails, use the wind at the launch point, then the default heading.
 2. Travel bearing = wind direction + 180° (Open-Meteo reports where wind comes *from*), ±12° random jitter.
@@ -371,6 +372,5 @@ wp vbr demo --balloons=10
 
 How it works and why: [docs/design.md](docs/design.md). Before a real race: [docs/race-day-checklist.md](docs/race-day-checklist.md). Plans, bugs and ideas are tracked in [GitHub Issues](https://github.com/f3zz3h/virtual-balloon-race/issues) (milestones: **Ready for wider use**, **WordPress.org listing**). Not built yet:
 
-- Movement settings (speed, interval, bursts) apply to all races, not per race
 - Balloons can drift over sea; there's no land awareness
 - Wind is the 10 m wind speed and direction only (no gusts, rain or altitude bands)

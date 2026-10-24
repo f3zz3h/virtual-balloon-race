@@ -429,3 +429,12 @@
 	color: #50575e;
 	font-size: 12px;
 }
+
+/* Race screen: per-race movement settings, folded away until changed */
+.vbr-race-movement summary {
+	cursor: pointer;
+}
+
+.vbr-race-movement summary h2 {
+	display: inline;
+}

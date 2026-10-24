@@ -157,6 +157,7 @@ class VBR_Install {
 			team_scoring varchar(20) NOT NULL DEFAULT '',
 			ranking varchar(20) NOT NULL DEFAULT '',
 			flight_mode varchar(20) NOT NULL DEFAULT '',
+			movement text,
 			launch_email_sent_at datetime DEFAULT NULL,
 			results_email_sent_at datetime DEFAULT NULL,
 			entry_limit int(10) unsigned NOT NULL DEFAULT 0,

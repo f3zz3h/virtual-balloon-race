@@ -63,6 +63,41 @@ class VBR_Races {
 	}
 
 	/**
+	 * The movement settings a race changed from the site's (Settings → Race movement and Bursts).
+	 *
+	 * @param object|null $race Race.
+	 * @return array Key => value; settings it didn't change are left out.
+	 */
+	public static function movement_overrides( $race ) {
+		$saved = $race && ! empty( $race->movement ) ? json_decode( (string) $race->movement, true ) : array();
+
+		return VBR_Settings::clean_movement( $saved );
+	}
+
+	/**
+	 * A race's movement settings: its own where it set them, else the site's.
+	 *
+	 * @param object|null $race Race.
+	 * @return array
+	 */
+	public static function movement( $race ) {
+		return array_merge( wp_array_slice_assoc( VBR_Settings::all(), VBR_Settings::movement_keys() ), self::movement_overrides( $race ) );
+	}
+
+	/**
+	 * Seconds between a race's automatic updates (0 = manual only).
+	 *
+	 * @param object|null $race Race.
+	 * @return int
+	 */
+	public static function interval_seconds( $race ) {
+		$intervals = VBR_Settings::intervals();
+		$slug      = (string) self::movement( $race )['interval'];
+
+		return isset( $intervals[ $slug ] ) ? (int) $intervals[ $slug ] : 0;
+	}
+
+	/**
 	 * Races table name.
 	 *
 	 * @return string
@@ -455,6 +490,11 @@ class VBR_Races {
 			$row['ranking'] = self::TRAVELLED === $data['ranking'] ? self::TRAVELLED : self::FROM_START;
 		}
 
+		if ( isset( $data['movement'] ) ) {
+			$movement        = VBR_Settings::clean_movement( $data['movement'] );
+			$row['movement'] = $movement ? wp_json_encode( $movement ) : null;
+		}
+
 		if ( isset( $data['team_scoring'] ) ) {
 			$row['team_scoring'] = isset( VBR_Teams::scoring_labels()[ $data['team_scoring'] ] ) ? $data['team_scoring'] : '';
 		}
@@ -475,6 +515,9 @@ class VBR_Races {
 
 		// Balloons that haven't launched yet follow a moved launch point.
 		self::move_waiting_balloons( (int) $id );
+
+		// The race's update interval may change how often updates are scheduled.
+		VBR_Cron::ensure_scheduled();
 
 		return (int) $id;
 	}
@@ -560,6 +603,7 @@ class VBR_Races {
 		VBR_Sponsors::delete_for_race( $id );
 		VBR_Prizes::delete_for_race( $id );
 		self::flush();
+		VBR_Cron::ensure_scheduled();
 
 		return true;
 	}

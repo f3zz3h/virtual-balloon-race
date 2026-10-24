@@ -77,15 +77,52 @@ class VBR_Cron {
 	}
 
 	/**
-	 * Schedule ticks at the configured interval (after settings save).
+	 * How often the scheduled hook runs: the shortest update interval of any race that hasn't
+	 * finished (each race then moves when its own interval is due), else the site setting.
+	 *
+	 * @return int Seconds (0 = off).
+	 */
+	public static function schedule_seconds() {
+		$now       = time();
+		$shortest  = 0;
+		$unfinished = false;
+
+		foreach ( VBR_Races::all() as $race ) {
+			$end = VBR_Races::ts( $race->end_at );
+			if ( $end && $end <= $now && VBR_Races::ts( $race->last_tick_at ) >= $end ) {
+				continue; // Finished and caught up.
+			}
+			$unfinished = true;
+			$seconds   = VBR_Races::interval_seconds( $race );
+			if ( $seconds && ( ! $shortest || $seconds < $shortest ) ) {
+				$shortest = $seconds;
+			}
+		}
+
+		return $unfinished ? $shortest : VBR_Settings::interval_seconds();
+	}
+
+	/**
+	 * Interval slug for the schedule ("off" when nothing runs automatically).
+	 *
+	 * @return string
+	 */
+	private static function schedule_slug() {
+		$slug = array_search( self::schedule_seconds(), VBR_Settings::intervals(), true );
+
+		return false === $slug ? 'off' : (string) $slug;
+	}
+
+	/**
+	 * Schedule ticks at the configured interval (after settings or races change).
 	 */
 	public static function reschedule() {
 		VBR_Settings::flush_cache();
 
 		self::unschedule();
 
-		$slug    = (string) VBR_Settings::get( 'interval' );
-		$seconds = VBR_Settings::interval_seconds();
+		$slug    = self::schedule_slug();
+		$seconds = self::schedule_seconds();
 
 		if ( ! $seconds ) {
 			return;
@@ -106,9 +143,9 @@ class VBR_Cron {
 	 * Repair the schedule if it is missing or out of date (e.g. after an update).
 	 */
 	public static function ensure_scheduled() {
-		$slug = (string) VBR_Settings::get( 'interval' );
+		$slug = self::schedule_slug();
 
-		if ( get_option( 'vbr_scheduled_interval', 'off' ) !== $slug || ( VBR_Settings::interval_seconds() && ! self::next_run() ) ) {
+		if ( get_option( 'vbr_scheduled_interval', 'off' ) !== $slug || ( 'off' !== $slug && ! self::next_run() ) ) {
 			self::reschedule();
 		}
 	}
@@ -140,29 +177,56 @@ class VBR_Cron {
 	}
 
 	/**
-	 * Scheduled tick: move each flying race by the real time since its last tick
-	 * (counted from launch, stopping at the end time, capped at 3× the interval).
+	 * When a race's next automatic update is due: the first scheduled run after its own interval
+	 * has passed since its last update (0 = none, e.g. manual only).
+	 *
+	 * @param object $race Race.
+	 * @return int Timestamp.
+	 */
+	public static function next_for_race( $race ) {
+		$next     = self::next_run();
+		$tick     = self::schedule_seconds();
+		$interval = VBR_Races::interval_seconds( $race );
+
+		if ( ! $next || ! $tick || ! $interval ) {
+			return 0;
+		}
+
+		$due = max( VBR_Races::ts( $race->launch_at ), VBR_Races::ts( $race->last_tick_at ) ) + $interval - (int) ( $tick / 2 );
+
+		return $due <= $next ? $next : $next + (int) ceil( ( $due - $next ) / $tick ) * $tick;
+	}
+
+	/**
+	 * Scheduled tick: move each flying race whose own interval is due by the real time since its
+	 * last tick (counted from launch, stopping at the end time, capped at 3× its interval).
 	 *
 	 * @return array Summaries keyed by race ID.
 	 */
 	public static function run_scheduled() {
-		$interval = VBR_Settings::interval_seconds();
-		$results  = array();
+		$tick    = self::schedule_seconds();
+		$results = array();
 
-		if ( ! $interval ) {
+		if ( ! $tick ) {
 			return $results;
 		}
 
 		$now = time();
 
 		foreach ( VBR_Races::all() as $race ) {
-			$launch = VBR_Races::ts( $race->launch_at );
-			$end    = VBR_Races::ts( $race->end_at );
-			$last   = max( $launch, VBR_Races::ts( $race->last_tick_at ) );
-			$until  = $end ? min( $now, $end ) : $now;
+			$interval = VBR_Races::interval_seconds( $race );
+			$launch   = VBR_Races::ts( $race->launch_at );
+			$end      = VBR_Races::ts( $race->end_at );
+			$last     = max( $launch, VBR_Races::ts( $race->last_tick_at ) );
+			$until    = $end ? min( $now, $end ) : $now;
 
-			// Not launched yet, or already caught up to the end.
-			if ( ! $launch || $now < $launch || $until <= $last ) {
+			// Manual only, not launched yet, or already caught up to the end.
+			if ( ! $interval || ! $launch || $now < $launch || $until <= $last ) {
+				continue;
+			}
+
+			// Not due yet (half a run early counts, as runs are rarely on the second); the end is always caught up.
+			if ( $until - $last < $interval - $tick / 2 && ! ( $end && $until >= $end ) ) {
 				continue;
 			}
 
@@ -246,7 +310,7 @@ class VBR_Cron {
 		}
 
 		try {
-			$s        = VBR_Settings::all();
+			$s        = array_merge( VBR_Settings::all(), VBR_Races::movement( $race ) );
 			$table    = VBR_Balloons::table();
 			$launch   = VBR_Races::launch_point( $race );
 			$balloons = $wpdb->get_results( $wpdb->prepare( "SELECT id, helium_level, latitude, longitude, start_lat, start_lng, trail_json, flight_hours FROM {$table} WHERE is_burst = 0 AND withdrawn_at IS NULL AND race_id = %d", (int) $race->id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- the plugin's own table.

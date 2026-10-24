@@ -1313,6 +1313,53 @@ switch ( $stage ) {
 		wp_delete_user( $user );
 		break;
 
+	// Each race's own movement settings: speed, bursts and update interval, falling back to Settings.
+	case 'race-movement':
+		global $wpdb;
+
+		$before = get_option( VBR_Settings::OPTION, array() );
+		$settings( array( 'weather_enabled' => 0, 'interval' => 'off', 'base_kmh' => 35, 'variance_pct' => 0, 'mult_balanced' => 1 ) );
+
+		$clean = VBR_Settings::clean_movement( array( 'base_kmh' => '999', 'variance_pct' => '', 'interval' => 'weekly', 'burst_max_daily' => '2.5', 'flight_mode' => 'drift', 'map_zoom' => 3 ) );
+		$check( array( 'base_kmh' => 300.0, 'burst_max_daily' => 2.5 ) === $clean, 'overrides are clamped to the Settings limits; blanks, unknown intervals and other settings are dropped' );
+
+		$launched = gmdate( 'Y-m-d H:i:s', time() - DAY_IN_SECONDS );
+		$fast     = VBR_Races::save( array( 'name' => 'Smoke Fast Race', 'launch_lat' => 51.4885, 'launch_lng' => -2.58, 'launch_at' => $launched, 'flight_mode' => 'jetstream', 'movement' => array( 'base_kmh' => '100', 'interval' => 'vbr_30min' ) ) );
+		$plain    = VBR_Races::save( array( 'name' => 'Smoke Plain Race', 'launch_lat' => 51.4885, 'launch_lng' => -2.58, 'launch_at' => $launched, 'flight_mode' => 'jetstream', 'movement' => array( 'base_kmh' => '' ) ) );
+		$hourly   = VBR_Races::save( array( 'name' => 'Smoke Hourly Race', 'launch_lat' => 51.4885, 'launch_lng' => -2.58, 'launch_at' => $launched, 'flight_mode' => 'jetstream', 'movement' => array( 'interval' => 'hourly' ) ) );
+
+		$check( 100.0 === (float) VBR_Races::movement( VBR_Races::get( $fast ) )['base_kmh'] && 35.0 === (float) VBR_Races::movement( VBR_Races::get( $plain ) )['base_kmh'], 'a race uses its own speed, another the site\'s' );
+		$check( array() === VBR_Races::movement_overrides( VBR_Races::get( $plain ) ), 'a race left blank stores no overrides' );
+
+		$table = VBR_Balloons::table();
+		foreach ( array( $fast, $plain ) as $race_id ) {
+			$wpdb->insert( $table, array( 'race_id' => $race_id, 'balloon_name' => 'Mover', 'owner_name' => 'Smoke Person', 'balloon_color' => 'Red', 'helium_level' => 'Balanced', 'latitude' => 51.4885, 'longitude' => -2.58, 'start_lat' => 51.4885, 'start_lng' => -2.58, 'created_at' => current_time( 'mysql' ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			VBR_Cron::tick( 1, array( 'race_id' => $race_id ) );
+		}
+		$moved = static function ( $race_id ) use ( $wpdb, $table ) {
+			return (float) $wpdb->get_var( $wpdb->prepare( "SELECT distance_km FROM {$table} WHERE race_id = %d", $race_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		};
+		$check( abs( $moved( $fast ) - 100 ) < 1 && abs( $moved( $plain ) - 35 ) < 1, 'an hour moves the fast race 100 km and the other 35 km (' . $moved( $fast ) . ' / ' . $moved( $plain ) . ')' );
+
+		$check( 30 * MINUTE_IN_SECONDS === VBR_Cron::schedule_seconds() && 'vbr_30min' === get_option( 'vbr_scheduled_interval' ), 'with the site set to manual, updates are scheduled every 30 minutes for the race that asks' );
+		$check( VBR_Cron::next_for_race( VBR_Races::get( $fast ) ) > 0 && 0 === VBR_Cron::next_for_race( VBR_Races::get( $plain ) ), 'the race on the site setting (manual) has no next update' );
+
+		VBR_Races::set_time( $fast, 'last_tick_at', time() - 20 * MINUTE_IN_SECONDS );
+		VBR_Races::set_time( $hourly, 'last_tick_at', time() - 20 * MINUTE_IN_SECONDS );
+		VBR_Races::flush();
+		$ran = VBR_Cron::run_scheduled();
+		$check( isset( $ran[ $fast ] ) && ! isset( $ran[ $hourly ] ) && ! isset( $ran[ $plain ] ), 'a scheduled run moves only races whose own interval is due' );
+
+		foreach ( array( $fast, $plain, $hourly ) as $race_id ) {
+			$wpdb->query( $wpdb->prepare( "DELETE FROM {$table} WHERE race_id = %d", $race_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			VBR_Races::delete( $race_id );
+		}
+		update_option( VBR_Settings::OPTION, $before );
+		VBR_Settings::flush_cache();
+		VBR_Cron::reschedule();
+		$check( VBR_Settings::interval_seconds() === VBR_Cron::schedule_seconds(), 'with the races gone, the schedule follows the site setting again' );
+		break;
+
 	// Big races send the map only the leaders' trails; the rest load on demand.
 	case 'light-map':
 		global $wpdb;
