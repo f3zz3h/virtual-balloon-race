@@ -249,7 +249,7 @@ class VBR_Cron {
 			$s        = VBR_Settings::all();
 			$table    = VBR_Balloons::table();
 			$launch   = VBR_Races::launch_point( $race );
-			$balloons = $wpdb->get_results( $wpdb->prepare( "SELECT id, helium_level, latitude, longitude, start_lat, start_lng, trail_json, flight_hours FROM {$table} WHERE is_burst = 0 AND withdrawn_at IS NULL AND race_id = %d", (int) $race->id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$balloons = $wpdb->get_results( $wpdb->prepare( "SELECT id, helium_level, latitude, longitude, start_lat, start_lng, trail_json, flight_hours FROM {$table} WHERE is_burst = 0 AND withdrawn_at IS NULL AND race_id = %d", (int) $race->id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- the plugin's own table.
 
 			// Sponsor hot-air balloons fly with the race on the same wind; they never burst and aren't ranked.
 			foreach ( VBR_Sponsors::with_placement( (int) $race->id, 'hot_air' ) as $sponsor ) {
@@ -349,7 +349,7 @@ class VBR_Cron {
 				$trail[] = array( $lat, $lng );
 
 				if ( ! empty( $b->sponsor ) ) {
-					$wpdb->update(
+					$wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- the plugin's own table.
 						VBR_Sponsors::table(),
 						array(
 							'latitude'     => $lat,
@@ -373,7 +373,7 @@ class VBR_Cron {
 					$summary['storm_burst']++;
 				}
 
-				$wpdb->query(
+				$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- the plugin's own table.
 					$wpdb->prepare(
 						"UPDATE {$table} SET distance_km = distance_km + %f, from_start_km = %f, flight_hours = flight_hours + %f, latitude = %f, longitude = %f, trail_json = %s, last_moved_at = %s, is_burst = %d WHERE id = %d AND is_burst = 0", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 						$step,

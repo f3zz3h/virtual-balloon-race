@@ -212,7 +212,7 @@ class VBR_Admin_Races {
 				$row['end_at'] = null;
 			}
 
-			$wpdb->update( VBR_Races::table(), $row, array( 'id' => $id ) );
+			$wpdb->update( VBR_Races::table(), $row, array( 'id' => $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- the plugin's own table.
 			VBR_Races::flush();
 
 			/**

@@ -145,7 +145,7 @@ class VBR_Demo {
 		shuffle( $names );
 
 		for ( $i = 0; $i < $count; $i++ ) {
-			$wpdb->insert(
+			$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- the plugin's own table.
 				VBR_Balloons::table(),
 				array(
 					'race_id'       => $race_id,
@@ -189,7 +189,7 @@ class VBR_Demo {
 		$ids  = array_diff( self::race_ids(), $keep );
 
 		foreach ( $ids as $id ) {
-			$wpdb->delete( VBR_Balloons::table(), array( 'race_id' => $id ), array( '%d' ) );
+			$wpdb->delete( VBR_Balloons::table(), array( 'race_id' => $id ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- the plugin's own table.
 			VBR_Races::delete( $id ); // Also removes its teams.
 		}
 

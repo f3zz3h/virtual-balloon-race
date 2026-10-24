@@ -75,7 +75,7 @@ class VBR_Prizes {
 		global $wpdb;
 
 		$table    = self::table();
-		$prizes   = (array) $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE race_id = %d ORDER BY sort ASC, id ASC", (int) $race_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$prizes   = (array) $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE race_id = %d ORDER BY sort ASC, id ASC", (int) $race_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- the plugin's own table.
 		$sponsors = array();
 
 		foreach ( VBR_Sponsors::for_race( $race_id ) as $sponsor ) {
@@ -138,7 +138,7 @@ class VBR_Prizes {
 		global $wpdb;
 
 		$table    = self::table();
-		$existing = array_flip( array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare( "SELECT id FROM {$table} WHERE race_id = %d", (int) $race_id ) ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$existing = array_flip( array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare( "SELECT id FROM {$table} WHERE race_id = %d", (int) $race_id ) ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- the plugin's own table.
 		$kept     = array();
 
 		foreach ( array_values( $rows ) as $sort => $row ) {
@@ -152,16 +152,16 @@ class VBR_Prizes {
 			);
 
 			if ( $row['id'] && isset( $existing[ $row['id'] ] ) ) {
-				$wpdb->update( $table, $data, array( 'id' => $row['id'] ) );
+				$wpdb->update( $table, $data, array( 'id' => $row['id'] ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- the plugin's own table.
 				$kept[ $row['id'] ] = true;
 			} else {
-				$wpdb->insert( $table, $data );
+				$wpdb->insert( $table, $data ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- the plugin's own table.
 			}
 		}
 
 		foreach ( array_keys( $existing ) as $id ) {
 			if ( ! isset( $kept[ $id ] ) ) {
-				$wpdb->delete( $table, array( 'id' => $id ), array( '%d' ) );
+				$wpdb->delete( $table, array( 'id' => $id ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- the plugin's own table.
 			}
 		}
 	}
@@ -174,7 +174,7 @@ class VBR_Prizes {
 	public static function delete_for_race( $race_id ) {
 		global $wpdb;
 
-		$wpdb->delete( self::table(), array( 'race_id' => (int) $race_id ), array( '%d' ) );
+		$wpdb->delete( self::table(), array( 'race_id' => (int) $race_id ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- the plugin's own table.
 	}
 
 	/**
@@ -198,7 +198,7 @@ class VBR_Prizes {
 			if ( 0 === strpos( $prize->kind, 'place_' ) ) {
 				$place = (int) substr( $prize->kind, 6 );
 				if ( isset( $by_rank[ $place ] ) ) {
-					$balloon = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", (int) $by_rank[ $place ] ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+					$balloon = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", (int) $by_rank[ $place ] ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- the plugin's own table.
 					$winner  = $balloon ? sprintf( '%1$s (%2$s)', $balloon->balloon_name, VBR_Balloons::public_owner_name( $balloon ) ) : '';
 				}
 			} elseif ( 'best_team' === $prize->kind && $teams && $teams[0]['balloons'] > 0 ) {

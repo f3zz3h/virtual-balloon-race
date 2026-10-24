@@ -176,13 +176,13 @@ class VBR_Admin {
 		$balloon_id = intval( $balloon_id );
 		$table      = VBR_Balloons::table();
 
-		$row = $wpdb->get_row( $wpdb->prepare( "SELECT is_burst, race_id FROM {$table} WHERE id = %d", $balloon_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$row = $wpdb->get_row( $wpdb->prepare( "SELECT is_burst, race_id FROM {$table} WHERE id = %d", $balloon_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- the plugin's own table.
 
 		if ( ! $row ) {
 			return;
 		}
 
-		$wpdb->update(
+		$wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- the plugin's own table.
 			$table,
 			array( 'is_burst' => $row->is_burst ? 0 : 1 ),
 			array( 'id' => $balloon_id ),
@@ -213,7 +213,7 @@ class VBR_Admin {
 		global $wpdb;
 
 		$table = VBR_Balloons::table();
-		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT withdrawn_at, race_id FROM {$table} WHERE id = %d", $balloon_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT withdrawn_at, race_id FROM {$table} WHERE id = %d", $balloon_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- the plugin's own table.
 
 		if ( ! $row ) {
 			return;
@@ -248,7 +248,7 @@ class VBR_Admin {
 		$races = VBR_Races::table();
 		$where = $race_id ? $wpdb->prepare( 'WHERE b.race_id = %d', $race_id ) : '';
 		$teams = VBR_Teams::table();
-		$rows  = $wpdb->get_results( "SELECT b.*, r.name AS race_name, t.name AS team_name FROM {$table} b LEFT JOIN {$races} r ON r.id = b.race_id LEFT JOIN {$teams} t ON t.id = b.team_id {$where} ORDER BY b.race_id DESC, b.from_start_km DESC, b.id ASC", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$rows  = $wpdb->get_results( "SELECT b.*, r.name AS race_name, t.name AS team_name FROM {$table} b LEFT JOIN {$races} r ON r.id = b.race_id LEFT JOIN {$teams} t ON t.id = b.team_id {$where} ORDER BY b.race_id DESC, b.from_start_km DESC, b.id ASC", ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- the plugin's own table.
 
 		$race     = $race_id ? VBR_Races::get( $race_id ) : null;
 		$filename = 'virtual-balloon-race-' . ( $race ? $race->slug . '-' : '' ) . gmdate( 'Y-m-d-His' ) . '.csv';
@@ -333,7 +333,7 @@ class VBR_Admin {
 			$table    = VBR_Balloons::table();
 			$order    = VBR_Races::ranking_column( $race );
 			// Withdrawn balloons are listed last.
-			$balloons = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE race_id = %d ORDER BY withdrawn_at IS NOT NULL, {$order} DESC, id ASC", (int) $race->id ) . $limit ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- $limit is prepared above.
+			$balloons = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE race_id = %d ORDER BY withdrawn_at IS NOT NULL, {$order} DESC, id ASC", (int) $race->id ) . $limit ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- $limit is prepared above.
 			$status   = VBR_Races::status( $race );
 			$teams    = VBR_Teams::by_id( $race );
 

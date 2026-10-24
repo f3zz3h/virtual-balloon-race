@@ -113,7 +113,7 @@ class VBR_Sponsors {
 		global $wpdb;
 
 		$table = self::table();
-		$rows  = (array) $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE race_id = %d ORDER BY sort ASC, id ASC", (int) $race_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$rows  = (array) $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE race_id = %d ORDER BY sort ASC, id ASC", (int) $race_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- the plugin's own table.
 
 		foreach ( $rows as $row ) {
 			$row->placements = array_values( array_filter( explode( ',', (string) $row->placements ) ) );
@@ -507,16 +507,16 @@ class VBR_Sponsors {
 			);
 
 			if ( $row['id'] && isset( $existing[ $row['id'] ] ) ) {
-				$wpdb->update( $table, $data, array( 'id' => $row['id'] ) );
+				$wpdb->update( $table, $data, array( 'id' => $row['id'] ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- the plugin's own table.
 				$kept[ $row['id'] ] = true;
 			} else {
-				$wpdb->insert( $table, $data );
+				$wpdb->insert( $table, $data ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- the plugin's own table.
 			}
 		}
 
 		foreach ( array_keys( $existing ) as $id ) {
 			if ( ! isset( $kept[ $id ] ) ) {
-				$wpdb->delete( $table, array( 'id' => $id ), array( '%d' ) );
+				$wpdb->delete( $table, array( 'id' => $id ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- the plugin's own table.
 				VBR_Sponsor_Stats::delete_for_sponsors( array( $id ) );
 			}
 		}
@@ -533,7 +533,7 @@ class VBR_Sponsors {
 		global $wpdb;
 
 		VBR_Sponsor_Stats::delete_for_sponsors( wp_list_pluck( self::for_race( $race_id ), 'id' ) );
-		$wpdb->delete( self::table(), array( 'race_id' => (int) $race_id ), array( '%d' ) );
+		$wpdb->delete( self::table(), array( 'race_id' => (int) $race_id ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- the plugin's own table.
 	}
 
 	/**

@@ -209,7 +209,7 @@ class VBR_Map {
 
 		$race  = VBR_Races::resolve( $request->get_param( 'race' ) );
 		$table = VBR_Balloons::table();
-		$row   = $race ? $wpdb->get_row( $wpdb->prepare( "SELECT id, trail_json FROM {$table} WHERE id = %d AND race_id = %d AND withdrawn_at IS NULL", (int) $request->get_param( 'id' ), (int) $race->id ) ) : null; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$row   = $race ? $wpdb->get_row( $wpdb->prepare( "SELECT id, trail_json FROM {$table} WHERE id = %d AND race_id = %d AND withdrawn_at IS NULL", (int) $request->get_param( 'id' ), (int) $race->id ) ) : null; // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- the plugin's own table.
 
 		if ( ! $row ) {
 			return new WP_Error( 'vbr_balloon_not_found', __( 'Balloon not found.', 'virtual-balloon-race' ), array( 'status' => 404 ) );
@@ -248,7 +248,7 @@ class VBR_Map {
 
 		$table = VBR_Balloons::table();
 		$order = VBR_Races::ranking_column( $race );
-		$rows  = $race ? $wpdb->get_results( $wpdb->prepare( "SELECT id, team_id, owner_name, balloon_name, balloon_color, helium_level, distance_km, from_start_km, is_burst, latitude, longitude, start_lat, start_lng, logo_attachment_id, trail_json FROM {$table} WHERE race_id = %d AND withdrawn_at IS NULL ORDER BY {$order} DESC, id ASC", (int) $race->id ) ) : array(); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$rows  = $race ? $wpdb->get_results( $wpdb->prepare( "SELECT id, team_id, owner_name, balloon_name, balloon_color, helium_level, distance_km, from_start_km, is_burst, latitude, longitude, start_lat, start_lng, logo_attachment_id, trail_json FROM {$table} WHERE race_id = %d AND withdrawn_at IS NULL ORDER BY {$order} DESC, id ASC", (int) $race->id ) ) : array(); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- the plugin's own table.
 		$hex   = self::color_hex();
 		$last  = $race ? VBR_Cron::last_summary( $race->id ) : array();
 		$next  = $race && VBR_Races::FLYING === VBR_Races::status( $race ) ? VBR_Cron::next_run() : 0;

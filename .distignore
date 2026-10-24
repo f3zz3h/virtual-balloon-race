@@ -13,5 +13,6 @@
 composer.json
 composer.lock
 phpstan.neon.dist
+phpcs.xml.dist
 phpstan-baseline.neon
 /docs
