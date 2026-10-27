@@ -2,11 +2,11 @@
 (function () {
 	'use strict';
 
-	if (typeof L === 'undefined' || !window.vbrBalloon) {
+	if (typeof L === 'undefined' || !window.lvbrBalloon) {
 		return;
 	}
 
-	var BURST_HEX = window.vbrBalloon.BURST_HEX;
+	var BURST_HEX = window.lvbrBalloon.BURST_HEX;
 
 	function el(tag, className, text) {
 		var node = document.createElement(tag);
@@ -19,11 +19,11 @@
 		return node;
 	}
 
-	var balloonSvg = window.vbrBalloon.svg;
+	var balloonSvg = window.lvbrBalloon.svg;
 
 	// Small balloon for the side list and popups.
 	function miniBalloon(b) {
-		var span = el('span', 'vbr-mini-balloon');
+		var span = el('span', 'lvbr-mini-balloon');
 		span.innerHTML = balloonSvg(b.hex, b.burst);
 		return span;
 	}
@@ -33,21 +33,20 @@
 	}
 
 	function RaceMap(root) {
-		var configEl = root.querySelector('.vbr-map__config');
 		this.root = root;
-		this.config = JSON.parse(configEl ? configEl.textContent : '{}');
+		this.config = JSON.parse(root.getAttribute('data-config') || '{}');
 		this.i18n = this.config.i18n || {};
 		this.items = {};
 		this.selectedId = null;
 		this.fitted = false;
-		this.listEl = root.querySelector('.vbr-map__list');
-		this.searchEl = root.querySelector('.vbr-map__search');
-		this.metaEl = root.querySelector('.vbr-map__meta');
+		this.listEl = root.querySelector('.lvbr-map__list');
+		this.searchEl = root.querySelector('.lvbr-map__search');
+		this.metaEl = root.querySelector('.lvbr-map__meta');
 		this.mine = {};
 		this.onlyMine = false;
 		this.teams = {};
 		this.teamFilter = null;
-		this.teamEl = root.querySelector('.vbr-map__team');
+		this.teamEl = root.querySelector('.lvbr-map__team');
 
 		(this.config.mine || []).forEach(function (id) {
 			this.mine[id] = true;
@@ -55,17 +54,17 @@
 
 		var launch = (this.config.initial && this.config.initial.launch) || { lat: 51.4885, lng: -2.58 };
 
-		this.map = L.map(root.querySelector('.vbr-map__canvas'), { scrollWheelZoom: false })
+		this.map = L.map(root.querySelector('.lvbr-map__canvas'), { scrollWheelZoom: false })
 			.setView([launch.lat, launch.lng], this.config.zoom || 7);
 
-		window.vbrServices.tileLayer().addTo(this.map);
+		window.lvbrServices.tileLayer().addTo(this.map);
 
 		// Enable scroll zoom only after the user interacts, so the page still scrolls.
 		this.map.once('focus click', function () {
 			this.map.scrollWheelZoom.enable();
 		}, this);
 
-		this.trailPane = this.map.createPane('vbr-trails');
+		this.trailPane = this.map.createPane('lvbr-trails');
 		this.trailPane.style.zIndex = 410;
 
 		this.map.on('click', function () {
@@ -82,9 +81,9 @@
 			}.bind(this));
 		}
 
-		root.querySelectorAll('[data-vbr-show]').forEach(function (btn) {
+		root.querySelectorAll('[data-lvbr-show]').forEach(function (btn) {
 			btn.addEventListener('click', function () {
-				this.showOnlyMine(btn.getAttribute('data-vbr-show') === 'mine');
+				this.showOnlyMine(btn.getAttribute('data-lvbr-show') === 'mine');
 			}.bind(this));
 		}, this);
 
@@ -158,8 +157,8 @@
 	RaceMap.prototype.showOnlyMine = function (on) {
 		this.onlyMine = !!on;
 
-		this.root.querySelectorAll('[data-vbr-show]').forEach(function (btn) {
-			btn.setAttribute('aria-pressed', String((btn.getAttribute('data-vbr-show') === 'mine') === this.onlyMine));
+		this.root.querySelectorAll('[data-lvbr-show]').forEach(function (btn) {
+			btn.setAttribute('aria-pressed', String((btn.getAttribute('data-lvbr-show') === 'mine') === this.onlyMine));
 		}, this);
 
 		if (this.onlyMine && this.selectedId !== null && !this.isMine(this.selectedId)) {
@@ -247,7 +246,7 @@
 		if (!this.launchMarker) {
 			this.launchMarker = L.marker(latlng, {
 				icon: L.divIcon({
-					className: 'vbr-launch-icon',
+					className: 'lvbr-launch-icon',
 					html: '<svg viewBox="0 0 24 28" aria-hidden="true"><path d="M4 2v25" stroke="#12324a" stroke-width="2" stroke-linecap="round"/><path d="M5 3h15l-3.5 4.5L20 12H5z" fill="#e26a2c" stroke="#b5501d" stroke-width="1" stroke-linejoin="round"/></svg>',
 					iconSize: [24, 28],
 					iconAnchor: [4, 27]
@@ -269,11 +268,11 @@
 				permanent: true,
 				direction: 'right',
 				offset: [14, -16],
-				className: 'vbr-launch-sponsor'
+				className: 'lvbr-launch-sponsor'
 			});
 			if (launch.sponsor.url) {
-				var popup = el('div', 'vbr-popup vbr-popup--sponsor');
-				popup.appendChild(el('strong', 'vbr-popup__title', launch.sponsor.name));
+				var popup = el('div', 'lvbr-popup lvbr-popup--sponsor');
+				popup.appendChild(el('strong', 'lvbr-popup__title', launch.sponsor.name));
 				popup.appendChild(this.sponsorLink(launch.sponsor.url, launch.sponsor.id, 'launch_flag'));
 				this.launchMarker.bindPopup(popup);
 			}
@@ -284,22 +283,22 @@
 	};
 
 	RaceMap.prototype.sponsorLink = function (url, id, placement) {
-		var a = el('a', 'vbr-popup__link', this.i18n.visit || 'Visit their website');
+		var a = el('a', 'lvbr-popup__link', this.i18n.visit || 'Visit their website');
 		a.href = url;
 		a.target = '_blank';
 		a.rel = 'sponsored noopener';
-		a.setAttribute('data-vbr-sponsor', id);
-		a.setAttribute('data-vbr-placement', placement);
+		a.setAttribute('data-lvbr-sponsor', id);
+		a.setAttribute('data-lvbr-placement', placement);
 		return a;
 	};
 
 	// Tell the views and clicks report a sponsor was shown (sponsor-stats.js, when loaded).
 	RaceMap.prototype.sponsorViewed = function (id, placement) {
-		if (window.vbrSponsorStats && window.vbrSponsorStats.view) {
-			window.vbrSponsorStats.view(String(id), placement);
+		if (window.lvbrSponsorStats && window.lvbrSponsorStats.view) {
+			window.lvbrSponsorStats.view(String(id), placement);
 		} else {
 			// The report script may load after the map draws; it picks these up when it starts.
-			(window.vbrSponsorStatsQueue = window.vbrSponsorStatsQueue || []).push([String(id), placement]);
+			(window.lvbrSponsorStatsQueue = window.lvbrSponsorStatsQueue || []).push([String(id), placement]);
 		}
 	};
 
@@ -321,7 +320,7 @@
 			if (!item) {
 				item = self.sponsorItems[s.id] = {};
 				item.line = L.polyline(s.trail, {
-					pane: 'vbr-trails',
+					pane: 'lvbr-trails',
 					color: s.color1,
 					weight: 2,
 					opacity: 0.45,
@@ -344,8 +343,8 @@
 			if (item.key !== key) {
 				item.key = key;
 				item.marker.setIcon(L.divIcon({
-					className: 'vbr-hot-air',
-					html: window.vbrBalloon.hotAir(s),
+					className: 'lvbr-hot-air',
+					html: window.lvbrBalloon.hotAir(s),
 					iconSize: [w, h],
 					iconAnchor: [w / 2, h],
 					popupAnchor: [0, -h + 8]
@@ -365,10 +364,10 @@
 	};
 
 	RaceMap.prototype.sponsorPopup = function (s) {
-		var wrap = el('div', 'vbr-popup vbr-popup--sponsor');
+		var wrap = el('div', 'lvbr-popup lvbr-popup--sponsor');
 
-		wrap.appendChild(el('strong', 'vbr-popup__title', s.name));
-		wrap.appendChild(el('div', 'vbr-popup__row', this.i18n.sponsorNote || 'Sponsor balloon · flying with the race, not racing'));
+		wrap.appendChild(el('strong', 'lvbr-popup__title', s.name));
+		wrap.appendChild(el('div', 'lvbr-popup__row', this.i18n.sponsorNote || 'Sponsor balloon · flying with the race, not racing'));
 		if (s.url) {
 			wrap.appendChild(this.sponsorLink(s.url, s.id, 'hot_air'));
 		}
@@ -380,7 +379,7 @@
 		var item = { data: b };
 
 		item.line = L.polyline(b.trail || [], {
-			pane: 'vbr-trails',
+			pane: 'lvbr-trails',
 			bubblingMouseEvents: false,
 			interactive: true,
 			lineCap: 'round',
@@ -421,10 +420,10 @@
 	RaceMap.prototype.balloonIcon = function (b, selected) {
 		var width = (b.logo ? 34 : 22) * (selected ? 1.35 : 1);
 		var height = width * 1.5;
-		var html = '<span class="vbr-balloon' + (b.logo ? ' vbr-balloon--logo' : '') + (b.burst ? ' is-burst' : '') + '">' + balloonSvg(b.hex, b.burst, b.logo, b.logo_fit);
+		var html = '<span class="lvbr-balloon' + (b.logo ? ' lvbr-balloon--logo' : '') + (b.burst ? ' is-burst' : '') + '">' + balloonSvg(b.hex, b.burst, b.logo, b.logo_fit);
 
 		return L.divIcon({
-			className: 'vbr-balloon-icon' + (selected ? ' is-selected' : '') + (this.isMine(b.id) ? ' is-mine' : ''),
+			className: 'lvbr-balloon-icon' + (selected ? ' is-selected' : '') + (this.isMine(b.id) ? ' is-mine' : ''),
 			html: html + '</span>',
 			iconSize: [width, height],
 			iconAnchor: [width / 2, height],
@@ -486,8 +485,8 @@
 
 	RaceMap.prototype.popupContent = function (b) {
 		var i18n = this.i18n;
-		var wrap = el('div', 'vbr-popup');
-		var title = el('strong', 'vbr-popup__title', b.name);
+		var wrap = el('div', 'lvbr-popup');
+		var title = el('strong', 'lvbr-popup__title', b.name);
 
 		title.prepend(miniBalloon(b));
 		wrap.appendChild(title);
@@ -508,8 +507,8 @@
 			if (!row[1]) {
 				return;
 			}
-			var line = el('div', 'vbr-popup__row');
-			line.appendChild(el('span', 'vbr-popup__label', row[0] + ': '));
+			var line = el('div', 'lvbr-popup__row');
+			line.appendChild(el('span', 'lvbr-popup__label', row[0] + ': '));
 			line.appendChild(document.createTextNode(row[1]));
 			wrap.appendChild(line);
 		});
@@ -570,7 +569,7 @@
 
 			var lineEl = item.line.getElement();
 			if (lineEl) {
-				lineEl.classList.toggle('vbr-trail--selected', selected);
+				lineEl.classList.toggle('lvbr-trail--selected', selected);
 			}
 
 			if (selected) {
@@ -693,16 +692,16 @@
 
 		this.listEl.innerHTML = '';
 		// Widen the rank column for races with 1,000 or more balloons.
-		this.listEl.style.setProperty('--vbr-rank-width', Math.max(1.6, String(balloons.length).length * 0.6) + 'rem');
+		this.listEl.style.setProperty('--lvbr-rank-width', Math.max(1.6, String(balloons.length).length * 0.6) + 'rem');
 
 		// Sponsor balloons first, outside the ranking.
 		((this.data && this.data.sponsors) || []).forEach(function (s) {
-			var li = el('li', 'vbr-map__item is-sponsor');
-			var btn = el('button', 'vbr-map__item-btn');
+			var li = el('li', 'lvbr-map__item is-sponsor');
+			var btn = el('button', 'lvbr-map__item-btn');
 
 			btn.type = 'button';
-			btn.appendChild(el('span', 'vbr-map__tag', self.i18n.sponsor || 'Sponsor'));
-			btn.appendChild(el('span', 'vbr-map__name', s.name));
+			btn.appendChild(el('span', 'lvbr-map__tag', self.i18n.sponsor || 'Sponsor'));
+			btn.appendChild(el('span', 'lvbr-map__name', s.name));
 			btn.addEventListener('click', function () {
 				var item = self.sponsorItems && self.sponsorItems[s.id];
 				if (item) {
@@ -715,30 +714,30 @@
 		});
 
 		if (!balloons.length) {
-			this.listEl.appendChild(el('li', 'vbr-map__empty', this.i18n.empty || 'No balloons yet.'));
+			this.listEl.appendChild(el('li', 'lvbr-map__empty', this.i18n.empty || 'No balloons yet.'));
 			return;
 		}
 
 		balloons.forEach(function (b) {
-			var li = el('li', 'vbr-map__item' + (b.burst ? ' is-burst' : '') + (self.isMine(b.id) ? ' is-mine' : ''));
-			var btn = el('button', 'vbr-map__item-btn');
+			var li = el('li', 'lvbr-map__item' + (b.burst ? ' is-burst' : '') + (self.isMine(b.id) ? ' is-mine' : ''));
+			var btn = el('button', 'lvbr-map__item-btn');
 
 			li.setAttribute('data-id', b.id);
 			li.setAttribute('data-search', (b.name + ' ' + (b.owner || '') + ' ' + self.teamName(b)).toLowerCase());
 			if (b.team && self.teams[b.team]) {
 				li.classList.add('has-team');
-				li.style.setProperty('--vbr-team', self.teams[b.team].color);
+				li.style.setProperty('--lvbr-team', self.teams[b.team].color);
 				li.title = self.teamName(b);
 			}
 			btn.type = 'button';
 
-			btn.appendChild(el('span', 'vbr-map__rank', b.rank ? String(b.rank) : '–'));
+			btn.appendChild(el('span', 'lvbr-map__rank', b.rank ? String(b.rank) : '–'));
 			btn.appendChild(miniBalloon(b));
-			btn.appendChild(el('span', 'vbr-map__name', b.name));
+			btn.appendChild(el('span', 'lvbr-map__name', b.name));
 			if (self.isMine(b.id)) {
-				btn.appendChild(el('span', 'vbr-map__yours', self.i18n.yours || 'Yours'));
+				btn.appendChild(el('span', 'lvbr-map__yours', self.i18n.yours || 'Yours'));
 			}
-			btn.appendChild(el('span', 'vbr-map__km', formatKm(b.distance) + ' ' + (self.i18n.km || 'km')));
+			btn.appendChild(el('span', 'lvbr-map__km', formatKm(b.distance) + ' ' + (self.i18n.km || 'km')));
 
 			btn.addEventListener('click', function () {
 				self.select(self.selectedId === b.id ? null : b.id, self.selectedId !== b.id);
@@ -806,7 +805,7 @@
 
 	var maps = [];
 
-	document.querySelectorAll('[data-vbr-map]').forEach(function (root) {
+	document.querySelectorAll('[data-lvbr-map]').forEach(function (root) {
 		try {
 			maps.push(new RaceMap(root));
 		} catch (e) {
@@ -816,13 +815,13 @@
 		}
 	});
 
-	// Leaderboard rows (or any [data-vbr-balloon] element) select on a map on the same page.
+	// Leaderboard rows (or any [data-lvbr-balloon] element) select on a map on the same page.
 	document.addEventListener('click', function (e) {
-		var target = e.target.closest ? e.target.closest('[data-vbr-balloon]') : null;
+		var target = e.target.closest ? e.target.closest('[data-lvbr-balloon]') : null;
 		if (!target || !maps.length) {
 			return;
 		}
-		var id = parseInt(target.getAttribute('data-vbr-balloon'), 10);
+		var id = parseInt(target.getAttribute('data-lvbr-balloon'), 10);
 		if (!maps[0].items[id]) {
 			return;
 		}
@@ -831,5 +830,5 @@
 		maps[0].root.scrollIntoView({ behavior: 'smooth', block: 'center' });
 	});
 
-	window.vbrMaps = maps;
+	window.lvbrMaps = maps;
 })();

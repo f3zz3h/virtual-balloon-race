@@ -2,7 +2,7 @@
 (function () {
 	'use strict';
 
-	var cfg = window.vbrSponsorStats || {};
+	var cfg = window.lvbrSponsorStats || {};
 	var seen = {};
 	var queue = [];
 	var timer = null;
@@ -38,26 +38,26 @@
 	}
 
 	function collect(root) {
-		(root || document).querySelectorAll('[data-vbr-sponsor]').forEach(function (el) {
-			view(el.getAttribute('data-vbr-sponsor'), el.getAttribute('data-vbr-placement'));
+		(root || document).querySelectorAll('[data-lvbr-sponsor]').forEach(function (el) {
+			view(el.getAttribute('data-lvbr-sponsor'), el.getAttribute('data-lvbr-placement'));
 		});
 	}
 
 	// Clicks on any sponsor link, including ones in map popups.
 	document.addEventListener('click', function (e) {
-		var link = e.target.closest ? e.target.closest('a[data-vbr-sponsor]') : null;
+		var link = e.target.closest ? e.target.closest('a[data-lvbr-sponsor]') : null;
 		if (link) {
-			send('click', [link.getAttribute('data-vbr-sponsor') + ':' + link.getAttribute('data-vbr-placement')]);
+			send('click', [link.getAttribute('data-lvbr-sponsor') + ':' + link.getAttribute('data-lvbr-placement')]);
 		}
 	}, true);
 
 	cfg.view = view;
 	cfg.collect = collect;
 
-	(window.vbrSponsorStatsQueue || []).forEach(function (pair) {
+	(window.lvbrSponsorStatsQueue || []).forEach(function (pair) {
 		view(pair[0], pair[1]);
 	});
-	window.vbrSponsorStatsQueue = [];
+	window.lvbrSponsorStatsQueue = [];
 
 	if (document.readyState === 'loading') {
 		document.addEventListener('DOMContentLoaded', function () { collect(); });

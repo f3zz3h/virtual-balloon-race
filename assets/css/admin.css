@@ -1,6 +1,6 @@
 /* Virtual Balloon Race — admin */
 
-.vbr-admin .vbr-admin-panel {
+.lvbr-admin .lvbr-admin-panel {
 	background: #fff;
 	border: 1px solid #c3c4c7;
 	border-radius: 4px;
@@ -8,22 +8,22 @@
 	margin: 16px 0;
 }
 
-.vbr-advance-form {
+.lvbr-advance-form {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
 	gap: 10px 14px;
 }
 
-.vbr-advance-form input[type="number"] {
+.lvbr-advance-form input[type="number"] {
 	width: 7rem;
 }
 
-.vbr-admin-table {
+.lvbr-admin-table {
 	margin-top: 8px;
 }
 
-.vbr-status {
+.lvbr-status {
 	display: inline-block;
 	padding: 2px 8px;
 	border-radius: 999px;
@@ -32,27 +32,27 @@
 	text-transform: uppercase;
 }
 
-.vbr-status--active {
+.lvbr-status--active {
 	background: #edfaef;
 	color: #1e6b34;
 }
 
-.vbr-status--burst {
+.lvbr-status--burst {
 	background: #fcecec;
 	color: #8a2424;
 }
 
 /* Settings page */
 
-.vbr-settings .form-table th {
+.lvbr-settings .form-table th {
 	width: 260px;
 }
 
-.vbr-launch-picker {
+.lvbr-launch-picker {
 	margin: 8px 0 4px;
 }
 
-.vbr-launch-search {
+.lvbr-launch-search {
 	position: relative;
 	display: flex;
 	flex-wrap: wrap;
@@ -60,7 +60,7 @@
 	margin-bottom: 10px;
 }
 
-.vbr-place-results {
+.lvbr-place-results {
 	position: absolute;
 	top: 100%;
 	left: 0;
@@ -74,65 +74,65 @@
 	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
-.vbr-place-results li {
+.lvbr-place-results li {
 	margin: 4px 0;
 }
 
-.vbr-place-results .button-link {
+.lvbr-place-results .button-link {
 	text-align: left;
 }
 
-.vbr-launch-map {
+.lvbr-launch-map {
 	height: 320px;
 	max-width: 760px;
 	border: 1px solid #c3c4c7;
 	border-radius: 4px;
 }
 
-.vbr-schedule-summary {
+.lvbr-schedule-summary {
 	margin: 0 0 12px;
 }
 
-.vbr-schedule-summary li {
+.lvbr-schedule-summary li {
 	margin: 2px 0;
 }
 
 /* Races */
 
-.vbr-status--upcoming {
+.lvbr-status--upcoming {
 	background: #f0f0f1;
 	color: #50575e;
 }
 
-.vbr-status--on_sale {
+.lvbr-status--on_sale {
 	background: #e7f0fb;
 	color: #135e96;
 }
 
-.vbr-status--flying {
+.lvbr-status--flying {
 	background: #edfaef;
 	color: #1e6b34;
 }
 
-.vbr-status--finished {
+.lvbr-status--finished {
 	background: #fcf0e3;
 	color: #8a4b0f;
 }
 
-.vbr-race-summary h2 .vbr-status {
+.lvbr-race-summary h2 .lvbr-status {
 	margin-left: 6px;
 	vertical-align: middle;
 }
 
-.vbr-race-facts {
+.lvbr-race-facts {
 	margin: 0 0 8px;
 }
 
-.vbr-race-facts li {
+.lvbr-race-facts li {
 	margin: 3px 0;
 }
 
-.vbr-race-picker {
+.lvbr-race-picker {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
@@ -140,15 +140,15 @@
 	margin: 12px 0 0;
 }
 
-.vbr-delete-race {
+.lvbr-delete-race {
 	margin-left: 12px;
 }
 
-.vbr-coord {
+.lvbr-coord {
 	width: 10rem;
 }
 
-.vbr-admin-logo {
+.lvbr-admin-logo {
 	width: 24px;
 	height: 24px;
 	margin-right: 4px;
@@ -158,50 +158,50 @@
 }
 
 /* Team list editor */
-.vbr-teams-editor__list {
+.lvbr-teams-editor__list {
 	margin: 0 0 0.5rem;
 }
 
-.vbr-teams-editor__row {
+.lvbr-teams-editor__row {
 	display: flex;
 	align-items: center;
 	gap: 0.5rem;
 	margin-bottom: 0.4rem;
 }
 
-.vbr-teams-editor__row input[type="color"] {
+.lvbr-teams-editor__row input[type="color"] {
 	width: 2.25rem;
 	height: 2rem;
 	padding: 0 2px;
 }
 
 /* The distance a race is ranked by */
-.vbr-admin-table td.vbr-ranked {
+.lvbr-admin-table td.lvbr-ranked {
 	font-weight: 600;
 }
 
 /* Flight mode cards (Settings) */
-.vbr-mode-cards {
+.lvbr-mode-cards {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 	gap: 0.75rem;
 	max-width: 960px;
 }
 
-.vbr-mode-card {
+.lvbr-mode-card {
 	position: relative;
 	display: block;
 	cursor: pointer;
 }
 
-.vbr-mode-card input {
+.lvbr-mode-card input {
 	position: absolute;
 	top: 0.85rem;
 	right: 0.85rem;
 	margin: 0;
 }
 
-.vbr-mode-card__body {
+.lvbr-mode-card__body {
 	display: flex;
 	flex-direction: column;
 	gap: 0.35rem;
@@ -213,31 +213,31 @@
 	box-sizing: border-box;
 }
 
-.vbr-mode-card input:checked + .vbr-mode-card__body {
+.lvbr-mode-card input:checked + .lvbr-mode-card__body {
 	border-color: #2271b1;
 	box-shadow: 0 0 0 1px #2271b1;
 	background: #f0f6fc;
 }
 
-.vbr-mode-card input:focus-visible + .vbr-mode-card__body {
+.lvbr-mode-card input:focus-visible + .lvbr-mode-card__body {
 	outline: 2px solid #2271b1;
 	outline-offset: 2px;
 }
 
-.vbr-mode-card__name {
+.lvbr-mode-card__name {
 	font-size: 1.1em;
 }
 
-.vbr-mode-card__tagline {
+.lvbr-mode-card__tagline {
 	color: #2271b1;
 	font-weight: 600;
 }
 
-.vbr-mode-card__description {
+.lvbr-mode-card__description {
 	color: #50575e;
 }
 
-.vbr-mode-card__estimate {
+.lvbr-mode-card__estimate {
 	display: flex;
 	flex-direction: column;
 	gap: 0.1rem;
@@ -248,7 +248,7 @@
 	color: #1d2327;
 }
 
-.vbr-mode-card__estimate-title {
+.lvbr-mode-card__estimate-title {
 	color: #50575e;
 	font-size: 0.85em;
 	text-transform: uppercase;
@@ -256,27 +256,27 @@
 }
 
 /* Withdrawn balloons (refunded, cancelled, or by hand) */
-.vbr-admin-table tr.vbr-withdrawn td {
+.lvbr-admin-table tr.lvbr-withdrawn td {
 	color: #8c8f94;
 }
 
-.vbr-status--withdrawn {
+.lvbr-status--withdrawn {
 	background: #f0f0f1;
 	color: #50575e;
 }
 
-.vbr-row-actions .button + .button {
+.lvbr-row-actions .button + .button {
 	margin-left: 0.25rem;
 }
 
 /* Sponsors on the race screen. */
-.vbr-sponsors-editor__list {
+.lvbr-sponsors-editor__list {
 	margin: 0 0 12px;
 	padding: 0;
 	list-style: none;
 }
 
-.vbr-sponsors-editor__card {
+.lvbr-sponsors-editor__card {
 	display: grid;
 	grid-template-columns: 96px minmax(0, 1fr) auto;
 	gap: 16px;
@@ -284,14 +284,14 @@
 	border-top: 1px solid #dcdcde;
 }
 
-.vbr-sponsors-editor__logo {
+.lvbr-sponsors-editor__logo {
 	display: flex;
 	flex-direction: column;
 	align-items: flex-start;
 	gap: 6px;
 }
 
-.vbr-sponsors-editor__logo-img {
+.lvbr-sponsors-editor__logo-img {
 	width: 80px;
 	height: 80px;
 	object-fit: contain;
@@ -300,24 +300,24 @@
 	background: #fff;
 }
 
-.vbr-sponsors-editor__fields {
+.lvbr-sponsors-editor__fields {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
 	gap: 10px 16px;
 }
 
-.vbr-sponsors-editor__fields > label {
+.lvbr-sponsors-editor__fields > label {
 	display: flex;
 	flex-direction: column;
 	gap: 4px;
 	font-weight: 600;
 }
 
-.vbr-sponsors-editor__fields .regular-text {
+.lvbr-sponsors-editor__fields .regular-text {
 	width: 100%;
 }
 
-.vbr-sponsors-editor__placements {
+.lvbr-sponsors-editor__placements {
 	grid-column: 1 / -1;
 	display: flex;
 	flex-wrap: wrap;
@@ -327,32 +327,32 @@
 	border: 0;
 }
 
-.vbr-sponsors-editor__placements legend {
+.lvbr-sponsors-editor__placements legend {
 	width: 100%;
 	margin-bottom: 4px;
 	font-weight: 600;
 }
 
-.vbr-sponsors-editor__actions {
+.lvbr-sponsors-editor__actions {
 	display: flex;
 	align-items: flex-start;
 	gap: 10px;
 }
 
-.vbr-sponsors-editor__up,
-.vbr-sponsors-editor__down {
+.lvbr-sponsors-editor__up,
+.lvbr-sponsors-editor__down {
 	min-width: 24px;
 	font-size: 16px;
 }
 
 /* Prizes on the race screen. */
-.vbr-prizes-editor__list {
+.lvbr-prizes-editor__list {
 	margin: 0 0 12px;
 	padding: 0;
 	list-style: none;
 }
 
-.vbr-prizes-editor__row {
+.lvbr-prizes-editor__row {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: flex-end;
@@ -361,30 +361,30 @@
 	border-top: 1px solid #dcdcde;
 }
 
-.vbr-prizes-editor__row label {
+.lvbr-prizes-editor__row label {
 	display: flex;
 	flex-direction: column;
 	gap: 4px;
 	font-weight: 600;
 }
 
-.vbr-prizes-editor__row label[hidden] {
+.lvbr-prizes-editor__row label[hidden] {
 	display: none;
 }
 
-.vbr-prizes-editor__description {
+.lvbr-prizes-editor__description {
 	flex: 1 1 280px;
 }
 
-.vbr-prizes-editor__description input {
+.lvbr-prizes-editor__description input {
 	width: 100%;
 }
 
-.vbr-prizes-editor__remove {
+.lvbr-prizes-editor__remove {
 	margin-bottom: 6px;
 }
 
-.vbr-sponsors-editor__hot-air {
+.lvbr-sponsors-editor__hot-air {
 	grid-column: 1 / -1;
 	display: flex;
 	flex-wrap: wrap;
@@ -397,33 +397,33 @@
 	background: #f6f7f7;
 }
 
-.vbr-sponsors-editor__hot-air[hidden] {
+.lvbr-sponsors-editor__hot-air[hidden] {
 	display: none;
 }
 
-.vbr-sponsors-editor__hot-air legend {
+.lvbr-sponsors-editor__hot-air legend {
 	padding: 0 4px;
 	font-weight: 600;
 }
 
-.vbr-sponsors-editor__hot-air label {
+.lvbr-sponsors-editor__hot-air label {
 	display: flex;
 	flex-direction: column;
 	gap: 4px;
 	font-weight: 600;
 }
 
-.vbr-sponsors-editor__hot-air .description {
+.lvbr-sponsors-editor__hot-air .description {
 	flex-basis: 100%;
 	margin: 0;
 }
 
-.vbr-sponsors-editor__colours {
+.lvbr-sponsors-editor__colours {
 	display: flex;
 	gap: 6px;
 }
 
-.vbr-sponsors-editor__stats {
+.lvbr-sponsors-editor__stats {
 	grid-column: 2 / -1;
 	margin: 0;
 	color: #50575e;
@@ -431,10 +431,10 @@
 }
 
 /* Race screen: per-race movement settings, folded away until changed */
-.vbr-race-movement summary {
+.lvbr-race-movement summary {
 	cursor: pointer;
 }
 
-.vbr-race-movement summary h2 {
+.lvbr-race-movement summary h2 {
 	display: inline;
 }

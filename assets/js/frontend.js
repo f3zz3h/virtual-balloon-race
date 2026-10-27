@@ -1,8 +1,8 @@
 (function () {
 	'use strict';
 
-	var i18n = (window.vbrLeaderboard && window.vbrLeaderboard.i18n) || {};
-	var STORE_KEY = 'vbrLeaderboardPerPage';
+	var i18n = (window.lvbrLeaderboard && window.lvbrLeaderboard.i18n) || {};
+	var STORE_KEY = 'lvbrLeaderboardPerPage';
 
 	// "%1$s–%2$s of %3$s" style placeholders, or a single "%s".
 	function format(text) {
@@ -33,20 +33,20 @@
 	}
 
 	function bindLeaderboard(root) {
-		var input = root.querySelector('.vbr-leaderboard__search-input');
-		var rows = [].slice.call(root.querySelectorAll('tbody tr[data-vbr-search]'));
-		var empty = root.querySelector('.vbr-leaderboard__empty-search');
-		var toggles = root.querySelectorAll('[data-vbr-show]');
-		var pager = root.querySelector('[data-vbr-pager]');
-		var select = pager ? pager.querySelector('.vbr-pager__select') : null;
-		var summary = pager ? pager.querySelector('.vbr-pager__summary') : null;
-		var nav = pager ? pager.querySelector('.vbr-pager__pages') : null;
+		var input = root.querySelector('.lvbr-leaderboard__search-input');
+		var rows = [].slice.call(root.querySelectorAll('tbody tr[data-lvbr-search]'));
+		var empty = root.querySelector('.lvbr-leaderboard__empty-search');
+		var toggles = root.querySelectorAll('[data-lvbr-show]');
+		var pager = root.querySelector('[data-lvbr-pager]');
+		var select = pager ? pager.querySelector('.lvbr-pager__select') : null;
+		var summary = pager ? pager.querySelector('.lvbr-pager__summary') : null;
+		var nav = pager ? pager.querySelector('.lvbr-pager__pages') : null;
 		var onlyMine = false;
 		var page = 1;
-		var perPage = parseInt(root.getAttribute('data-vbr-per-page'), 10);
+		var perPage = parseInt(root.getAttribute('data-lvbr-per-page'), 10);
 		var stored = storedPerPage();
-		// Big races: the server pages and searches (GET /vbr/v1/leaderboard); only page 1 is in the HTML.
-		var remote = root.getAttribute('data-vbr-remote');
+		// Big races: the server pages and searches (GET /lvbr/v1/leaderboard); only page 1 is in the HTML.
+		var remote = root.getAttribute('data-lvbr-remote');
 		var tbody = root.querySelector('tbody');
 		var requestId = 0;
 		var searchTimer = null;
@@ -75,17 +75,17 @@
 			var id = ++requestId;
 			var query = input ? input.value.trim() : '';
 			var url = remote + (remote.indexOf('?') === -1 ? '?' : '&') + [
-				'race=' + encodeURIComponent(root.getAttribute('data-vbr-race')),
+				'race=' + encodeURIComponent(root.getAttribute('data-lvbr-race')),
 				'page=' + page,
 				'per_page=' + (perPage || 100),
 				'search=' + encodeURIComponent(query),
 				'mine=' + (onlyMine ? 1 : 0),
-				'map_url=' + encodeURIComponent(root.getAttribute('data-vbr-map-url') || '')
+				'map_url=' + encodeURIComponent(root.getAttribute('data-lvbr-map-url') || '')
 			].join('&');
 			var headers = { 'Accept': 'application/json' };
 
-			if (root.getAttribute('data-vbr-nonce')) {
-				headers['X-WP-Nonce'] = root.getAttribute('data-vbr-nonce');
+			if (root.getAttribute('data-lvbr-nonce')) {
+				headers['X-WP-Nonce'] = root.getAttribute('data-lvbr-nonce');
 			}
 			root.setAttribute('aria-busy', 'true');
 
@@ -124,16 +124,16 @@
 		function matches(row) {
 			var query = input ? input.value.toLowerCase().trim() : '';
 
-			if (onlyMine && !row.hasAttribute('data-vbr-mine')) {
+			if (onlyMine && !row.hasAttribute('data-lvbr-mine')) {
 				return false;
 			}
-			return !query || (row.getAttribute('data-vbr-search') || '').indexOf(query) !== -1;
+			return !query || (row.getAttribute('data-lvbr-search') || '').indexOf(query) !== -1;
 		}
 
 		function pageButton(label, target, current, disabled) {
 			var btn = document.createElement('button');
 			btn.type = 'button';
-			btn.className = 'vbr-pager__page';
+			btn.className = 'lvbr-pager__page';
 			btn.textContent = label;
 			btn.disabled = !!disabled;
 			if (current) {
@@ -165,7 +165,7 @@
 				if (p === 1 || p === pages || Math.abs(p - page) <= 1) {
 					if (last && p - last > 1) {
 						var gap = document.createElement('span');
-						gap.className = 'vbr-pager__gap';
+						gap.className = 'lvbr-pager__gap';
 						gap.textContent = '…';
 						nav.appendChild(gap);
 					}
@@ -238,7 +238,7 @@
 
 		toggles.forEach(function (btn) {
 			btn.addEventListener('click', function () {
-				onlyMine = btn.getAttribute('data-vbr-show') === 'mine';
+				onlyMine = btn.getAttribute('data-lvbr-show') === 'mine';
 				toggles.forEach(function (other) {
 					other.setAttribute('aria-pressed', String(other === btn));
 				});
@@ -249,7 +249,7 @@
 
 		if (remote) {
 			// Page 1 came with the HTML: draw the page links, and only ask the server if a remembered size differs.
-			var total = parseInt(root.getAttribute('data-vbr-total'), 10) || 0;
+			var total = parseInt(root.getAttribute('data-lvbr-total'), 10) || 0;
 			if (perPage !== serverPerPage) {
 				apply(false);
 			} else if (nav) {
@@ -261,5 +261,5 @@
 		apply(false);
 	}
 
-	document.querySelectorAll('[data-vbr-leaderboard]').forEach(bindLeaderboard);
+	document.querySelectorAll('[data-lvbr-leaderboard]').forEach(bindLeaderboard);
 })();

@@ -60,8 +60,8 @@ wp eval-file "$CHECKS" limits
 
 stage "Scenario A: demo race"
 wp eval-file "$CHECKS" demo
-wp vbr demo --balloons=5
-wp vbr demo --remove
+wp lvbr demo --balloons=5
+wp lvbr demo --remove
 
 stage "Scenario A: product editor tabs"
 wp eval-file "$CHECKS" product-editor
@@ -127,7 +127,7 @@ if [ -n "${PLUGIN_ZIP:-}" ]; then
 	stage "Deleting the plugin with \"Delete all race data\" on"
 	wp plugin install "$PLUGIN_ZIP" --activate
 	next_request
-	wp eval '$s = get_option( "vbr_settings", array() ); $s["delete_data_on_uninstall"] = 1; update_option( "vbr_settings", $s );'
+	wp eval '$s = get_option( "lvbr_settings", array() ); $s["delete_data_on_uninstall"] = 1; update_option( "lvbr_settings", $s );'
 	wp plugin uninstall "$PLUGIN" --deactivate
 	wp eval-file "$CHECKS" uninstalled-removed
 fi

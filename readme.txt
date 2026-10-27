@@ -1,4 +1,4 @@
-=== Virtual Balloon Race ===
+=== Lumaha Virtual Balloon Race ===
 Contributors: f3zz3h
 Donate link: https://buymeacoffee.com/lumaha
 Tags: fundraising, balloon race, charity, woocommerce, school
@@ -47,7 +47,7 @@ The map uses [Leaflet](https://leafletjs.com/) (bundled with the plugin) and Ope
 4. Go to **Balloon Race → Races → Add race**: set when entries open, the launch time, an optional end time and the launch point.
 5. Check **Balloon Race → Settings**: flight mode, how often balloons move, add-on prices, teams, and more.
 
-For on-time updates on a quiet site, add a real server cron that runs `wp vbr tick` every few minutes (WordPress only runs scheduled jobs when someone visits).
+For on-time updates on a quiet site, add a real server cron that runs `wp lvbr tick` every few minutes (WordPress only runs scheduled jobs when someone visits).
 
 == Frequently Asked Questions ==
 
@@ -89,9 +89,9 @@ Everything, unless you tick **Settings → Data → Delete all race data when th
 
 == External services ==
 
-This plugin connects to the third-party services below. By default it uses free services that need no API keys or accounts; **Balloon Race → Settings → Maps, weather and place search** can switch to keyed providers for busier or commercial sites.
+This plugin can connect to the third-party services below. **Nothing is contacted until the site admin allows it:** on a new site, external services are off, and the plugin's admin screens ask once whether to allow them (or tick **Allow external services** in **Balloon Race → Settings → Maps, weather and place search**). Until then, maps show the balloons without a background map, balloons follow the default heading instead of the live wind, and place search is hidden. The free services need no API keys or accounts; the same Settings section can switch to keyed providers for busier or commercial sites.
 
-Sponsor views and clicks are counted by your own site (totals only, no cookies or visitor data); nothing is sent to any other service.
+Sponsor views and clicks are only counted if the site admin turns it on (**Settings → Data**). They are counted by your own site (totals only, no cookies, IP addresses or other visitor data), and nothing is sent to any other service.
 
 = Open-Meteo (weather) =
 
@@ -123,6 +123,11 @@ Used by the "search for a place" box when choosing a launch point (in Settings, 
 5. A race's admin screen: its status, entries against the limit, shortcodes, the emails to entrants, and its dates.
 
 == Changelog ==
+
+= 2.0.0 =
+* Changed: the plugin is now called Lumaha Virtual Balloon Race, and its code, data, hooks, shortcodes, REST routes and WP-CLI commands use the `lvbr` prefix (e.g. `[lvbr_map]`, `/lvbr/v1/`, `wp lvbr`). Existing sites are moved over automatically on the next page load, including shortcodes in pages and widgets; see Upgrade Notice for what to change by hand.
+* Changed: external services (map tiles, live wind, place search) are off on new sites until the admin allows them, and sponsor view and click counting is off until turned on. Sites upgraded from 1.x keep both on.
+* Changed: admin notices only appear on the screens they relate to.
 
 = 1.18.0 =
 * New: each race can have its own movement settings (update interval, speed, helium multipliers, variance and burst chances) under Movement on its race screen. Blank boxes use the Settings value, so a short demo and a week-long race can run side by side.
@@ -215,6 +220,9 @@ Used by the "search for a place" box when choosing a launch point (in Settings, 
 * New: race schedules (entries open, launch, end) and per-race sales.
 
 == Upgrade Notice ==
+
+= 2.0.0 =
+Renamed to Lumaha Virtual Balloon Race with new `lvbr` names. Data, settings and shortcodes in pages move over automatically. Update by hand: shortcodes in theme files or page builders (`[balloon_…]` → `[lvbr_…]`), custom code using `vbr_` hooks or `/vbr/v1/` routes, `.vbr-` CSS, theme email template overrides, and cron jobs running `wp vbr tick` (now `wp lvbr tick`).
 
 = 1.18.0 =
 Races can now have their own update interval, speed and burst settings. Adds a database column (done automatically).

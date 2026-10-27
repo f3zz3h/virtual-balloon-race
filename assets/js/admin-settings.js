@@ -2,14 +2,14 @@
 (function () {
 	'use strict';
 
-	var mapEl = document.getElementById('vbr-launch-map');
-	var latInput = document.getElementById('vbr_launch_lat');
-	var lngInput = document.getElementById('vbr_launch_lng');
-	var labelInput = document.getElementById('vbr_launch_label');
-	var searchInput = document.getElementById('vbr-place-search');
-	var searchBtn = document.getElementById('vbr-place-search-btn');
-	var results = document.getElementById('vbr-place-results');
-	var i18n = (window.vbrSettings && window.vbrSettings.i18n) || {};
+	var mapEl = document.getElementById('lvbr-launch-map');
+	var latInput = document.getElementById('lvbr_launch_lat');
+	var lngInput = document.getElementById('lvbr_launch_lng');
+	var labelInput = document.getElementById('lvbr_launch_label');
+	var searchInput = document.getElementById('lvbr-place-search');
+	var searchBtn = document.getElementById('lvbr-place-search-btn');
+	var results = document.getElementById('lvbr-place-results');
+	var i18n = (window.lvbrSettings && window.lvbrSettings.i18n) || {};
 
 	if (!mapEl || !latInput || !lngInput || typeof L === 'undefined') {
 		return;
@@ -18,7 +18,7 @@
 	var start = [parseFloat(latInput.value) || 51.4885, parseFloat(lngInput.value) || -2.58];
 	var map = L.map(mapEl).setView(start, parseInt(mapEl.getAttribute('data-zoom'), 10) || 7);
 
-	window.vbrServices.tileLayer().addTo(map);
+	window.lvbrServices.tileLayer().addTo(map);
 
 	var marker = L.marker(start, { draggable: true }).addTo(map);
 
@@ -68,7 +68,7 @@
 
 		showMessage(i18n.searching || 'Searching…');
 
-		window.vbrServices.searchPlaces(q)
+		window.lvbrServices.searchPlaces(q)
 			.then(function (places) {
 				results.innerHTML = '';
 				if (!places.length) {
