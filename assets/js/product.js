@@ -2,7 +2,7 @@
 (function () {
 	'use strict';
 
-	var cfg = window.vbrProduct || {};
+	var cfg = window.lvbrProduct || {};
 	var i18n = cfg.i18n || {};
 	var UNPICKED_HEX = '#b8c4d0';
 
@@ -21,7 +21,7 @@
 	}
 
 	function chosenHex() {
-		var select = field('vbr_balloon_color');
+		var select = field('lvbr_balloon_color');
 		return (cfg.colors || {})[select ? select.value : ''] || '';
 	}
 
@@ -32,16 +32,16 @@
 	}
 
 	function initLaunch(root) {
-		var toggle = root.querySelector('input[name="vbr_custom_launch"]');
-		var panel = root.querySelector('.vbr-addon__panel');
-		var latInput = root.querySelector('input[name="vbr_launch_lat"]');
-		var lngInput = root.querySelector('input[name="vbr_launch_lng"]');
-		var labelInput = root.querySelector('input[name="vbr_launch_label"]');
-		var searchInput = root.querySelector('.vbr-addon__search-input');
-		var searchBtn = root.querySelector('.vbr-addon__search-btn');
-		var results = root.querySelector('.vbr-addon__results');
-		var chosen = root.querySelector('.vbr-addon__chosen');
-		var mapEl = root.querySelector('.vbr-addon__map');
+		var toggle = root.querySelector('input[name="lvbr_custom_launch"]');
+		var panel = root.querySelector('.lvbr-addon__panel');
+		var latInput = root.querySelector('input[name="lvbr_launch_lat"]');
+		var lngInput = root.querySelector('input[name="lvbr_launch_lng"]');
+		var labelInput = root.querySelector('input[name="lvbr_launch_label"]');
+		var searchInput = root.querySelector('.lvbr-addon__search-input');
+		var searchBtn = root.querySelector('.lvbr-addon__search-btn');
+		var results = root.querySelector('.lvbr-addon__results');
+		var chosen = root.querySelector('.lvbr-addon__chosen');
+		var mapEl = root.querySelector('.lvbr-addon__map');
 		var map = null;
 		var marker = null;
 
@@ -87,7 +87,7 @@
 			var start = hasPoint ? [parseFloat(latInput.value), parseFloat(lngInput.value)] : (cfg.launch || [51.4885, -2.58]);
 
 			map = L.map(mapEl).setView(start, hasPoint ? 12 : 9);
-			window.vbrServices.tileLayer().addTo(map);
+			window.lvbrServices.tileLayer().addTo(map);
 
 			if (hasPoint) {
 				marker = L.marker(start).addTo(map);
@@ -113,7 +113,7 @@
 			}
 			showMessage(i18n.searching || 'Searching…');
 
-			window.vbrServices.searchPlaces(q)
+			window.lvbrServices.searchPlaces(q)
 				.then(function (places) {
 					results.innerHTML = '';
 					if (!places.length) {
@@ -168,8 +168,8 @@
 	}
 
 	function initLogo(input) {
-		var preview = input.parentNode.querySelector('.vbr-addon__preview');
-		var chosen = input.parentNode.querySelector('input[name="vbr_logo_chosen"]');
+		var preview = input.parentNode.querySelector('.lvbr-addon__preview');
+		var chosen = input.parentNode.querySelector('input[name="lvbr_logo_chosen"]');
 		var allowed = ['image/png', 'image/jpeg', 'image/webp'];
 		var form = input.form;
 
@@ -205,13 +205,13 @@
 		mark();
 
 		// Without the big preview, draw the picture on a small balloon under the upload field.
-		if (preview && !document.querySelector('[data-vbr-preview]')) {
+		if (preview && !document.querySelector('[data-lvbr-preview]')) {
 			redrawers.push(function () {
-				if (!look.logo || !window.vbrBalloon) {
+				if (!look.logo || !window.lvbrBalloon) {
 					preview.hidden = true;
 					return;
 				}
-				preview.innerHTML = window.vbrBalloon.svg(chosenHex() || '#2b6cb0', false, look.logo, look.fit);
+				preview.innerHTML = window.lvbrBalloon.svg(chosenHex() || '#2b6cb0', false, look.logo, look.fit);
 				preview.hidden = false;
 			});
 		}
@@ -259,20 +259,20 @@
 
 	// Big balloon in place of the product images: colour, picture, name, team and helium as chosen.
 	function initPreview(root) {
-		var balloon = root.querySelector('.vbr-product-preview__balloon');
-		var nameEl = root.querySelector('.vbr-product-preview__name');
-		var metaEl = root.querySelector('.vbr-product-preview__meta');
+		var balloon = root.querySelector('.lvbr-product-preview__balloon');
+		var nameEl = root.querySelector('.lvbr-product-preview__name');
+		var metaEl = root.querySelector('.lvbr-product-preview__meta');
 
 		redrawers.push(function () {
 			var hex = chosenHex();
-			var nameInput = field('vbr_balloon_name');
+			var nameInput = field('lvbr_balloon_name');
 			var name = nameInput ? nameInput.value.trim() : '';
-			var helium = field('vbr_helium_level');
+			var helium = field('lvbr_helium_level');
 			// Helium option labels include prices and notes; the value is the short strategy name.
-			var meta = [chosenText('vbr_balloon_color'), chosenText('vbr_team_id'), helium ? helium.value : ''].filter(Boolean);
+			var meta = [chosenText('lvbr_balloon_color'), chosenText('lvbr_team_id'), helium ? helium.value : ''].filter(Boolean);
 
-			if (window.vbrBalloon) {
-				balloon.innerHTML = window.vbrBalloon.svg(hex || UNPICKED_HEX, false, look.logo, look.fit);
+			if (window.lvbrBalloon) {
+				balloon.innerHTML = window.lvbrBalloon.svg(hex || UNPICKED_HEX, false, look.logo, look.fit);
 			}
 			root.classList.toggle('is-unpicked', !hex && !look.logo);
 			root.setAttribute('data-helium', helium ? helium.value : '');
@@ -280,14 +280,14 @@
 			metaEl.textContent = hex ? meta.join(' · ') : (i18n.pickColour || 'Pick a colour to see your balloon.');
 		});
 
-		['vbr_balloon_color', 'vbr_team_id', 'vbr_helium_level', 'vbr_race_id'].forEach(function (name) {
+		['lvbr_balloon_color', 'lvbr_team_id', 'lvbr_helium_level', 'lvbr_race_id'].forEach(function (name) {
 			var el = field(name);
 			if (el) {
 				el.addEventListener('change', redraw);
 			}
 		});
 
-		var nameInput = field('vbr_balloon_name');
+		var nameInput = field('lvbr_balloon_name');
 		if (nameInput) {
 			nameInput.addEventListener('input', redraw);
 		}
@@ -295,8 +295,8 @@
 
 	// With several races open, only offer the chosen race's teams; hide the field for races without teams.
 	function initTeams(select) {
-		var raceSelect = document.querySelector('select[name="vbr_race_id"]');
-		var row = select.closest('.vbr-team-field') || select.parentNode;
+		var raceSelect = document.querySelector('select[name="lvbr_race_id"]');
+		var row = select.closest('.lvbr-team-field') || select.parentNode;
 
 		if (!raceSelect) {
 			return;
@@ -327,14 +327,14 @@
 		filter();
 	}
 
-	document.querySelectorAll('[data-vbr-preview]').forEach(initPreview);
-	document.querySelectorAll('select[name="vbr_team_id"]').forEach(initTeams);
-	document.querySelectorAll('[data-vbr-launch]').forEach(initLaunch);
-	document.querySelectorAll('input[name="vbr_logo"]').forEach(initLogo);
+	document.querySelectorAll('[data-lvbr-preview]').forEach(initPreview);
+	document.querySelectorAll('select[name="lvbr_team_id"]').forEach(initTeams);
+	document.querySelectorAll('[data-lvbr-launch]').forEach(initLaunch);
+	document.querySelectorAll('input[name="lvbr_logo"]').forEach(initLogo);
 
 	// Keep the colour list in step with the preview too (the small preview only needs this).
-	var colorSelect = field('vbr_balloon_color');
-	if (colorSelect && !document.querySelector('[data-vbr-preview]')) {
+	var colorSelect = field('lvbr_balloon_color');
+	if (colorSelect && !document.querySelector('[data-lvbr-preview]')) {
 		colorSelect.addEventListener('change', redraw);
 	}
 	redraw();

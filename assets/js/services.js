@@ -2,11 +2,8 @@
 (function () {
 	'use strict';
 
-	var cfg = window.vbrServicesConfig || {};
-	var tiles = cfg.tiles || {
-		url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-		options: { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' }
-	};
+	var cfg = window.lvbrServicesConfig || {};
+	var tiles = cfg.tiles || { url: '', options: {} };
 	var search = cfg.search || { provider: 'nominatim' };
 	var nextSearchAt = 0;
 
@@ -17,10 +14,11 @@
 		return response.json();
 	}
 
-	window.vbrServices = {
+	window.lvbrServices = {
 		/* A Leaflet tile layer for the chosen provider (Leaflet must be loaded by then). */
 		tileLayer: function () {
-			return L.tileLayer(tiles.url, tiles.options);
+			// No tiles until the site owner allows outside services: balloons on a plain background.
+			return tiles.url ? L.tileLayer(tiles.url, tiles.options) : L.layerGroup();
 		},
 
 		/*

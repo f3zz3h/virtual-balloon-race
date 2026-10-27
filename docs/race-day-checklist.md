@@ -8,7 +8,7 @@ What to check on your own site before a real race. The plugin's automated tests 
 - [ ] **Create the race**: entries open, launch and end times, launch point, entry limit if any, flight mode. Check the times show in your site's timezone (Settings → General).
 - [ ] **Teams, prizes and sponsors** on the race screen, if you use them. Open the tracking page and check the prize cards, "presented by" and the sponsor wall look right.
 - [ ] **The entry product**: price, picture and description. It only appears in the shop once the race is planned.
-- [ ] **Automatic updates** (Settings → Race movement): pick an interval. WordPress only runs scheduled jobs when someone visits; for on-time updates on a quiet site, ask your host for a real cron job running `wp vbr tick` (or `wp cron event run --due-now`) every few minutes.
+- [ ] **Automatic updates** (Settings → Race movement): pick an interval. WordPress only runs scheduled jobs when someone visits; for on-time updates on a quiet site, ask your host for a real cron job running `wp lvbr tick` (or `wp cron event run --due-now`) every few minutes.
 
 ## Payments: one real order
 

@@ -15,12 +15,12 @@ parameters:
 	bootstrapFiles:
 		- tests/phpstan/bootstrap.php
 	ignoreErrors:
-		# Action Scheduler ships with WooCommerce; calls are guarded by VBR_Cron::use_action_scheduler().
+		# Action Scheduler ships with WooCommerce; calls are guarded by LVBR_Cron::use_action_scheduler().
 		- '#^Function as_[a-z_]+ not found\.$#'
 	# Defined at runtime with real values; don't let PHPStan treat the bootstrap's placeholders as fixed.
 	dynamicConstantNames:
-		- VBR_VERSION
-		- VBR_DB_VERSION
-		- VBR_PLUGIN_FILE
-		- VBR_PLUGIN_DIR
-		- VBR_PLUGIN_URL
+		- LVBR_VERSION
+		- LVBR_DB_VERSION
+		- LVBR_PLUGIN_FILE
+		- LVBR_PLUGIN_DIR
+		- LVBR_PLUGIN_URL

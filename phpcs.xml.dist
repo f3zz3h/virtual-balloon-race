@@ -21,7 +21,7 @@
 	<rule ref="WordPress.WP.I18n">
 		<properties>
 			<property name="text_domain" type="array">
-				<element value="virtual-balloon-race"/>
+				<element value="lumaha-virtual-balloon-race"/>
 			</property>
 		</properties>
 	</rule>

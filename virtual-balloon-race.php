@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name:       Virtual Balloon Race
+ * Plugin Name:       Lumaha Virtual Balloon Race
  * Plugin URI:        https://www.lumaha.uk/balloonrace/
  * Description:       Run a virtual balloon race fundraiser: sell entries through WooCommerce and watch the balloons drift across a live map on real winds.
  * Version:           1.18.0
@@ -10,7 +10,7 @@
  * Author URI:        https://www.lumaha.uk/
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain:       virtual-balloon-race
+ * Text Domain:       lumaha-virtual-balloon-race
  * Domain Path:       /languages
  * WC requires at least: 7.0
  * Update URI:        https://github.com/f3zz3h/virtual-balloon-race
@@ -20,65 +20,65 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'VBR_VERSION', '1.18.0' );
-define( 'VBR_DB_VERSION', '1.17.0' );
-define( 'VBR_PLUGIN_FILE', __FILE__ );
-define( 'VBR_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
-define( 'VBR_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
-define( 'VBR_TABLE_SUFFIX', 'vbr_balloons' );
+define( 'LVBR_VERSION', '1.18.0' );
+define( 'LVBR_DB_VERSION', '1.17.0' );
+define( 'LVBR_PLUGIN_FILE', __FILE__ );
+define( 'LVBR_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
+define( 'LVBR_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+define( 'LVBR_TABLE_SUFFIX', 'lvbr_balloons' );
 
-require_once VBR_PLUGIN_DIR . 'includes/class-vbr-balloons.php';
-require_once VBR_PLUGIN_DIR . 'includes/class-vbr-races.php';
-require_once VBR_PLUGIN_DIR . 'includes/class-vbr-teams.php';
-require_once VBR_PLUGIN_DIR . 'includes/class-vbr-sponsors.php';
-require_once VBR_PLUGIN_DIR . 'includes/class-vbr-prizes.php';
-require_once VBR_PLUGIN_DIR . 'includes/class-vbr-sponsor-stats.php';
-require_once VBR_PLUGIN_DIR . 'includes/class-vbr-flight-modes.php';
-require_once VBR_PLUGIN_DIR . 'includes/class-vbr-install.php';
-require_once VBR_PLUGIN_DIR . 'includes/class-vbr-settings.php';
-require_once VBR_PLUGIN_DIR . 'includes/class-vbr-services.php';
-require_once VBR_PLUGIN_DIR . 'includes/class-vbr-geo.php';
-require_once VBR_PLUGIN_DIR . 'includes/class-vbr-weather.php';
-require_once VBR_PLUGIN_DIR . 'includes/class-vbr-cron.php';
-require_once VBR_PLUGIN_DIR . 'includes/class-vbr-admin.php';
-require_once VBR_PLUGIN_DIR . 'includes/class-vbr-admin-races.php';
-require_once VBR_PLUGIN_DIR . 'includes/class-vbr-frontend.php';
-require_once VBR_PLUGIN_DIR . 'includes/class-vbr-map.php';
-require_once VBR_PLUGIN_DIR . 'includes/class-vbr-pages.php';
-require_once VBR_PLUGIN_DIR . 'includes/class-vbr-woocommerce.php';
-require_once VBR_PLUGIN_DIR . 'includes/class-vbr-monetization.php';
-require_once VBR_PLUGIN_DIR . 'includes/class-vbr-race-entries.php';
-require_once VBR_PLUGIN_DIR . 'includes/class-vbr-team-entries.php';
-require_once VBR_PLUGIN_DIR . 'includes/class-vbr-order-sync.php';
-require_once VBR_PLUGIN_DIR . 'includes/class-vbr-race-emails.php';
-require_once VBR_PLUGIN_DIR . 'includes/class-vbr-housekeeping.php';
-require_once VBR_PLUGIN_DIR . 'includes/class-vbr-support.php';
-require_once VBR_PLUGIN_DIR . 'includes/class-vbr-demo.php';
-require_once VBR_PLUGIN_DIR . 'includes/class-vbr-product-preview.php';
-require_once VBR_PLUGIN_DIR . 'includes/class-vbr-product-type.php';
-require_once VBR_PLUGIN_DIR . 'includes/class-vbr-account.php';
+require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-balloons.php';
+require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-races.php';
+require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-teams.php';
+require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-sponsors.php';
+require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-prizes.php';
+require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-sponsor-stats.php';
+require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-flight-modes.php';
+require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-install.php';
+require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-settings.php';
+require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-services.php';
+require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-geo.php';
+require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-weather.php';
+require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-cron.php';
+require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-admin.php';
+require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-admin-races.php';
+require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-frontend.php';
+require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-map.php';
+require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-pages.php';
+require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-woocommerce.php';
+require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-monetization.php';
+require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-race-entries.php';
+require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-team-entries.php';
+require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-order-sync.php';
+require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-race-emails.php';
+require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-housekeeping.php';
+require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-support.php';
+require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-demo.php';
+require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-product-preview.php';
+require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-product-type.php';
+require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-account.php';
 
 // Updates from GitHub releases (starts itself). Not in the WordPress.org build, which updates from WordPress.org.
-if ( file_exists( VBR_PLUGIN_DIR . 'includes/class-vbr-github-updater.php' ) ) {
-	require_once VBR_PLUGIN_DIR . 'includes/class-vbr-github-updater.php';
+if ( file_exists( LVBR_PLUGIN_DIR . 'includes/class-lvbr-github-updater.php' ) ) {
+	require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-github-updater.php';
 }
 
 /**
  * Main plugin bootstrap.
  */
-final class Virtual_Balloon_Race {
+final class LVBR_Plugin {
 
 	/**
 	 * Singleton instance.
 	 *
-	 * @var Virtual_Balloon_Race|null
+	 * @var LVBR_Plugin|null
 	 */
 	private static $instance = null;
 
 	/**
 	 * Get singleton instance.
 	 *
-	 * @return Virtual_Balloon_Race
+	 * @return LVBR_Plugin
 	 */
 	public static function instance() {
 		if ( null === self::$instance ) {
@@ -92,11 +92,11 @@ final class Virtual_Balloon_Race {
 	 * Constructor.
 	 */
 	private function __construct() {
-		register_activation_hook( VBR_PLUGIN_FILE, array( 'VBR_Install', 'activate' ) );
-		register_deactivation_hook( VBR_PLUGIN_FILE, array( 'VBR_Cron', 'unschedule' ) );
-		register_deactivation_hook( VBR_PLUGIN_FILE, array( 'VBR_Race_Emails', 'unschedule' ) );
-		register_deactivation_hook( VBR_PLUGIN_FILE, array( 'VBR_Housekeeping', 'unschedule' ) );
-		VBR_Install::init();
+		register_activation_hook( LVBR_PLUGIN_FILE, array( 'LVBR_Install', 'activate' ) );
+		register_deactivation_hook( LVBR_PLUGIN_FILE, array( 'LVBR_Cron', 'unschedule' ) );
+		register_deactivation_hook( LVBR_PLUGIN_FILE, array( 'LVBR_Race_Emails', 'unschedule' ) );
+		register_deactivation_hook( LVBR_PLUGIN_FILE, array( 'LVBR_Housekeeping', 'unschedule' ) );
+		LVBR_Install::init();
 
 		add_action( 'plugins_loaded', array( $this, 'init' ) );
 		add_action( 'admin_notices', array( $this, 'woocommerce_missing_notice' ) );
@@ -107,30 +107,31 @@ final class Virtual_Balloon_Race {
 	 */
 	public function init() {
 		// Translations load on their own (WordPress 4.6+), from wp-content/languages/plugins.
-		new VBR_Admin();
-		new VBR_Admin_Races();
-		new VBR_Settings();
-		new VBR_Cron();
-		new VBR_Frontend();
-		new VBR_Map();
-		new VBR_Pages();
-		new VBR_Housekeeping();
-		new VBR_Support();
-		new VBR_Demo();
-		new VBR_Prizes();
-		new VBR_Sponsors();
-		new VBR_Sponsor_Stats();
+		new LVBR_Admin();
+		new LVBR_Admin_Races();
+		new LVBR_Settings();
+		new LVBR_Cron();
+		new LVBR_Frontend();
+		new LVBR_Map();
+		new LVBR_Pages();
+		new LVBR_Housekeeping();
+		new LVBR_Support();
+		new LVBR_Demo();
+		new LVBR_Prizes();
+		new LVBR_Sponsors();
+		new LVBR_Sponsor_Stats();
+		LVBR_Services::init();
 
 		if ( $this->is_woocommerce_active() ) {
-			new VBR_Product_Type();
-			new VBR_WooCommerce();
-			new VBR_Monetization();
-			new VBR_Race_Entries();
-			new VBR_Team_Entries();
-			new VBR_Order_Sync();
-			new VBR_Race_Emails();
-			new VBR_Product_Preview();
-			new VBR_Account();
+			new LVBR_Product_Type();
+			new LVBR_WooCommerce();
+			new LVBR_Monetization();
+			new LVBR_Race_Entries();
+			new LVBR_Team_Entries();
+			new LVBR_Order_Sync();
+			new LVBR_Race_Emails();
+			new LVBR_Product_Preview();
+			new LVBR_Account();
 		}
 	}
 
@@ -140,7 +141,7 @@ final class Virtual_Balloon_Race {
 	 * @return string
 	 */
 	public function get_table_name() {
-		return VBR_Balloons::table();
+		return LVBR_Balloons::table();
 	}
 
 	/**
@@ -156,28 +157,31 @@ final class Virtual_Balloon_Race {
 	 * Admin notice when WooCommerce is missing.
 	 */
 	public function woocommerce_missing_notice() {
-		if ( $this->is_woocommerce_active() || ! current_user_can( 'activate_plugins' ) ) {
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+
+		// Only on the Plugins screen and the plugin's own screens.
+		if ( $this->is_woocommerce_active() || ! current_user_can( 'activate_plugins' ) || ! $screen || ( 'plugins' !== $screen->id && false === strpos( (string) $screen->id, 'lvbr-' ) ) ) {
 			return;
 		}
 
 		echo '<div class="notice notice-error"><p>';
-		echo esc_html__( 'Virtual Balloon Race requires WooCommerce to be installed and active in order to sell balloon entries.', 'virtual-balloon-race' );
+		echo esc_html__( 'Lumaha Virtual Balloon Race requires WooCommerce to be installed and active in order to sell balloon entries.', 'lumaha-virtual-balloon-race' );
 		echo '</p></div>';
 	}
 }
 
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
-	require_once VBR_PLUGIN_DIR . 'includes/class-vbr-cli.php';
-	WP_CLI::add_command( 'vbr', 'VBR_CLI' );
+	require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-cli.php';
+	WP_CLI::add_command( 'lvbr', 'LVBR_CLI' );
 }
 
 /**
  * Kick off the plugin.
  *
- * @return Virtual_Balloon_Race
+ * @return LVBR_Plugin
  */
-function vbr() {
-	return Virtual_Balloon_Race::instance();
+function lvbr() {
+	return LVBR_Plugin::instance();
 }
 
-vbr();
+lvbr();

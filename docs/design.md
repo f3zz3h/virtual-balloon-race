@@ -10,9 +10,9 @@ flowchart LR
   woo[WooCommerce order + upsells]
   cron[Scheduled tick]
   weather[Open-Meteo grid cache]
-  db[vbr_balloons + trail_json]
-  rest[REST /vbr/v1/balloons]
-  map[balloon_map shortcode]
+  db[lvbr_balloons + trail_json]
+  rest[REST /lvbr/v1/balloons]
+  map[lvbr_map shortcode]
   settings --> cron
   woo --> db
   cron --> weather
@@ -23,7 +23,7 @@ flowchart LR
 
 ## 1. Settings
 
-Submenu `vbr-settings`, `manage_options`, Settings API (`register_setting` with one `vbr_settings` option array, sanitised and clamped).
+Submenu `lvbr-settings`, `manage_options`, Settings API (`register_setting` with one `lvbr_settings` option array, sanitised and clamped).
 
 Fields (defaults in brackets):
 
@@ -44,13 +44,13 @@ Help text notes that WP-Cron needs site traffic (or a real system cron) for 5-mi
 
 **Burst chance scales with interval.** Rates are stored per day and converted per tick: `p_tick = 1 - (1 - daily_rate) ^ (interval_seconds / 86400)` (≈ `daily_rate * interval/86400` for small values). Five-minute ticks no longer wipe out Max Height balloons.
 
-**Scheduling.** Custom WP-Cron schedules `vbr_5min`, `vbr_30min`, `vbr_6hours` (plus core `hourly`, `daily`). Prefer WooCommerce **Action Scheduler** when `as_schedule_recurring_action` exists; otherwise WP-Cron. Races can override the interval and other movement settings (a `movement` JSON column; blank = Settings). The job runs at the shortest interval of any unfinished race (else the Settings interval), and each race ticks only when its own interval is due (half a run early counts; the end time is always caught up). On settings save, race save or delete: unschedule both, reschedule at that interval. On deactivation: unschedule. A transient lock stops overlapping ticks.
+**Scheduling.** Custom WP-Cron schedules `lvbr_5min`, `lvbr_30min`, `lvbr_6hours` (plus core `hourly`, `daily`). Prefer WooCommerce **Action Scheduler** when `as_schedule_recurring_action` exists; otherwise WP-Cron. Races can override the interval and other movement settings (a `movement` JSON column; blank = Settings). The job runs at the shortest interval of any unfinished race (else the Settings interval), and each race ticks only when its own interval is due (half a run early counts; the end time is always caught up). On settings save, race save or delete: unschedule both, reschedule at that interval. On deactivation: unschedule. A transient lock stops overlapping ticks.
 
 **Manual Advance** on the leaderboard page stays and calls the same tick, simulating N hours [the current interval, or 1 hour if Off]. An optional **min/max km override** remains for event-day control.
 
 ## 2. Positions, trails and logos
 
-Schema changes run `dbDelta()` when the stored `vbr_db_version` is older than the plugin's, so installs upgrade without re-activation. db 1.1.0 added to `{prefix}vbr_balloons`:
+Schema changes run `dbDelta()` when the stored `lvbr_db_version` is older than the plugin's, so installs upgrade without re-activation. db 1.1.0 added to `{prefix}lvbr_balloons`:
 
 - `latitude` decimal(10,7) NULL, `longitude` decimal(10,7) NULL
 - `start_lat` decimal(10,7) NULL, `start_lng` decimal(10,7) NULL
@@ -80,17 +80,17 @@ Never call Open-Meteo once per balloon. Round positions to a 0.1° cell (~11 km)
 
 ## 5. Map
 
-Shortcode `[balloon_map height="520px"]` (can sit next to `[balloon_leaderboard]`).
+Shortcode `[lvbr_map height="520px"]` (can sit next to `[lvbr_leaderboard]`).
 
 - Leaflet 1.9.4 (bundled in `assets/vendor/leaflet`) + `assets/js/map.js`, OpenStreetMap tiles with attribution
 - Launch flag; balloon-shaped SVG markers in the balloon's colour, with the logo inside the balloon when bought; a popped shape when burst
 - Popup: balloon name, owner, colour, distance, status
-- Public REST `GET /wp-json/vbr/v1/balloons`: public fields only (no emails, no order IDs) plus `trail`; sent with no-cache headers so page caches (LiteSpeed) don't serve stale positions
+- Public REST `GET /wp-json/lvbr/v1/balloons`: public fields only (no emails, no order IDs) plus `trail`; sent with no-cache headers so page caches (LiteSpeed) don't serve stale positions
 - Polls the REST route every N seconds; updates in place without resetting the view or the selection
 - **Trails:** one `L.polyline` per balloon, thin, low-opacity, colour-matched. Selecting a balloon (marker, list, or `?balloon=ID`) makes its trail thick, full opacity, glowing and on top; the marker grows; other trails fade. Clicking the map background clears it.
 - Side list of balloons (searchable) to select from
 - Burst balloons: grey dashed trail, grey marker
-- `[balloon_leaderboard map_url="/race-map/"]` links each row to `?balloon=ID`; if the map is on the same page, clicking a row selects it directly
+- `[lvbr_leaderboard map_url="/race-map/"]` links each row to `?balloon=ID`; if the map is on the same page, clicking a row selects it directly
 
 ## 6. Paid add-ons
 
@@ -105,7 +105,7 @@ On balloon products, alongside the existing name / colour / strategy fields:
 
 - Add-on prices come from Settings and are applied in `woocommerce_before_calculate_totals`; cart lines show each add-on with its price.
 - Custom launch lat/lng is validated (range, numeric) and stored on the cart item → order item meta → `start_lat/start_lng`.
-- **Logo:** PNG/JPG/WebP, max 1 MB. Handled on add-to-cart with `media_handle_upload` (`test_form => false`, restricted `mimes`), real type checked with `wp_check_filetype_and_ext` / `getimagesize` — never trust the browser's MIME. Attachment ID flows cart item → order item meta → `logo_attachment_id`. Uploads are tagged `_vbr_logo_upload`; ones never ordered are deleted after 7 days. Needs the standard product form, sent as `multipart/form-data`: AJAX add to cart can't send files, so once a picture is chosen `product.js` stops click and submit events at the window (capture phase) before a theme's AJAX handlers see them, and the form posts normally. A hidden `vbr_logo_chosen` flag catches anything that still sends the form without the file: add to cart is refused with a message instead of dropping the logo.
+- **Logo:** PNG/JPG/WebP, max 1 MB. Handled on add-to-cart with `media_handle_upload` (`test_form => false`, restricted `mimes`), real type checked with `wp_check_filetype_and_ext` / `getimagesize` — never trust the browser's MIME. Attachment ID flows cart item → order item meta → `logo_attachment_id`. Uploads are tagged `_lvbr_logo_upload`; ones never ordered are deleted after 7 days. Needs the standard product form, sent as `multipart/form-data`: AJAX add to cart can't send files, so once a picture is chosen `product.js` stops click and submit events at the window (capture phase) before a theme's AJAX handlers see them, and the form posts normally. A hidden `lvbr_logo_chosen` flag catches anything that still sends the form without the file: add to cart is refused with a message instead of dropping the logo.
 - Each upsell can be switched off in Settings.
 
 ## 7. Multisite
@@ -138,7 +138,7 @@ A site can schedule several races (usually one at a time). Every balloon belongs
 
 **Movement:** each tick moves only Flying races. Each race keeps its own clock (`last_tick_at`), so time is counted from launch and stops at the end time. Manual Advance targets one race.
 
-**Display:** `[balloon_map race="…"]` and `[balloon_leaderboard race="…"]` accept an ID, slug or `current` (default: the race that's flying, else the next one taking entries, else the last finished). REST: `GET /vbr/v1/balloons?race=…`, `GET /vbr/v1/races`.
+**Display:** `[lvbr_map race="…"]` and `[lvbr_leaderboard race="…"]` accept an ID, slug or `current` (default: the race that's flying, else the next one taking entries, else the last finished). REST: `GET /lvbr/v1/balloons?race=…`, `GET /lvbr/v1/races`.
 
 **Migration (db 1.2.0):** existing balloons went into an auto-created race using the launch point, launched at the first balloon's purchase time. The old site-wide "Race ends" setting became each race's end time.
 
@@ -146,28 +146,28 @@ A site can schedule several races (usually one at a time). Every balloon belongs
 ## 9. Entry product type, default pages, participant view (db 1.3.0)
 
 **Product type replaces the tick box.**
-- New WooCommerce product type **Balloon race entry** (`balloon_entry`, class `WC_Product_Balloon_Entry` extending the simple product, so themes render it with the simple add-to-cart template). Always virtual; the virtual/downloadable boxes are hidden for it.
+- New WooCommerce product type **Balloon race entry** (`lvbr_balloon_entry`, class `LVBR_Product_Balloon_Entry` extending the simple product, so themes render it with the simple add-to-cart template). Always virtual; the virtual/downloadable boxes are hidden for it.
 - A **Balloon race** tab in Product data holds the race lock (moved off the General tab).
-- The "Balloon Entry" tick box, the `balloon-entry` tag and the `vbr_balloon_product_ids` option/filter are removed. `vbr_is_balloon_product` stays for developers.
-- Migration: simple products with the old tick box or tag become `balloon_entry`; the old meta is deleted. Other product types (e.g. variable) can't convert; an admin notice lists them.
-- Race form: **Create entry product** makes a draft `balloon_entry` product locked to that race and opens it for a price. The race screen lists its linked products.
+- The "Balloon Entry" tick box, the `balloon-entry` tag and the `lvbr_balloon_product_ids` option/filter are removed. `lvbr_is_balloon_product` stays for developers.
+- Migration: simple products with the old tick box or tag become `lvbr_balloon_entry`; the old meta is deleted. Other product types (e.g. variable) can't convert; an admin notice lists them.
+- Race form: **Create entry product** makes a draft `lvbr_balloon_entry` product locked to that race and opens it for a price. The race screen lists its linked products.
 
 **Default pages.**
 - On activation (and the 1.3.0 upgrade) the plugin creates a **Balloon Race** page if none is set: map, leaderboard and a race list, as shortcode blocks admins can edit.
 - **Settings → Pages**: pick the tracking page, **Create missing pages**, and **Regenerate** (resets the content to the default, after a confirm).
-- One page serves every race: the shortcodes follow `?race=<slug|id>` when no `race` attribute is set. New `[balloon_races]` lists races with links.
+- One page serves every race: the shortcodes follow `?race=<slug|id>` when no `race` attribute is set. New `[lvbr_races]` lists races with links.
 - The leaderboard's `map_url` defaults to the tracking page.
 - **My Account → My balloons** (WooCommerce endpoint `my-balloons`): the user's balloons in every race with rank, distance and a map link.
 
 **Participants see their own balloon.**
-- A balloon belongs to a logged-in user if `user_id` matches, or its order belongs to their account (WooCommerce's `customer_id`, which covers guest orders it links to an account). Matching `owner_email` against the account or billing email was dropped in 1.13.0, because those emails aren't verified; the `vbr_match_balloons_by_email` filter turns it back on.
+- A balloon belongs to a logged-in user if `user_id` matches, or its order belongs to their account (WooCommerce's `customer_id`, which covers guest orders it links to an account). Matching `owner_email` against the account or billing email was dropped in 1.13.0, because those emails aren't verified; the `lvbr_match_balloons_by_email` filter turns it back on.
 - Their balloon IDs are added to the page only for logged-in users (logged-in pages aren't page-cached); the public REST payload is unchanged.
 - Map: a **My balloons / All** toggle; with no `?balloon=` link, the map opens on the user's balloon. Leaderboard: the user's balloons pinned above the table with their rank, plus the same toggle.
 - Guests: order confirmation page and customer order emails get **Track your balloon** links (`?race=…&balloon=…` on the tracking page).
 
 **Search and privacy.**
 - Leaderboard search covers the whole race, not just the rows shown (rows past `limit` are rendered hidden and revealed by search).
-- Public owner names are always **first name + last initial** ("Luke H."), on the map, leaderboard and REST. The `vbr_public_owner_name` filter still runs on the result. Search matches the public name only. Admin screens keep full names.
+- Public owner names are always **first name + last initial** ("Luke H."), on the map, leaderboard and REST. The `lvbr_public_owner_name` filter still runs on the result. Search matches the public name only. Admin screens keep full names.
 
 ## 10. Teams (db 1.4.0)
 
@@ -184,7 +184,7 @@ Off by default.
 - A race with no teams simply doesn't use them.
 
 **Data**
-- `{prefix}vbr_teams` (id, race_id, name, color, sort); `team_id` on balloons; `team_scoring` on races ('' = default).
+- `{prefix}lvbr_teams` (id, race_id, name, color, sort); `team_id` on balloons; `team_scoring` on races ('' = default).
 - Scores: average and total use every balloon's distance (burst balloons count at the distance they reached); best is the furthest balloon. Teams with no balloons rank last.
 
 **Buying**
@@ -192,7 +192,7 @@ Off by default.
 - Team travels cart → order item (shown as "Team") → balloon row.
 
 **Display**
-- `[balloon_teams]`: team standings (rank, team with colour, balloons, score, leading balloon). Added to the default tracking page; a tracking page still on the old default content is updated on upgrade.
+- `[lvbr_teams]`: team standings (rank, team with colour, balloons, score, leading balloon). Added to the default tracking page; a tracking page still on the old default content is updated on upgrade.
 - Balloon leaderboard, map list and popups show the team (colour badge); search matches team names.
 - Map: a team filter in the side panel (alongside My balloons).
 - REST: balloons gain `team`; the payload gains `teams` standings.

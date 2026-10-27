@@ -34,7 +34,7 @@
 		var string = '<path d="M12 26.8c-1.8 2.2 1.8 4.4 0 6.6-.6.8-.6 1.6-.2 2.4" fill="none" stroke="#5b6b78" stroke-width="0.9" stroke-linecap="round"/>';
 
 		if (burst) {
-			return '<svg class="vbr-balloon__svg" viewBox="0 0 24 36" aria-hidden="true">' +
+			return '<svg class="lvbr-balloon__svg" viewBox="0 0 24 36" aria-hidden="true">' +
 				'<path d="M12 22.5c-1.8 2.6 1.8 5.2 0 7.8-.6 1-.6 2.6-.2 5" fill="none" stroke="#5b6b78" stroke-width="0.9" stroke-linecap="round"/>' +
 				'<path d="M12 4.5l1.7 4.6 4.5-2.1-1.9 4.6 4.8 1.3-4.4 2.3 2.8 4.1-4.8-.9.1 4.9L12 19.6l-2.8 3.7.1-4.9-4.8.9 2.8-4.1-4.4-2.3 4.8-1.3L5.8 7l4.5 2.1z" fill="' + BURST_HEX + '" stroke="#6b7079" stroke-width="0.8" stroke-linejoin="round"/>' +
 				'</svg>';
@@ -46,12 +46,12 @@
 		var picture = '';
 
 		if (logo) {
-			var clipId = 'vbr-balloon-clip-' + (++clipCount);
+			var clipId = 'lvbr-balloon-clip-' + (++clipCount);
 			picture = '<clipPath id="' + clipId + '"><path d="' + BODY_PATH + '"/></clipPath>' +
 				'<image href="' + escapeAttr(logo) + '" x="2" y="1" width="20" height="24" preserveAspectRatio="xMidYMid ' + (fit === 'contain' ? 'meet' : 'slice') + '" clip-path="url(#' + clipId + ')"/>';
 		}
 
-		return '<svg class="vbr-balloon__svg" viewBox="0 0 24 36" aria-hidden="true">' +
+		return '<svg class="lvbr-balloon__svg" viewBox="0 0 24 36" aria-hidden="true">' +
 			string +
 			'<path d="' + BODY_PATH + '" fill="' + fill + '"/>' +
 			picture +
@@ -73,7 +73,7 @@
 		var c1 = safeHex(s.color1);
 		var c2 = safeHex(s.color2);
 		var edge = shade(c1, -0.4);
-		var clipId = 'vbr-hot-air-clip-' + (++clipCount);
+		var clipId = 'lvbr-hot-air-clip-' + (++clipCount);
 		var body;
 
 		if (s.style === 'full' && s.logo) {
@@ -96,7 +96,7 @@
 			}
 		}
 
-		return '<svg class="vbr-hot-air__svg" viewBox="0 0 100 140" aria-hidden="true">' +
+		return '<svg class="lvbr-hot-air__svg" viewBox="0 0 100 140" aria-hidden="true">' +
 			body +
 			'<path d="' + ENVELOPE + '" fill="none" stroke="' + edge + '" stroke-width="2"/>' +
 			'<path d="M38 104h24l-4 7H42z" fill="' + edge + '"/>' +
@@ -105,7 +105,7 @@
 			'</svg>';
 	}
 
-	window.vbrBalloon = {
+	window.lvbrBalloon = {
 		BURST_HEX: BURST_HEX,
 		hotAir: hotAirSvg,
 		svg: balloonSvg

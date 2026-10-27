@@ -3,8 +3,8 @@
 	'use strict';
 
 	function initEditor(root) {
-		var list = root.querySelector('.vbr-teams-editor__list');
-		var template = root.querySelector('.vbr-teams-editor__template');
+		var list = root.querySelector('.lvbr-teams-editor__list');
+		var template = root.querySelector('.lvbr-teams-editor__template');
 		var palette = JSON.parse(root.getAttribute('data-palette') || '[]');
 		var defaults = JSON.parse(root.getAttribute('data-defaults') || '[]');
 		var next = list.children.length;
@@ -22,11 +22,11 @@
 			return row;
 		}
 
-		root.querySelector('.vbr-teams-editor__add').addEventListener('click', function () {
+		root.querySelector('.lvbr-teams-editor__add').addEventListener('click', function () {
 			addRow(null).querySelector('input[type="text"]').focus();
 		});
 
-		var defaultsBtn = root.querySelector('.vbr-teams-editor__defaults');
+		var defaultsBtn = root.querySelector('.lvbr-teams-editor__defaults');
 		if (defaultsBtn) {
 			defaultsBtn.addEventListener('click', function () {
 				var have = [].map.call(list.querySelectorAll('input[type="text"]'), function (input) {
@@ -41,11 +41,11 @@
 		}
 
 		list.addEventListener('click', function (e) {
-			if (e.target.classList.contains('vbr-teams-editor__remove')) {
-				e.target.closest('.vbr-teams-editor__row').remove();
+			if (e.target.classList.contains('lvbr-teams-editor__remove')) {
+				e.target.closest('.lvbr-teams-editor__row').remove();
 			}
 		});
 	}
 
-	document.querySelectorAll('.vbr-teams-editor').forEach(initEditor);
+	document.querySelectorAll('.lvbr-teams-editor').forEach(initEditor);
 })();
