@@ -74,6 +74,6 @@ jobs:
         run: bash .github/scripts/build-zip.sh --wporg "${GITHUB_REF_NAME#v}"
 
       - name: Create release with the zips
-        run: gh release create "$GITHUB_REF_NAME" "${{ steps.build.outputs.zip }}" "${{ steps.wporg.outputs.zip }}" --title "Virtual Balloon Race ${{ steps.build.outputs.version }}" --generate-notes --verify-tag
+        run: gh release create "$GITHUB_REF_NAME" "${{ steps.build.outputs.zip }}" "${{ steps.wporg.outputs.zip }}" --title "Lumaha Virtual Balloon Race ${{ steps.build.outputs.version }}" --generate-notes --verify-tag
         env:
           GH_TOKEN: ${{ github.token }}
