@@ -15,7 +15,7 @@
 		return;
 	}
 
-	var start = [parseFloat(latInput.value) || 51.4885, parseFloat(lngInput.value) || -2.58];
+	var start = [parseFloat(latInput.value) || 51.4447, parseFloat(lngInput.value) || -2.638];
 	var map = L.map(mapEl).setView(start, parseInt(mapEl.getAttribute('data-zoom'), 10) || 7);
 
 	window.lvbrServices.tileLayer().addTo(map);
