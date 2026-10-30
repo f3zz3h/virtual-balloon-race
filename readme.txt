@@ -125,7 +125,8 @@ Used by the "search for a place" box when choosing a launch point (in Settings, 
 == Changelog ==
 
 = 2.0.0 =
-* Changed: the plugin is now called Lumaha Virtual Balloon Race, and its code, data, hooks, shortcodes, REST routes and WP-CLI commands use the `lvbr` prefix (e.g. `[lvbr_map]`, `/lvbr/v1/`, `wp lvbr`). Existing sites are moved over automatically on the next page load, including shortcodes in pages and widgets; see Upgrade Notice for what to change by hand.
+* Changed: the plugin is now called Lumaha Virtual Balloon Race, and its code, data, hooks, shortcodes, REST routes and WP-CLI commands use the `lvbr` prefix (e.g. `[lvbr_map]`, `/lvbr/v1/`, `wp lvbr`). Existing sites are moved over automatically on the next page load, including shortcodes in pages and widgets.
+* Changed: update these by hand, as they are not moved over automatically: shortcodes in theme files or page builders (`[balloon_…]` → `[lvbr_…]`), custom code using `vbr_` hooks or `/vbr/v1/` routes, `.vbr-` CSS, theme email template overrides, and cron jobs running `wp vbr tick` (now `wp lvbr tick`).
 * Changed: external services (map tiles, live wind, place search) are off on new sites until the admin allows them, and sponsor view and click counting is off until turned on. Sites upgraded from 1.x keep both on.
 * Changed: admin notices only appear on the screens they relate to.
 
@@ -222,7 +223,7 @@ Used by the "search for a place" box when choosing a launch point (in Settings, 
 == Upgrade Notice ==
 
 = 2.0.0 =
-Renamed to Lumaha Virtual Balloon Race with new `lvbr` names. Data, settings and shortcodes in pages move over automatically. Update by hand: shortcodes in theme files or page builders (`[balloon_…]` → `[lvbr_…]`), custom code using `vbr_` hooks or `/vbr/v1/` routes, `.vbr-` CSS, theme email template overrides, and cron jobs running `wp vbr tick` (now `wp lvbr tick`).
+Renamed to Lumaha Virtual Balloon Race with new `lvbr` names. Data, settings and page shortcodes move over automatically. If you use shortcodes in theme files or page builders, custom code, `.vbr-` CSS, email template overrides or a `wp vbr tick` cron job, see the 2.0.0 changelog first.
 
 = 1.18.0 =
 Races can now have their own update interval, speed and burst settings. Adds a database column (done automatically).
