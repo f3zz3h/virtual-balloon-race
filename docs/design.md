@@ -33,7 +33,7 @@ Fields (defaults in brackets):
 - **Random variance %** [15]
 - **Wind influence** 0–1 [0.6]: how much real wind speed changes the distance (see §3)
 - **Default heading** if no weather [70° — roughly where the UK's prevailing south-westerly blows]
-- **Launch location:** lat, lng, label [Horfield, Bristol]; place-name search via Nominatim (no API key)
+- **Launch location:** lat, lng, label [Ashton Court, Bristol]; place-name search via Nominatim (no API key)
 - **Weather:** enable Open-Meteo [on]
 - **Per-balloon weather** [on]: wind at each balloon's grid cell instead of launch-only
 - **Burst rates (per day):** Max Height [5%]; storm burst [10%] when wind ≥ storm threshold [45 km/h] (Balanced + Max Height only; Eco-Glide is immune)

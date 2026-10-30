@@ -52,7 +52,7 @@
 			this.mine[id] = true;
 		}, this);
 
-		var launch = (this.config.initial && this.config.initial.launch) || { lat: 51.4885, lng: -2.58 };
+		var launch = (this.config.initial && this.config.initial.launch) || { lat: 51.4447, lng: -2.638 };
 
 		this.map = L.map(root.querySelector('.lvbr-map__canvas'), { scrollWheelZoom: false })
 			.setView([launch.lat, launch.lng], this.config.zoom || 7);

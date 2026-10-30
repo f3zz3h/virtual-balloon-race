@@ -84,7 +84,7 @@
 			}
 
 			var hasPoint = latInput.value && lngInput.value;
-			var start = hasPoint ? [parseFloat(latInput.value), parseFloat(lngInput.value)] : (cfg.launch || [51.4885, -2.58]);
+			var start = hasPoint ? [parseFloat(latInput.value), parseFloat(lngInput.value)] : (cfg.launch || [51.4447, -2.638]);
 
 			map = L.map(mapEl).setView(start, hasPoint ? 12 : 9);
 			window.lvbrServices.tileLayer().addTo(map);
