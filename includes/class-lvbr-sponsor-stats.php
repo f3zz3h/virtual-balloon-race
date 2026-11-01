@@ -91,7 +91,7 @@ class LVBR_Sponsor_Stats {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'rest_record' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( __CLASS__, 'can_record' ),
 				'args'                => array(
 					'type'  => array(
 						'type'     => 'string',
@@ -107,6 +107,22 @@ class LVBR_Sponsor_Stats {
 				),
 			)
 		);
+	}
+
+	/**
+	 * Permission for POST /sponsor-stats: closed unless the site owner has turned on sponsor counting
+	 * (Settings → Data, off by default). When on, visitors' browsers report which sponsor placements
+	 * they saw or clicked, so it has to accept logged-out visitors; it only adds 1 to anonymous totals
+	 * for sponsors and placements that exist (see record()), stored on this site and sent nowhere.
+	 *
+	 * @return bool|WP_Error
+	 */
+	public static function can_record() {
+		if ( ! self::enabled() ) {
+			return new WP_Error( 'rest_forbidden', __( 'Sponsor counting is turned off.', 'lumaha-virtual-balloon-race' ), array( 'status' => rest_authorization_required_code() ) );
+		}
+
+		return true;
 	}
 
 	/**

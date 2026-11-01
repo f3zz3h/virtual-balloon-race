@@ -60,7 +60,7 @@ class LVBR_Admin_Races {
 		LVBR_Settings::register_leaflet();
 		wp_enqueue_style( 'lvbr-admin', LVBR_PLUGIN_URL . 'assets/css/admin.css', array( 'lvbr-leaflet' ), LVBR_Balloons::asset_version( 'assets/css/admin.css' ) );
 
-		$action = isset( $_GET['action'] ) ? sanitize_key( $_GET['action'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$action = isset( $_GET['action'] ) ? sanitize_key( wp_unslash( $_GET['action'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( in_array( $action, array( 'new', 'edit' ), true ) ) {
 			wp_enqueue_script( 'lvbr-admin-settings', LVBR_PLUGIN_URL . 'assets/js/admin-settings.js', array( 'lvbr-leaflet' ), LVBR_Balloons::asset_version( 'assets/js/admin-settings.js' ), true );
 			wp_enqueue_script( 'lvbr-admin-teams', LVBR_PLUGIN_URL . 'assets/js/admin-teams.js', array(), LVBR_Balloons::asset_version( 'assets/js/admin-teams.js' ), true );
@@ -74,7 +74,7 @@ class LVBR_Admin_Races {
 	 * Save / delete / launch now / finish now.
 	 */
 	public function handle_actions() {
-		if ( empty( $_REQUEST['page'] ) || self::PAGE !== $_REQUEST['page'] || empty( $_REQUEST['lvbr_race_action'] ) || ! current_user_can( 'manage_options' ) ) {
+		if ( empty( $_REQUEST['page'] ) || self::PAGE !== sanitize_key( wp_unslash( $_REQUEST['page'] ) ) || empty( $_REQUEST['lvbr_race_action'] ) || ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
 
@@ -187,32 +187,37 @@ class LVBR_Admin_Races {
 	 */
 	private function save( $id ) {
 		// phpcs:disable WordPress.Security.NonceVerification.Missing -- checked in handle_actions().
-		$in = isset( $_POST['lvbr_race'] ) && is_array( $_POST['lvbr_race'] ) ? wp_unslash( $_POST['lvbr_race'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$raw = isset( $_POST['lvbr_race'] ) && is_array( $_POST['lvbr_race'] ) ? map_deep( wp_unslash( $_POST['lvbr_race'] ), 'sanitize_text_field' ) : array();
 		// phpcs:enable
 
+		// Then the most restrictive cleaning for each field.
+		$in = self::sanitize_form( $raw );
+
 		$data = array(
-			'name'          => isset( $in['name'] ) ? sanitize_text_field( $in['name'] ) : '',
-			'launch_label'  => isset( $in['launch_label'] ) ? sanitize_text_field( $in['launch_label'] ) : '',
-			'launch_lat'    => isset( $in['launch_lat'] ) ? sanitize_text_field( $in['launch_lat'] ) : '',
-			'launch_lng'    => isset( $in['launch_lng'] ) ? sanitize_text_field( $in['launch_lng'] ) : '',
-			'sales_open_at' => LVBR_Races::local_input_to_gmt( isset( $in['sales_open_at'] ) ? sanitize_text_field( $in['sales_open_at'] ) : '' ),
-			'launch_at'     => LVBR_Races::local_input_to_gmt( isset( $in['launch_at'] ) ? sanitize_text_field( $in['launch_at'] ) : '' ),
-			'end_at'        => LVBR_Races::local_input_to_gmt( isset( $in['end_at'] ) ? sanitize_text_field( $in['end_at'] ) : '' ),
-			'ranking'       => isset( $in['ranking'] ) ? sanitize_key( $in['ranking'] ) : LVBR_Races::FROM_START,
-			'flight_mode'   => isset( $in['flight_mode'] ) ? sanitize_key( $in['flight_mode'] ) : '',
-			'entry_limit'   => isset( $in['entry_limit'] ) ? absint( $in['entry_limit'] ) : 0,
-			'movement'      => isset( $in['movement'] ) && is_array( $in['movement'] ) ? array_map( 'sanitize_text_field', $in['movement'] ) : array(),
+			'name'          => $in['name'],
+			'launch_label'  => $in['launch_label'],
+			'launch_lat'    => $in['launch_lat'],
+			'launch_lng'    => $in['launch_lng'],
+			'sales_open_at' => LVBR_Races::local_input_to_gmt( $in['sales_open_at'] ),
+			'launch_at'     => LVBR_Races::local_input_to_gmt( $in['launch_at'] ),
+			'end_at'        => LVBR_Races::local_input_to_gmt( $in['end_at'] ),
+			'ranking'       => '' !== $in['ranking'] ? $in['ranking'] : LVBR_Races::FROM_START,
+			'flight_mode'   => $in['flight_mode'],
+			'entry_limit'   => $in['entry_limit'],
+			'movement'      => $in['movement'],
 		);
 
 		if ( LVBR_Teams::enabled() ) {
-			$data['team_scoring'] = isset( $in['team_scoring'] ) ? sanitize_key( $in['team_scoring'] ) : '';
+			$data['team_scoring'] = $in['team_scoring'];
 		}
 
 		$result = LVBR_Races::save( $data, $id );
 
 		if ( is_wp_error( $result ) ) {
-			// Keep what was typed so the form can be corrected.
-			set_transient( 'lvbr_race_form_' . get_current_user_id(), $in, 5 * MINUTE_IN_SECONDS );
+			// Keep what was typed (already sanitized) so the form can be corrected.
+			$typed                = array_diff_key( $in, array_flip( array( 'teams', 'sponsors', 'prizes' ) ) );
+			$typed['entry_limit'] = $in['entry_limit'] ? (string) $in['entry_limit'] : '';
+			set_transient( 'lvbr_race_form_' . get_current_user_id(), $typed, 5 * MINUTE_IN_SECONDS );
 			$this->redirect( array( 'action' => $id ? 'edit' : 'new', 'race' => $id ), $result->get_error_message() );
 		}
 
@@ -221,17 +226,17 @@ class LVBR_Admin_Races {
 		$messages = array();
 
 		if ( LVBR_Teams::enabled() ) {
-			$blocked = LVBR_Teams::save_for_race( $result, LVBR_Teams::clean_rows( isset( $in['teams'] ) ? $in['teams'] : array() ) );
+			$blocked = LVBR_Teams::save_for_race( $result, $in['teams'] );
 			if ( $blocked ) {
 				/* translators: %s: team names */
 				$messages[] = sprintf( __( 'These teams have balloons so they were kept: %s.', 'lumaha-virtual-balloon-race' ), implode( ', ', $blocked ) );
 			}
 		}
 
-		$messages = array_merge( $messages, LVBR_Sponsors::save_for_race( $result, LVBR_Sponsors::clean_rows( isset( $in['sponsors'] ) ? $in['sponsors'] : array() ) ) );
+		$messages = array_merge( $messages, LVBR_Sponsors::save_for_race( $result, $in['sponsors'] ) );
 
 		// After sponsors, so a prize can name a sponsor saved in the same form only from the next save.
-		LVBR_Prizes::save_for_race( $result, LVBR_Prizes::clean_rows( isset( $in['prizes'] ) ? $in['prizes'] : array(), $result ) );
+		LVBR_Prizes::save_for_race( $result, LVBR_Prizes::clean_rows( $in['prizes'], $result ) );
 
 		if ( $messages ) {
 			/* translators: %s: what couldn't be saved as asked */
@@ -239,6 +244,69 @@ class LVBR_Admin_Races {
 		}
 
 		$this->redirect( array( 'action' => 'edit', 'race' => $result ), $notice );
+	}
+
+	/**
+	 * Sanitize the submitted race form as soon as it is received.
+	 *
+	 * Every field is cleaned with the most restrictive function that fits it, and anything
+	 * not listed here is dropped, so nothing raw is used or stored after this point.
+	 *
+	 * @param mixed $raw $_POST['lvbr_race'], unslashed and passed through sanitize_text_field().
+	 * @return array
+	 */
+	private static function sanitize_form( $raw ) {
+		$raw  = is_array( $raw ) ? $raw : array();
+		$text = static function ( $key ) use ( $raw ) {
+			return isset( $raw[ $key ] ) && is_scalar( $raw[ $key ] ) ? sanitize_text_field( (string) $raw[ $key ] ) : '';
+		};
+		$key  = static function ( $name ) use ( $raw ) {
+			return isset( $raw[ $name ] ) && is_scalar( $raw[ $name ] ) ? sanitize_key( (string) $raw[ $name ] ) : '';
+		};
+
+		$movement = array();
+		if ( isset( $raw['movement'] ) && is_array( $raw['movement'] ) ) {
+			foreach ( $raw['movement'] as $name => $value ) {
+				if ( is_scalar( $value ) ) {
+					$movement[ sanitize_key( (string) $name ) ] = sanitize_text_field( (string) $value );
+				}
+			}
+		}
+
+		$prizes = array();
+		if ( isset( $raw['prizes'] ) && is_array( $raw['prizes'] ) ) {
+			foreach ( $raw['prizes'] as $row ) {
+				if ( ! is_array( $row ) ) {
+					continue;
+				}
+				// Sponsor IDs are checked against the race again in LVBR_Prizes::clean_rows() once the race is saved.
+				$prizes[] = array(
+					'id'          => isset( $row['id'] ) && is_scalar( $row['id'] ) ? absint( $row['id'] ) : 0,
+					'kind'        => isset( $row['kind'] ) && is_scalar( $row['kind'] ) ? sanitize_key( (string) $row['kind'] ) : '',
+					'label'       => isset( $row['label'] ) && is_scalar( $row['label'] ) ? sanitize_text_field( (string) $row['label'] ) : '',
+					'description' => isset( $row['description'] ) && is_scalar( $row['description'] ) ? sanitize_text_field( (string) $row['description'] ) : '',
+					'sponsor_id'  => isset( $row['sponsor_id'] ) && is_scalar( $row['sponsor_id'] ) ? absint( $row['sponsor_id'] ) : 0,
+				);
+			}
+		}
+
+		return array(
+			'name'          => $text( 'name' ),
+			'launch_label'  => $text( 'launch_label' ),
+			'launch_lat'    => $text( 'launch_lat' ),
+			'launch_lng'    => $text( 'launch_lng' ),
+			'sales_open_at' => $text( 'sales_open_at' ),
+			'launch_at'     => $text( 'launch_at' ),
+			'end_at'        => $text( 'end_at' ),
+			'ranking'       => $key( 'ranking' ),
+			'flight_mode'   => $key( 'flight_mode' ),
+			'team_scoring'  => $key( 'team_scoring' ),
+			'entry_limit'   => isset( $raw['entry_limit'] ) && is_scalar( $raw['entry_limit'] ) ? absint( $raw['entry_limit'] ) : 0,
+			'movement'      => $movement,
+			'teams'         => LVBR_Teams::clean_rows( isset( $raw['teams'] ) ? $raw['teams'] : array() ),
+			'sponsors'      => LVBR_Sponsors::clean_rows( isset( $raw['sponsors'] ) ? $raw['sponsors'] : array() ),
+			'prizes'        => $prizes,
+		);
 	}
 
 	/**
@@ -285,7 +353,7 @@ class LVBR_Admin_Races {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'lumaha-virtual-balloon-race' ) );
 		}
 
-		$action = isset( $_GET['action'] ) ? sanitize_key( $_GET['action'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$action = isset( $_GET['action'] ) ? sanitize_key( wp_unslash( $_GET['action'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$id     = isset( $_GET['race'] ) ? absint( $_GET['race'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
 		echo '<div class="wrap lvbr-admin lvbr-races">';

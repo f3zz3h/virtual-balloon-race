@@ -1084,6 +1084,10 @@ switch ( $stage ) {
 
 		$check( LVBR_Sponsor_Stats::table() === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', LVBR_Sponsor_Stats::table() ) ), 'the sponsor stats table exists' );
 		$check( 0 === LVBR_Sponsor_Stats::record( 'view', array( '1:wall' ) ), 'nothing is counted until counting is turned on' );
+		$closed = new WP_REST_Request( 'POST', '/lvbr/v1/sponsor-stats' );
+		$closed->set_header( 'Content-Type', 'application/json' );
+		$closed->set_body( wp_json_encode( array( 'type' => 'view', 'items' => array( '1:wall' ) ) ) );
+		$check( in_array( rest_do_request( $closed )->get_status(), array( 401, 403 ), true ), 'the counting endpoint is closed until counting is turned on' );
 		$settings( array( 'sponsor_stats' => 1 ) );
 
 		$race = LVBR_Races::save( array( 'name' => 'Smoke Stats Race', 'launch_lat' => 51.4885, 'launch_lng' => -2.58, 'launch_at' => gmdate( 'Y-m-d H:i:s', time() + DAY_IN_SECONDS ) ) );

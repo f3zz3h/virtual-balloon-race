@@ -95,7 +95,7 @@ Sponsor views and clicks are only counted if the site admin turns it on (**Setti
 
 = Open-Meteo (weather) =
 
-Used to move balloons with the real wind. When a race is flying, your server requests the current wind speed and direction for the areas the balloons are in (rounded latitude and longitude) each time balloons move. No personal data is sent; requests identify the plugin and your site's address. With an Open-Meteo API key set, requests go to customer-api.open-meteo.com and include the key.
+Used to move balloons with the real wind. When a race is flying, your server requests the current wind speed and direction for the areas the balloons are in (rounded latitude and longitude) each time balloons move. No personal data is sent; requests identify only the plugin and its version. With an Open-Meteo API key set, requests go to customer-api.open-meteo.com and include the key.
 Service: [open-meteo.com](https://open-meteo.com/). [Terms of use](https://open-meteo.com/en/terms). The free API is for non-commercial use; for commercial use, get an API key.
 
 = Map tiles: OpenStreetMap, MapTiler, Stadia Maps or a custom provider =
@@ -257,9 +257,6 @@ Fixes the balloon preview on product pages in block themes such as Twenty Twenty
 
 = 1.12.0 =
 Busier or commercial sites can now use paid map, place search and weather providers. Nothing changes unless you pick one.
-
-= 1.11.0 =
-Installed from GitHub? From this version, new releases appear as normal plugin updates.
 
 = 1.10.0 =
 Adds optional entry limits per race. The map library is now bundled with the plugin.

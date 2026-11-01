@@ -235,7 +235,7 @@ class LVBR_Demo {
 	 */
 	public function render_panel() {
 		$ids      = self::race_ids();
-		$notice   = isset( $_GET['lvbr_demo'] ) ? sanitize_key( $_GET['lvbr_demo'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$notice   = isset( $_GET['lvbr_demo'] ) ? sanitize_key( wp_unslash( $_GET['lvbr_demo'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$messages = array(
 			'created' => __( 'Demo race created. See it on the tracking page.', 'lumaha-virtual-balloon-race' ),
 			'removed' => __( 'Demo races removed.', 'lumaha-virtual-balloon-race' ),

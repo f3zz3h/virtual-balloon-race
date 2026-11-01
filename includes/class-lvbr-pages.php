@@ -256,7 +256,7 @@ class LVBR_Pages {
 	 */
 	public function render_panel() {
 		$id       = self::tracking_page_id();
-		$notice   = isset( $_GET['lvbr_pages'] ) ? sanitize_key( $_GET['lvbr_pages'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$notice   = isset( $_GET['lvbr_pages'] ) ? sanitize_key( wp_unslash( $_GET['lvbr_pages'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$messages = array(
 			'saved'           => __( 'Tracking page saved.', 'lumaha-virtual-balloon-race' ),
 			'created'         => __( 'Tracking page created.', 'lumaha-virtual-balloon-race' ),
