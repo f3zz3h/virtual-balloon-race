@@ -94,7 +94,7 @@ class LVBR_Admin {
 			return;
 		}
 
-		if ( empty( $_REQUEST['lvbr_action'] ) || empty( $_REQUEST['page'] ) || self::PAGE !== $_REQUEST['page'] ) {
+		if ( empty( $_REQUEST['lvbr_action'] ) || empty( $_REQUEST['page'] ) || self::PAGE !== sanitize_key( wp_unslash( $_REQUEST['page'] ) ) ) {
 			return;
 		}
 

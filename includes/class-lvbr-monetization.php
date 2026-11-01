@@ -254,8 +254,15 @@ class LVBR_Monetization {
 			return null;
 		}
 
-		$file  = isset( $_FILES[ self::LOGO_FIELD ] ) && is_array( $_FILES[ self::LOGO_FIELD ] ) ? $_FILES[ self::LOGO_FIELD ] : array(); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-		$error = isset( $file['error'] ) ? (int) $file['error'] : UPLOAD_ERR_NO_FILE;
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- verified in LVBR_WooCommerce::add_cart_item_data().
+		$field = self::LOGO_FIELD;
+		$file  = array(
+			'name'     => isset( $_FILES[ $field ]['name'] ) && is_string( $_FILES[ $field ]['name'] ) ? sanitize_file_name( $_FILES[ $field ]['name'] ) : '',
+			'tmp_name' => isset( $_FILES[ $field ]['tmp_name'] ) && is_string( $_FILES[ $field ]['tmp_name'] ) ? sanitize_text_field( $_FILES[ $field ]['tmp_name'] ) : '',
+			'size'     => isset( $_FILES[ $field ]['size'] ) && is_scalar( $_FILES[ $field ]['size'] ) ? absint( $_FILES[ $field ]['size'] ) : 0,
+		);
+		$error = isset( $_FILES[ $field ]['error'] ) && is_scalar( $_FILES[ $field ]['error'] ) ? absint( $_FILES[ $field ]['error'] ) : UPLOAD_ERR_NO_FILE;
+		// phpcs:enable
 
 		if ( UPLOAD_ERR_NO_FILE === $error ) {
 			// The page said a picture was chosen but no file came: something (usually a theme's
@@ -266,7 +273,7 @@ class LVBR_Monetization {
 			return null;
 		}
 
-		if ( UPLOAD_ERR_INI_SIZE === $error || UPLOAD_ERR_FORM_SIZE === $error || ( isset( $file['size'] ) && (int) $file['size'] > self::LOGO_MAX_BYTES ) ) {
+		if ( UPLOAD_ERR_INI_SIZE === $error || UPLOAD_ERR_FORM_SIZE === $error || $file['size'] > self::LOGO_MAX_BYTES ) {
 			return new WP_Error( 'lvbr_logo_size', __( 'Your logo is over 1 MB. Please choose a smaller image.', 'lumaha-virtual-balloon-race' ) );
 		}
 
@@ -274,7 +281,7 @@ class LVBR_Monetization {
 			return new WP_Error( 'lvbr_logo_upload', __( 'Your logo could not be uploaded. Please try again.', 'lumaha-virtual-balloon-race' ) );
 		}
 
-		$check = wp_check_filetype_and_ext( $file['tmp_name'], sanitize_file_name( (string) $file['name'] ), self::$logo_mimes );
+		$check = wp_check_filetype_and_ext( $file['tmp_name'], $file['name'], self::$logo_mimes );
 		$info  = @getimagesize( $file['tmp_name'] ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 
 		if ( empty( $check['type'] ) || ! in_array( $check['type'], self::$logo_mimes, true ) || ! $info || ! in_array( $info['mime'], self::$logo_mimes, true ) ) {
