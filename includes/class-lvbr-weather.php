@@ -166,7 +166,7 @@ class LVBR_Weather {
 			$url,
 			array(
 				'timeout'    => 8,
-				'user-agent' => 'VirtualBalloonRace/' . LVBR_VERSION . '; ' . home_url(),
+				'user-agent' => 'VirtualBalloonRace/' . LVBR_VERSION,
 			)
 		);
 

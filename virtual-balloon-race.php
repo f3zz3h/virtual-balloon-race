@@ -58,10 +58,12 @@ require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-product-preview.php';
 require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-product-type.php';
 require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-account.php';
 
-// Updates from GitHub releases (starts itself). Not in the WordPress.org build, which updates from WordPress.org.
+// lvbr-github-updater:start (the WordPress.org build removes this block and the file; it updates from WordPress.org).
+// Updates from GitHub releases (starts itself), for copies installed from the GitHub release zip.
 if ( file_exists( LVBR_PLUGIN_DIR . 'includes/class-lvbr-github-updater.php' ) ) {
 	require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-github-updater.php';
 }
+// lvbr-github-updater:end
 
 /**
  * Main plugin bootstrap.

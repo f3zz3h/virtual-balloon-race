@@ -56,7 +56,7 @@ class LVBR_Map {
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'rest_balloons' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( __CLASS__, 'can_read_race_data' ),
 				'args'                => array(
 					'race'   => array(
 						'description'       => __( 'Race ID, slug or "current".', 'lumaha-virtual-balloon-race' ),
@@ -80,7 +80,7 @@ class LVBR_Map {
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'rest_trail' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( __CLASS__, 'can_read_race_data' ),
 				'args'                => array(
 					'race' => array(
 						'type'              => 'string',
@@ -102,7 +102,7 @@ class LVBR_Map {
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( 'LVBR_Frontend', 'rest_leaderboard' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( __CLASS__, 'can_read_race_data' ),
 				'args'                => array(
 					'race'     => array(
 						'type'              => 'string',
@@ -145,9 +145,30 @@ class LVBR_Map {
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'rest_races' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( __CLASS__, 'can_read_race_data' ),
 			)
 		);
+	}
+
+	/**
+	 * Permission for the GET routes behind the race map and leaderboard.
+	 *
+	 * These routes only read, and return only what the race map and leaderboard pages already show to
+	 * any visitor (race names and stages, balloon names, colours, positions and distances; no emails,
+	 * orders or other personal data), so logged-out visitors must be able to use them. A site that wants
+	 * its races private can close them with the lvbr_rest_can_read filter, e.g. to logged-in users only.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return bool|WP_Error
+	 */
+	public static function can_read_race_data( $request ) {
+		if ( WP_REST_Server::READABLE !== $request->get_method() && 'HEAD' !== $request->get_method() ) {
+			return new WP_Error( 'rest_forbidden', __( 'Sorry, you are not allowed to do that.', 'lumaha-virtual-balloon-race' ), array( 'status' => rest_authorization_required_code() ) );
+		}
+
+		$allowed = apply_filters( 'lvbr_rest_can_read', true, $request );
+
+		return $allowed ? true : new WP_Error( 'rest_forbidden', __( 'Sorry, you are not allowed to see this race.', 'lumaha-virtual-balloon-race' ), array( 'status' => rest_authorization_required_code() ) );
 	}
 
 	/**

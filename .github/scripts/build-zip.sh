@@ -54,7 +54,12 @@ rsync -a --exclude-from="$ROOT/.distignore" --exclude dist "$ROOT/" "$STAGE/$SLU
 if [ -n "$WPORG" ]; then
 	rm "$STAGE/$SLUG/includes/class-lvbr-github-updater.php"
 	sed -i '/^ \* Update URI:/d' "$STAGE/$SLUG/$MAIN_FILE"
-	if grep -q '^ \* Update URI:' "$STAGE/$SLUG/$MAIN_FILE" || grep -rq 'LVBR_GitHub_Updater' "$STAGE/$SLUG" --include=*.php; then
+	sed -i '/lvbr-github-updater:start/,/lvbr-github-updater:end/d' "$STAGE/$SLUG/$MAIN_FILE"
+	# README.md is the GitHub page (it documents the GitHub updater); WordPress.org uses readme.txt.
+	rm "$STAGE/$SLUG/README.md"
+	# Changelog lines about the GitHub updater don't apply to the WordPress.org copy.
+	sed -i '/installed from GitHub\|installed from the GitHub release zip/d' "$STAGE/$SLUG/readme.txt"
+	if grep -q '^ \* Update URI:' "$STAGE/$SLUG/$MAIN_FILE" || grep -rqi 'github-updater\|GitHub_Updater\|api\.github\.com\|installed from GitHub' "$STAGE/$SLUG"; then
 		echo "The WordPress.org build still refers to the GitHub updater." >&2
 		exit 1
 	fi
