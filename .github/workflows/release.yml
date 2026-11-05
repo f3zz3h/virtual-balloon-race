@@ -1,7 +1,8 @@
 name: Release
 run-name: ${{ github.ref_type == 'tag' && format('Release {0}', github.ref_name) || format('Plugin zip for {0}', github.ref_name) }}
 
-# On a version tag (v1.7.0), build the plugin zip and publish a GitHub release with it.
+# On a version tag (v1.7.0), build the plugin zip, publish a GitHub release with it and deploy
+# the WordPress.org build to the plugin's SVN repository. Pre-release tags (v1.7.0-rc1) skip the deploy.
 # On pull requests, just build the zip so it can be downloaded and tried.
 on:
   push:
@@ -77,3 +78,43 @@ jobs:
         run: gh release create "$GITHUB_REF_NAME" "${{ steps.build.outputs.zip }}" "${{ steps.wporg.outputs.zip }}" --title "Lumaha Virtual Balloon Race ${{ steps.build.outputs.version }}" --generate-notes --verify-tag
         env:
           GH_TOKEN: ${{ github.token }}
+
+  wporg:
+    name: Deploy to WordPress.org
+    if: github.ref_type == 'tag' && !contains(github.ref_name, '-')
+    needs: release
+    runs-on: ubuntu-latest
+    # SVN_USERNAME and SVN_PASSWORD come from this environment (or the repository secrets).
+    environment:
+      name: Wordpress SVN
+      url: https://wordpress.org/plugins/lumaha-virtual-balloon-race/
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v7
+
+      # WP-CLI refreshes the translation template inside the build.
+      - name: Set up PHP and WP-CLI
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          tools: wp-cli
+
+      # Leaves the plugin folder in dist/wporg/lumaha-virtual-balloon-race for the deploy.
+      - name: Build WordPress.org version
+        id: wporg
+        run: bash .github/scripts/build-zip.sh --wporg "${GITHUB_REF_NAME#v}"
+
+      - name: Install Subversion
+        run: sudo apt-get update -q && sudo apt-get install -yq subversion
+
+      # Replaces trunk/ with the build, copies it to tags/<version> and syncs .wordpress-org/ into assets/.
+      - name: Deploy to WordPress.org SVN
+        uses: 10up/action-wordpress-plugin-deploy@stable
+        env:
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+          SLUG: lumaha-virtual-balloon-race
+          VERSION: ${{ steps.wporg.outputs.version }}
+          BUILD_DIR: dist/wporg/lumaha-virtual-balloon-race
+          ASSETS_DIR: .wordpress-org

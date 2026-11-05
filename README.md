@@ -345,16 +345,17 @@ Donations go to https://buymeacoffee.com/lumaha: a **Donate** link on the Plugin
 
 ### Releasing a version
 
-1. On a branch, bump the version in the plugin header (`Version:`) and `LVBR_VERSION` in `virtual-balloon-race.php` (and `LVBR_DB_VERSION` if the schema changed). Merge it.
+1. On a branch, bump the version in the plugin header (`Version:`) and `LVBR_VERSION` in `virtual-balloon-race.php` (and `LVBR_DB_VERSION` if the schema changed), and `Stable tag` and the changelog in `readme.txt`. Merge it.
 2. Tag `main` and push the tag: `git tag v1.7.0 && git push origin v1.7.0`.
 3. The **Release** workflow (`.github/workflows/release.yml`) checks the tag matches the plugin version, builds the zip with `.github/scripts/build-zip.sh` and publishes a GitHub release with the zip attached and notes listing the merged pull requests.
-4. Sites running 1.11.0 or later are offered the update within about 12 hours (`includes/class-lvbr-github-updater.php` reads the latest release through GitHub's API, cached for 12 hours; the plugin header's `Update URI` sends WordPress's update check there). A release must stay non-draft, non-prerelease and keep its `virtual-balloon-race-<version>.zip` asset, or it isn't offered.
+4. It then deploys the WordPress.org build to the plugin's SVN repository (`trunk/`, `tags/<version>` and the listing images in `assets/`), so the release goes live on WordPress.org within minutes. That job runs in the `Wordpress SVN` environment and needs the secrets `SVN_USERNAME` and `SVN_PASSWORD` (the SVN password from your WordPress.org profile). It fails if `readme.txt`'s `Stable tag` doesn't match the version. Tags with a hyphen (`v1.7.0-rc1`) get a GitHub release but aren't deployed.
+5. GitHub-installed sites running 1.11.0 or later are offered the update within about 12 hours (`includes/class-lvbr-github-updater.php` reads the latest release through GitHub's API, cached for 12 hours; the plugin header's `Update URI` sends WordPress's update check there). A release must stay non-draft, non-prerelease and keep its `virtual-balloon-race-<version>.zip` asset, or it isn't offered.
 
 `.distignore` lists the files left out of the zip (tests, CI, Composer and PHPStan files, `docs/`). Every pull request also builds the zip and offers it as a download (**Checks → Release → Artifacts**, kept 7 days), and the fresh-install smoke test installs from that same zip. Build one locally with `bash .github/scripts/build-zip.sh` (output in `dist/`).
 
 **WordPress.org listing images** (`.wordpress-org/`, not in the zip): `screenshot-1.png`…`screenshot-5.png` in the order of readme.txt's **Screenshots** section, `banner-772x250.png` / `banner-1544x500.png` and `icon-128x128.png` / `icon-256x256.png`. WordPress.org puts the plugin's name over the bottom left of the banner, so keep that area clear. The deploy to WordPress.org uploads this folder as the listing's assets.
 
-**WordPress.org build:** `bash .github/scripts/build-zip.sh --wporg` makes `dist/virtual-balloon-race-<version>-wporg.zip` without the GitHub update checker and the `Update URI` header, as WordPress.org requires (its plugins may only update from WordPress.org). Use it for the first submission; its folder, `dist/wporg/virtual-balloon-race/`, is what gets deployed to WordPress.org's SVN.
+**WordPress.org build:** `bash .github/scripts/build-zip.sh --wporg` makes `dist/lumaha-virtual-balloon-race-<version>-wporg.zip` without the GitHub update checker and the `Update URI` header, as WordPress.org requires (its plugins may only update from WordPress.org). Its folder, `dist/wporg/lumaha-virtual-balloon-race/`, is what the release workflow deploys to WordPress.org's SVN.
 
 ### Testing locally
 

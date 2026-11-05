@@ -39,6 +39,13 @@ if [ -n "${1:-}" ] && [ "$1" != "$header_version" ]; then
 	exit 1
 fi
 
+# WordPress.org installs whatever readme.txt's Stable tag names, so a release must update it too.
+stable_tag="$(sed -n 's/^Stable tag:[[:space:]]*\([^[:space:]]*\).*/\1/p' "$ROOT/readme.txt" | head -1)"
+if [ -n "$WPORG" ] && [ -n "${1:-}" ] && [ "$stable_tag" != "$header_version" ]; then
+	echo "readme.txt says Stable tag: $stable_tag, but the plugin says $header_version. Update the Stable tag first." >&2
+	exit 1
+fi
+
 DIST="$ROOT/dist"
 STAGE="$DIST/stage"
 ZIP="$DIST/$SLUG-$header_version.zip"
