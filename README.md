@@ -345,10 +345,11 @@ Donations go to https://buymeacoffee.com/lumaha: a **Donate** link on the Plugin
 
 ### Releasing a version
 
-1. On a branch, bump the version in the plugin header (`Version:`) and `LVBR_VERSION` in `virtual-balloon-race.php` (and `LVBR_DB_VERSION` if the schema changed). Merge it.
+1. On a branch, bump the version in the plugin header (`Version:`) and `LVBR_VERSION` in `virtual-balloon-race.php` (and `LVBR_DB_VERSION` if the schema changed), and `Stable tag:` in `readme.txt`. Merge it.
 2. Tag `main` and push the tag: `git tag v1.7.0 && git push origin v1.7.0`.
 3. The **Release** workflow (`.github/workflows/release.yml`) checks the tag matches the plugin version, builds the zip with `.github/scripts/build-zip.sh` and publishes a GitHub release with the zip attached and notes listing the merged pull requests.
 4. Sites running 1.11.0 or later are offered the update within about 12 hours (`includes/class-lvbr-github-updater.php` reads the latest release through GitHub's API, cached for 12 hours; the plugin header's `Update URI` sends WordPress's update check there). A release must stay non-draft, non-prerelease and keep its `virtual-balloon-race-<version>.zip` asset, or it isn't offered.
+5. The same workflow publishes the WordPress.org build (`build-zip.sh --wporg`) to https://plugins.svn.wordpress.org/lumaha-virtual-balloon-race: it replaces `trunk/`, copies it to `tags/<version>/` and syncs `.wordpress-org/` into `assets/`. It uses the `SVN_USERNAME` and `SVN_PASSWORD` repository secrets (Settings → Secrets and variables → Actions; the password is the SVN one from your WordPress.org profile). Every `v*` tag goes live on WordPress.org for everyone, so only tag real releases; tags with a `-` (e.g. `v2.1.0-rc1`) skip this step.
 
 `.distignore` lists the files left out of the zip (tests, CI, Composer and PHPStan files, `docs/`). Every pull request also builds the zip and offers it as a download (**Checks → Release → Artifacts**, kept 7 days), and the fresh-install smoke test installs from that same zip. Build one locally with `bash .github/scripts/build-zip.sh` (output in `dist/`).
 

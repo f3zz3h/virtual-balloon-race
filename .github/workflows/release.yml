@@ -77,3 +77,21 @@ jobs:
         run: gh release create "$GITHUB_REF_NAME" "${{ steps.build.outputs.zip }}" "${{ steps.wporg.outputs.zip }}" --title "Lumaha Virtual Balloon Race ${{ steps.build.outputs.version }}" --generate-notes --verify-tag
         env:
           GH_TOKEN: ${{ github.token }}
+
+      # Publish the WordPress.org build to the plugin's SVN repository: trunk/, tags/<version>/ and
+      # assets/ (from .wordpress-org/). Every v* tag goes live for all users, so pre-release tags
+      # such as v2.1.0-rc1 are skipped. Needs the SVN_USERNAME and SVN_PASSWORD repository secrets.
+      - name: Install Subversion
+        if: ${{ !contains(github.ref_name, '-') }}
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq subversion
+
+      - name: Deploy to WordPress.org
+        if: ${{ !contains(github.ref_name, '-') }}
+        uses: 10up/action-wordpress-plugin-deploy@stable
+        env:
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+          SLUG: lumaha-virtual-balloon-race
+          VERSION: ${{ steps.wporg.outputs.version }}
+          BUILD_DIR: dist/wporg/lumaha-virtual-balloon-race
+          ASSETS_DIR: .wordpress-org
