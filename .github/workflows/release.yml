@@ -86,7 +86,7 @@ jobs:
     runs-on: ubuntu-latest
     # SVN_USERNAME and SVN_PASSWORD come from this environment (or the repository secrets).
     environment:
-      name: wordpress-org
+      name: Wordpress SVN
       url: https://wordpress.org/plugins/lumaha-virtual-balloon-race/
     steps:
       - name: Check out repository code
