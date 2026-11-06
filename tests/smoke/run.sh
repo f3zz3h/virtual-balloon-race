@@ -78,6 +78,9 @@ wp eval-file "$CHECKS" product-preview
 stage "Scenario A: a logo lost by AJAX add to cart is reported"
 wp eval-file "$CHECKS" logo-upload
 
+stage "Scenario A: rude balloon names"
+wp eval-file "$CHECKS" name-filter
+
 stage "Scenario A: whose balloons are whose"
 wp eval-file "$CHECKS" owners
 

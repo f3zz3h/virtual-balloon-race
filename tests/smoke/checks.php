@@ -838,6 +838,48 @@ switch ( $stage ) {
 		LVBR_Settings::flush_cache();
 		break;
 
+	// Rude balloon names are refused on the product page, and flagged on the admin list.
+	case 'name-filter':
+		$before  = get_option( LVBR_Settings::OPTION, array() );
+		$product = LVBR_Product_Type::all_products()[0];
+		$woo     = new LVBR_WooCommerce();
+		$try     = static function ( $name ) use ( $woo, $product ) {
+			wc_clear_notices();
+			$_POST = array(
+				'lvbr_balloon_nonce' => wp_create_nonce( 'lvbr_add_balloon' ),
+				'lvbr_balloon_name'  => $name,
+				'lvbr_balloon_color' => LVBR_Balloons::colors()[0],
+				'lvbr_helium_level'  => LVBR_Balloons::helium_strategies()[0],
+			);
+			$passed = $woo->validate_product_fields( true, $product->get_id(), 1 );
+			$_POST  = array();
+			return $passed;
+		};
+
+		$check( LVBR_Name_Filter::enabled(), 'the name check is on by default' );
+		$check( true === $try( 'Sky Rider' ), 'an ordinary name goes in the basket' );
+		$check( false === $try( 'Fuck Off' ), 'a rude name is refused' );
+		$check( false !== strpos( wp_json_encode( wc_get_notices( 'error' ) ), 'choose a different name' ), 'the buyer is asked to choose another name' );
+		$check( false === $try( 'S h 1 t' ), 'spaced-out look-alikes are refused' );
+		$check( true === $try( 'Scunthorpe Flyer' ) && true === $try( 'Moby Dick' ) && true === $try( 'Blue Tit' ), 'place names and ordinary words that contain a rude word are fine' );
+
+		$saved = ( new LVBR_Settings() )->sanitize( array_merge( LVBR_Settings::all(), array( 'name_filter' => 1, 'name_filter_builtin' => 1, 'name_filter_words' => "Grotty*\n, Sk Ri*", 'name_filter_allow' => 'Bollocks' ) ) );
+		$check( "grotty*\nskri*" === $saved['name_filter_words'], 'the admin word list is cleaned on save' );
+		$settings( $saved );
+		$check( false === $try( 'Grotty Gus' ), 'an admin-added word is refused' );
+		$check( true === $try( 'Bollocks' ), 'an always-allowed word goes through' );
+		$settings( array( 'name_filter_builtin' => 0 ) );
+		$check( true === $try( 'Fuck Off' ) && false === $try( 'Grotty Gus' ), 'with the built-in list off, only the admin\'s words are blocked' );
+		$settings( array( 'name_filter' => 0 ) );
+		$check( true === $try( 'Grotty Gus' ), 'with the check off, every name goes through' );
+
+		$settings_page = $render( array( new LVBR_Settings(), 'render_page' ) );
+		$check( false !== strpos( $settings_page, 'name="lvbr_settings[name_filter_words]"' ), 'Settings shows the word lists' );
+		wc_clear_notices();
+		update_option( LVBR_Settings::OPTION, $before );
+		LVBR_Settings::flush_cache();
+		break;
+
 	// Whose balloons are whose: logged-in purchases and orders on the account, not typed-in emails.
 	case 'owners':
 		global $wpdb;

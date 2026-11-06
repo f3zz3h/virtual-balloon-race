@@ -478,6 +478,9 @@ class LVBR_Admin {
 											<?php echo wp_get_attachment_image( (int) $balloon->logo_attachment_id, array( 24, 24 ), false, array( 'class' => 'lvbr-admin-logo' ) ); ?>
 										<?php endif; ?>
 										<?php echo esc_html( $balloon->balloon_name ); ?>
+										<?php if ( ! $withdrawn && LVBR_Name_Filter::is_blocked( $balloon->balloon_name ) ) : ?>
+											<br /><span class="lvbr-status lvbr-status--flagged" title="<?php esc_attr_e( 'This name contains a word on the blocked list (Settings → Balloon names). Withdraw the balloon to hide it, or add the word to Always allow.', 'lumaha-virtual-balloon-race' ); ?>"><?php esc_html_e( 'Name flagged', 'lumaha-virtual-balloon-race' ); ?></span>
+										<?php endif; ?>
 										<?php if ( $balloon->has_custom_start ) : ?>
 											<br /><small><?php esc_html_e( 'Custom launch point', 'lumaha-virtual-balloon-race' ); ?></small>
 										<?php endif; ?>

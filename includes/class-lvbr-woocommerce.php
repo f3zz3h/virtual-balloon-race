@@ -166,6 +166,11 @@ class LVBR_WooCommerce {
 			$passed = false;
 		}
 
+		if ( '' !== $name && LVBR_Name_Filter::is_blocked( $name ) ) {
+			wc_add_notice( __( 'Sorry, that balloon name isn’t allowed, as everyone can see it on the map and leaderboard. Please choose a different name.', 'lumaha-virtual-balloon-race' ), 'error' );
+			$passed = false;
+		}
+
 		if ( ! in_array( $color, LVBR_Balloons::colors(), true ) ) {
 			wc_add_notice( __( 'Please select a valid balloon colour.', 'lumaha-virtual-balloon-race' ), 'error' );
 			$passed = false;

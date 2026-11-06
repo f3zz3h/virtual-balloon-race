@@ -55,6 +55,10 @@ For on-time updates on a quiet site, add a real server cron that runs `wp lvbr t
 
 To sell entries, yes. Without WooCommerce, the map and leaderboard still work for balloons you add.
 
+= Can buyers give their balloon a rude name? =
+
+Not easily. Balloon names are shown to everyone, so by default a name with a common swear word or slur is refused and the buyer is asked to choose another. Add your own words, or allow ones caught by mistake, under **Balloon Race → Settings → Balloon names**. The check runs on your site: nothing is sent elsewhere. Any balloon that gets through is marked **Name flagged** on the leaderboard screen, where you can withdraw it.
+
 = Where does the wind come from? =
 
 From Open-Meteo's free weather API, for the area each balloon is in, so balloons that spread apart follow different winds. If the wind can't be fetched, balloons follow a default heading.
