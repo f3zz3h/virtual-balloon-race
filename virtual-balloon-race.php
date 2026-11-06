@@ -36,6 +36,7 @@ require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-sponsor-stats.php';
 require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-flight-modes.php';
 require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-install.php';
 require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-settings.php';
+require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-name-filter.php';
 require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-services.php';
 require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-geo.php';
 require_once LVBR_PLUGIN_DIR . 'includes/class-lvbr-weather.php';

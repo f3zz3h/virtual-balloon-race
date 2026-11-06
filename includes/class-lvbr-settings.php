@@ -127,6 +127,12 @@ class LVBR_Settings {
 			'team_scoring'      => array( 'section' => 'teams', 'type' => 'select', 'default' => 'average', 'label' => __( 'Default team scoring', 'lumaha-virtual-balloon-race' ), 'options' => LVBR_Teams::scoring_labels(), 'help' => __( 'Average is fairest between big and small teams. Each race can choose its own.', 'lumaha-virtual-balloon-race' ) ),
 			'default_teams'     => array( 'section' => 'teams', 'type' => 'teams', 'default' => array(), 'label' => __( 'Default teams', 'lumaha-virtual-balloon-race' ), 'help' => __( 'New races start with these teams. Change a race’s own teams on its race screen.', 'lumaha-virtual-balloon-race' ) ),
 
+			// Balloon names.
+			'name_filter'         => array( 'section' => 'names', 'type' => 'checkbox', 'default' => 1, 'label' => __( 'Block rude balloon names', 'lumaha-virtual-balloon-race' ), 'help' => __( 'Buyers are asked to choose another name if theirs contains a blocked word. Checked on this site only; nothing is sent elsewhere. Balloons already bought are flagged on the Balloon Race page so you can withdraw them.', 'lumaha-virtual-balloon-race' ) ),
+			'name_filter_builtin' => array( 'section' => 'names', 'type' => 'checkbox', 'default' => 1, 'label' => __( 'Use the built-in word list', 'lumaha-virtual-balloon-race' ), 'help' => __( 'Common English swear words and slurs. Turn off to block only your own words below.', 'lumaha-virtual-balloon-race' ) ),
+			'name_filter_words'   => array( 'section' => 'names', 'type' => 'wordlist', 'default' => '', 'label' => __( 'Also block', 'lumaha-virtual-balloon-race' ), 'help' => __( 'One word per line. Whole words only, unless you add a *: rude* blocks words starting with "rude", *rude words ending with it, and *rude* the letters anywhere. Capitals, accents and look-alikes such as 0 for o are handled for you.', 'lumaha-virtual-balloon-race' ) ),
+			'name_filter_allow'   => array( 'section' => 'names', 'type' => 'wordlist', 'default' => '', 'label' => __( 'Always allow', 'lumaha-virtual-balloon-race' ), 'help' => __( 'One word per line. Whole words that are never blocked, for a place or surname the list catches by mistake.', 'lumaha-virtual-balloon-race' ) ),
+
 			// Data.
 			'sponsor_stats'     => array( 'section' => 'data', 'type' => 'checkbox', 'default' => 0, 'label' => __( 'Count sponsor views and clicks', 'lumaha-virtual-balloon-race' ), 'help' => __( 'Anonymous totals for your sponsor report, kept on this site: no cookies, IP addresses or personal data, and nothing is sent elsewhere.', 'lumaha-virtual-balloon-race' ) ),
 			'delete_data_on_uninstall' => array( 'section' => 'data', 'type' => 'checkbox', 'default' => 0, 'label' => __( 'Delete all race data when the plugin is deleted', 'lumaha-virtual-balloon-race' ), 'help' => __( 'Off by default, so deleting and reinstalling the plugin (or replacing a hand-copied folder) keeps everything. When ticked, deleting the plugin from Plugins removes its races, balloons, teams and settings. Pages, products, orders and uploaded logos are kept either way. Deactivating never deletes anything.', 'lumaha-virtual-balloon-race' ) ),
@@ -147,6 +153,7 @@ class LVBR_Settings {
 			'services' => __( 'Maps, weather and place search', 'lumaha-virtual-balloon-race' ),
 			'shop'   => __( 'Shop add-ons', 'lumaha-virtual-balloon-race' ),
 			'teams'  => __( 'Teams', 'lumaha-virtual-balloon-race' ),
+			'names'  => __( 'Balloon names', 'lumaha-virtual-balloon-race' ),
 			'data'   => __( 'Data', 'lumaha-virtual-balloon-race' ),
 		);
 	}
@@ -337,6 +344,10 @@ class LVBR_Settings {
 
 				case 'attribution':
 					$output[ $key ] = LVBR_Services::sanitize_attribution( $raw );
+					break;
+
+				case 'wordlist':
+					$output[ $key ] = LVBR_Name_Filter::sanitize_list( $raw );
 					break;
 
 				case 'datetime':
@@ -534,6 +545,10 @@ class LVBR_Settings {
 					case 'tile_url':
 					case 'attribution':
 						echo '<input type="text" class="large-text code" id="' . esc_attr( $id ) . '" name="' . esc_attr( $name ) . '" value="' . esc_attr( (string) $value ) . '" />';
+						break;
+
+					case 'wordlist':
+						echo '<textarea class="regular-text" rows="5" id="' . esc_attr( $id ) . '" name="' . esc_attr( $name ) . '">' . esc_textarea( (string) $value ) . '</textarea>';
 						break;
 
 					case 'datetime':

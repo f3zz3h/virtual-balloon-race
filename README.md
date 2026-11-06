@@ -44,6 +44,7 @@ A WordPress + WooCommerce plugin for running virtual balloon races as fundraiser
 | Shop add-ons | Turn extras on or off and set their prices |
 | Demo race | **Create a demo race**: 30 made-up balloons, launched three days ago and flown on real wind, ending in four days, so the map and leaderboard have something to show. Demo entrants have no email addresses or orders, so nobody is emailed. **Keep it running** (on by default): once a day, a demo race with less than a day left is replaced by a fresh one with as many balloons. **Remove demo races** deletes them. Also `wp lvbr demo [--balloons=30]` and `wp lvbr demo --remove` |
 | Data | **Count sponsor views and clicks** (off by default; anonymous totals kept on the site). **Delete all race data when the plugin is deleted** (off by default). Deleting the plugin from Plugins then removes its races, balloons, teams and settings; pages, products, orders and uploaded logos are kept either way. Deactivating never deletes anything |
+| Balloon names | **Block rude balloon names** (on by default): buyers are asked to pick another name if theirs contains a blocked word. Uses a built-in list of common English swear words and slurs (can be turned off), plus your own **Also block** words, and **Always allow** for names caught by mistake. A `*` widens a word: `rude*` (starts with), `*rude` (ends with), `*rude*` (anywhere). Checked on the site only. Existing balloons with a blocked word show **Name flagged** on the leaderboard screen |
 | Teams | Off by default. **Enable teams**, the **default scoring** (average distance, total distance or best balloon) and the **default teams** (name and colour) that new races start with |
 
 > **Timing:** WordPress only runs scheduled jobs when someone visits the site. On a quiet site, updates can arrive late, though balloons still catch up on the next run. For on-time updates, add a real server cron that runs `wp lvbr tick` every few minutes.
@@ -220,7 +221,7 @@ Switch either off, or change its subject, heading and closing text, in **WooComm
 
 - See every balloon, its owner's email, distance and status
 - **Advance now** moves the race by a chosen number of hours, or by a fixed km range
-- **Mark burst / Undo burst** and **Withdraw / Reinstate** for individual balloons
+- **Mark burst / Undo burst** and **Withdraw / Reinstate** for individual balloons. Balloons whose name contains a blocked word are marked **Name flagged**
 - **Export CSV** of the race's balloons and donors (with a Withdrawn column)
 
 ---
@@ -249,6 +250,7 @@ includes/
   class-lvbr-product-balloon-entry.php  The product class (always virtual)
   class-lvbr-woocommerce.php     Balloon product fields, cart, order → balloon rows
   class-lvbr-race-entries.php    Race choice, purchasability, basket guard, race_id on balloons
+  class-lvbr-name-filter.php     Rude-word check for balloon names (word lists in Settings)
   class-lvbr-teams.php           Teams: per-race lists, scoring, standings, the team editor
   class-lvbr-flight-modes.php    Flight modes (Drift, Soar, Jetstream): lift decay, landing, Settings cards
   class-lvbr-demo.php            Demo races (Settings → Demo race, wp lvbr demo)
@@ -327,6 +329,8 @@ wp lvbr demo --remove                     # remove demo races
 | `lvbr_leaderboard_server_paging_from` | filter | From how many balloons the leaderboard is paged and searched on the server (default 500) |
 | `lvbr_map_all_trails_up_to` | filter | Up to how many balloons the map gets every trail (default 300); above it, the top 25, the viewer's and the selected balloon's |
 | `lvbr_public_owner_name` | filter | Public owner name, after shortening to first name + initial (`$name, $balloon`) |
+| `lvbr_name_filter_default_words` / `lvbr_name_filter_words` | filter | Built-in blocked words, and every blocked word in use (`$words`, same `*` rules as Settings) |
+| `lvbr_name_is_blocked` | filter | Whether a balloon name is refused (`$blocked, $name`) |
 | `lvbr_after_tick` | action | Runs after a race moves (`$summary`) |
 
 ### Automated checks (GitHub Actions)
