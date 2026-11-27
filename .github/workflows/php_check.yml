@@ -16,8 +16,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # 7.4 is the plugin's minimum ("Requires PHP"); the dev site runs 8.3.
-        php: ['7.4', '8.0', '8.3']
+        # 7.4 is the plugin's minimum ("Requires PHP"); the dev site runs 8.3; 8.6 is the newest WordPress supports (7.2).
+        php: ['7.4', '8.0', '8.3', '8.6']
     steps:
       - name: Check out repository code
         uses: actions/checkout@v7
